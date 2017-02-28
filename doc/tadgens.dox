@@ -1,0 +1,10 @@
+/**
+\mainpage
+\author Aditya Kashi
+
+TADGENS
+=======
+A 2D, unstructured grid, discontinuous Galerkin (DG) solver for the compressible Euler equations. The code uses explicit time-stepping.
+
+*/
+
