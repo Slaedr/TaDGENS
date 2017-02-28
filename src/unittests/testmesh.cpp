@@ -1,13 +1,13 @@
-#include "amesh2dh.hpp"
+#include "../mesh2dh.hpp"
 
 using namespace amat;
 using namespace acfd;
 using namespace std;
 
-int mesh()
+int loworder_hybridmesh()
 {
 	UMesh2dh m;
-	m.readGmsh2("../data/testhybrid.msh",2);
+	m.readGmsh2("../../data/testhybrid.msh",2);
 	m.compute_topological();
 	
 	int naface = 15;
@@ -20,6 +20,6 @@ int mesh()
 
 int main()
 {
-    mesh();
+    loworder_hybridmesh();
     return 0;
 }

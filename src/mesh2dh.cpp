@@ -1,95 +1,7 @@
-#include "amesh2dh.hpp"
+#include "mesh2dh.hpp"
 
 namespace acfd {
 
-UMesh2dh::UMesh2dh() { 
-	alloc_jacobians = false;
-	alloc_lambda = false;
-	neleminlambda = 3;
-}
-
-UMesh2dh::UMesh2dh(const UMesh2dh& other)
-{
-	npoin = other.npoin;
-	nelem = other.nelem;
-	nface = other.nface;
-	ndim = other.ndim;
-	nnode = other.nnode;
-	naface = other.naface;
-	nbface = other.nbface;
-	nfael = other.nfael;
-	maxnnode = other.maxnnode;
-	maxnfael = other.maxnfael;
-	nnofa = other.nnofa;
-	nbtag = other.nbtag;
-	ndtag = other.ndtag;
-	nbpoin = other.nbpoin;
-	coords = other.coords;
-	inpoel = other.inpoel;
-	bface = other.bface;
-	vol_regions = other.vol_regions;
-	esup = other.esup;
-	esup_p = other.esup_p;
-	psup = other.psup;
-	psup_p = other.psup_p;
-	esuel = other.esuel;
-	intfac = other.intfac;
-	intfacbtags = other.intfacbtags;
-	bpoints = other.bpoints;
-	bpointsb = other.bpointsb;
-	bfacebp = other.bfacebp;
-	bifmap = other.bifmap;
-	ifbmap = other.ifbmap;
-	isBoundaryMaps = other.isBoundaryMaps;
-	//gallfa = other.gallfa;
-	alloc_jacobians = other.alloc_jacobians;
-	jacobians = other.jacobians;
-}
-
-UMesh2dh& UMesh2dh::operator=(const UMesh2dh& other)
-{
-	npoin = other.npoin;
-	nelem = other.nelem;
-	nface = other.nface;
-	ndim = other.ndim;
-	nnode = other.nnode;
-	naface = other.naface;
-	nbface = other.nbface;
-	nfael = other.nfael;
-	maxnnode = other.maxnnode;
-	maxnfael = other.maxnfael;
-	nnofa = other.nnofa;
-	nbtag = other.nbtag;
-	ndtag = other.ndtag;
-	nbpoin = other.nbpoin;
-	coords = other.coords;
-	inpoel = other.inpoel;
-	bface = other.bface;
-	vol_regions = other.vol_regions;
-	esup = other.esup;
-	esup_p = other.esup_p;
-	psup = other.psup;
-	psup_p = other.psup_p;
-	esuel = other.esuel;
-	intfac = other.intfac;
-	intfacbtags = other.intfacbtags;
-	bpoints = other.bpoints;
-	bpointsb = other.bpointsb;
-	bfacebp = other.bfacebp;
-	bifmap = other.bifmap;
-	ifbmap = other.ifbmap;
-	isBoundaryMaps = other.isBoundaryMaps;
-	//gallfa = other.gallfa;
-	alloc_jacobians = other.alloc_jacobians;
-	jacobians = other.jacobians;
-	return *this;
-}
-
-UMesh2dh::~UMesh2dh()
-{
-	if(alloc_lambda)
-		delete [] lambda;
-}
 
 /** Reads Professor Luo's mesh file, which I call the 'domn' format.
    NOTE: Make sure nnofa is mentioned after ndim and ntype in the mesh file. ntype makes no sense for us now.
@@ -115,7 +27,7 @@ void UMesh2dh::readDomn(std::string mfile)
 	infile >> ndim;
 	infile >> nnode2;
 	infile >> nfael2;
-	infile >> nnofa;
+	infile >> maxnnofa;
 	infile >> ch;			//get the newline
 	do
 		ch = infile.get();
@@ -135,7 +47,7 @@ void UMesh2dh::readDomn(std::string mfile)
 	// temporary array to hold connectivity matrix
 	amat::Matrix<acfd_int > elms(nelem,nnode2);
 	//std::cout << "UTriMesh: Allocating bface...\n";
-	bface.setup(nface, nnofa + nbtag);
+	bface.setup(nface, maxnnofa + nbtag);
 	
 	//std::cout << "UTriMesh: Allocation done.";
 
@@ -228,15 +140,12 @@ void UMesh2dh::readDomn(std::string mfile)
 	
 	std::cout << "UMesh2dh: Number of elements: " << nelem << ", number of points: " << npoin << ", max number of nodes per element: " << maxnnode << std::endl;
 	std::cout << "Number of boundary faces: " << nface << ", Number of dimensions: " << ndim << std::endl;
-
-	/*if (nnode == 3) nmtens = 1;
-	else if(nnode == 4) nmtens = 4;*/
 	
 	// set flag_bpoin
 	flag_bpoin.setup(npoin,1);
 	flag_bpoin.zeros();
 	for(int i = 0; i < nface; i++)
-		for(int j = 0; j < nnofa; j++)
+		for(int j = 0; j < maxnnofa; j++)
 			flag_bpoin(bface(i,j)) = 1;
 }
 
@@ -279,7 +188,9 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	std::vector<int> nnofas(nelm,0);
 	std::vector<int> nfaels(nelm,0);
 	std::vector<int> nintnodes(nelm,0);
-	//std::cout << "UMesh2d: readGmsh2(): Total number of elms is " << nelm << std::endl;
+	maxnnofa = 2;
+	
+	std::cout << "UMesh2d: readGmsh2(): Total number of elms is " << nelm << std::endl;
 
 	for(int i = 0; i < nelm; i++)
 	{
@@ -345,7 +256,6 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 				nfaels[i] = 3;
 				nintnodes[i] = 0;
 				if(maxnnofa < 3) maxnnofa = 3;
-				nnofa = 3;
 				infile >> ntags;
 				if(ntags > ndtag) ndtag = ntags;
 				for(int j = 0; j < ntags; j++)
@@ -359,7 +269,6 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 				nfaels[i] = 4;
 				nintnodes[i] = 0;
 				if(maxnnofa < 3) maxnnofa = 3;
-				nnofa = 3;
 				infile >> ntags;
 				if(ntags > ndtag) ndtag = ntags;
 				for(int j = 0; j < ntags; j++)
@@ -396,8 +305,8 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 				nelem++;
 		}
 	}
-	/*std::cout << "UMesh2d: readGmsh2(): Done reading elms" << std::endl;
-	for(int i = 0; i < nelm; i++)
+	std::cout << "UMesh2d: readGmsh2(): Done reading elms" << std::endl;
+	/*for(int i = 0; i < nelm; i++)
 		std::cout << nnodes[i] << " " << nfaels[i] << std::endl;*/
 
 	nnode.resize(nelem);
@@ -432,7 +341,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 		nnobfa[i] = nnodes[i];
 		for(int j = 0; j < nnobfa[i]; j++)
 			bface(i,j) = elms(i,j)-1;			// -1 to correct for the fact that our numbering starts from zero
-		for(int j = nnofa; j < nnobfa[i]+nbtag; j++)
+		for(int j = nnobfa[i]; j < nnobfa[i]+nbtag; j++)
 			bface(i,j) = elms(i,j);
 	}
 	for(int i = 0; i < nelem; i++)

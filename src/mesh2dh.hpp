@@ -6,12 +6,12 @@
 #ifndef __AMESH2DH_H
 #define __AMESH2DH_H
 
-#ifndef __ACONSTANTS_H
-#include <aconstants.hpp>
+#ifndef __CONSTANTS_H
+#include "constants.hpp"
 #endif
 
-#ifndef __AMATRIX_H
-#include <amatrix.hpp>
+#ifndef __MATRIX_H
+#include "matrix.hpp"
 #endif
 
 namespace acfd {
@@ -83,10 +83,6 @@ private:
 	bool isBoundaryMaps;			///< Specifies whether bface-intfac maps have been created
 
 public:
-	UMesh2dh();
-	UMesh2dh(const UMesh2dh& other);
-	UMesh2dh& operator=(const UMesh2dh& other);
-	~UMesh2dh();
 		
 	/* Functions to get mesh data. */
 

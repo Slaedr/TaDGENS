@@ -1,5 +1,5 @@
 /**
- * @file amatrix.hpp
+ * @file matrix.hpp
  * @brief Defines a class to manipulate matrices.
  * 
  * Part of TADGENS.
@@ -12,9 +12,9 @@
  * \brief Includes all array and matrix storage classes, as well as linear algebra.
  */
 
-#ifndef __AMATRIX_H
+#ifndef __MATRIX_H
 
-#define __AMATRIX_H
+#define __MATRIX_H
 
 #ifndef __CONSTANTS_H
 #include "constants.hpp"
@@ -53,8 +53,8 @@ template <typename T>
 T determinant(const Matrix<T>& mat);
 
 /**
- * \class Matrix
- * \brief Stores a dense row-major matrix.
+ * @class Matrix
+ * @brief Stores a dense row-major matrix.
  * 
  * Notes:
  * If A is a column-major matrix, A[i][j] == A[j * nrows + i] where i is the row-index and j is the column index.
