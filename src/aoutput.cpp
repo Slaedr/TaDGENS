@@ -2,13 +2,13 @@
  * @brief Implementation of subroutines to write mesh data to various kinds of output formats
  */
 
-#include <aoutput.hpp>
+#include "aoutput.hpp"
 
 /* Writes multiple scalar data sets and one vector data set, all cell-centered data, to a file in VTU format.
  * If either x or y is a 0x0 matrix, it is ignored.
  * \param fname is the output vtu file name
  */
-void writeScalarsVectorToVtu_CellData(std::string fname, const acfd::UMesh2dh& m, const amat::Matrix<double>& x, std::string scaname[], const amat::Matrix<double>& y, std::string vecname)
+void writeScalarsVectorToVtu_CellData(std::string fname, const acfd::UMesh2dh& m, const amat::Array2d<double>& x, std::string scaname[], const amat::Array2d<double>& y, std::string vecname)
 {
 	int elemcode;
 	std::cout << "aoutput: Writing vtu output to " << fname << "\n";
@@ -116,7 +116,7 @@ void writeScalarsVectorToVtu_CellData(std::string fname, const acfd::UMesh2dh& m
 	std::cout << "Vtu file written.\n";
 }
 
-void writeScalarsVectorToVtu_PointData(std::string fname, const acfd::UMesh2dh& m, const amat::Matrix<double>& x, std::string scaname[], const amat::Matrix<double>& y, std::string vecname)
+void writeScalarsVectorToVtu_PointData(std::string fname, const acfd::UMesh2dh& m, const amat::Array2d<double>& x, std::string scaname[], const amat::Array2d<double>& y, std::string vecname)
 {
 	int elemcode;
 	std::cout << "aoutput: Writing vtu output to " << fname << "\n";

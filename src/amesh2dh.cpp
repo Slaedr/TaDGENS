@@ -1,4 +1,4 @@
-#include "mesh2dh.hpp"
+#include "amesh2dh.hpp"
 
 namespace acfd {
 
@@ -45,7 +45,7 @@ void UMesh2dh::readDomn(std::string mfile)
 	//std::cout << "\nUTriMesh: Allocating coords..";
 	coords.setup(npoin, ndim);
 	// temporary array to hold connectivity matrix
-	amat::Matrix<acfd_int > elms(nelem,nnode2);
+	amat::Array2d<acfd_int > elms(nelem,nnode2);
 	//std::cout << "UTriMesh: Allocating bface...\n";
 	bface.setup(nface, maxnnofa + nbtag);
 	
@@ -182,7 +182,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	/// elmtype is the standard element type in the Gmsh 2 mesh format - of either faces or elements
 	ndtag = 0; nbtag = 0;
 	infile >> nelm;
-	amat::Matrix<acfd_int> elms(nelm,width_elms);
+	amat::Array2d<acfd_int> elms(nelm,width_elms);
 	nface = 0; nelem = 0;
 	std::vector<int> nnodes(nelm,0);
 	std::vector<int> nnofas(nelm,0);
@@ -483,7 +483,7 @@ void UMesh2dh::compute_topological()
 	psup_p.setup(npoin+1,1);
 	psup_p.zeros();
 	psup_p(0,0) = 0;
-	amat::Matrix<int > lpoin(npoin,1);  // The ith member indicates the global point number of which the ith point is a surrounding point
+	amat::Array2d<int > lpoin(npoin,1);  // The ith member indicates the global point number of which the ith point is a surrounding point
 	for(int i = 0; i < npoin; i++) lpoin(i,0) = -1;	// initialize this std::vector to -1
 	int istor = 0;
 
@@ -506,7 +506,7 @@ void UMesh2dh::compute_topological()
 				nbd[j] = false;
 
 			if(nfael[ielem] == 3)
-				for(int i = 0; i < nbd.size(); i++)
+				for(unsigned int i = 0; i < nbd.size(); i++)
 					nbd[i] = true;
 			else if(nfael[ielem] == 4)
 				for(int jnode = 0; jnode < nfael[ielem]; jnode++)
@@ -554,7 +554,7 @@ void UMesh2dh::compute_topological()
 				nbd[j] = false;
 
 			if(nfael[ielem] == 3)
-				for(int i = 0; i < nbd.size(); i++)
+				for(unsigned int i = 0; i < nbd.size(); i++)
 					nbd[i] = true;
 			else if(nfael[ielem] == 4)
 				for(int jnode = 0; jnode < nfael[ielem]; jnode++)
@@ -582,22 +582,22 @@ void UMesh2dh::compute_topological()
 	/// 3. Elements surrounding elements
 	std::cout << "UMesh2dh: compute_topological(): Elements surrounding elements...\n";
 
-	//amat::Matrix<int> lpoin(npoin,1);
+	//amat::Array2d<int> lpoin(npoin,1);
 	esuel.setup(nelem, maxnfael);
 	for(int ii = 0; ii < nelem; ii++)
 		for(int jj = 0; jj < maxnfael; jj++)
 			esuel(ii,jj) = -1;
 	//lpofa.mprint();
 	const int lonnofa = 2;
-	amat::Matrix<int > lhelp(lonnofa,1);
+	amat::Array2d<int > lhelp(lonnofa,1);
 	lhelp.zeros();
 	lpoin.zeros();
 
 	for(int ielem = 0; ielem < nelem; ielem++)
 	{
 		// first get lpofa for this element
-		amat::Matrix<int > lpofai(nfael[ielem], lonnofa);	// lpofa(i,j) holds local node number of jth node of ith face (j in [0:nnofa], i in [0:nfael])
-		amat::Matrix<int > lpofaj;							// to be initialized for each jelem
+		amat::Array2d<int > lpofai(nfael[ielem], lonnofa);	// lpofa(i,j) holds local node number of jth node of ith face (j in [0:nnofa], i in [0:nfael])
+		amat::Array2d<int > lpofaj;							// to be initialized for each jelem
 		for(int i = 0; i < nfael[ielem]; i++)
 		{
 			for(int j = 0; j < lonnofa; j++)
@@ -696,7 +696,7 @@ void UMesh2dh::compute_topological()
 	//reset face totals
 	nbface = naface = 0;
 
-	int in1, je, jnode, jlocnode;
+	int in1, je, jnode;
 
 	//second run: populate intfac
 	for(int ie = 0; ie < nelem; ie++)
@@ -764,7 +764,7 @@ void UMesh2dh::compute_topological()
 
 	//first get number of bpoints
 	nbpoin = 0;
-	amat::Matrix<int > isbpflag(npoin,1);
+	amat::Array2d<int > isbpflag(npoin,1);
 	isbpflag.zeros();
 	for(int i = 0; i < nface; i++)
 	{

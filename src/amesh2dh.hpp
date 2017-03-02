@@ -1,4 +1,4 @@
-/** @file amesh2dh.hpp
+/** @file mesh2dh.hpp
  * @brief Contains a class to handle 2D hybrid meshes containing triangles and quadrangles
  * @author Aditya Kashi
  */
@@ -6,12 +6,12 @@
 #ifndef __AMESH2DH_H
 #define __AMESH2DH_H
 
-#ifndef __CONSTANTS_H
-#include "constants.hpp"
+#ifndef __ACONSTANTS_H
+#include "aconstants.hpp"
 #endif
 
-#ifndef __MATRIX_H
-#include "matrix.hpp"
+#ifndef __ARRAY2D_H
+#include "aarray2d.hpp"
 #endif
 
 namespace acfd {
@@ -37,36 +37,36 @@ private:
 	acfd_int nbpoin;						///< number of boundary points
 	int nbtag;								///< number of tags for each boundary face
 	int ndtag;								///< number of tags for each element
-	amat::Matrix<double> coords;			///< Specifies coordinates of each node
-	amat::Matrix<acfd_int> inpoel;			///< Interconnectivity matrix: lists node numbers of nodes in each element
-	amat::Matrix<int > bface;				///< Boundary face data: lists nodes belonging to a boundary face and contains boudnary markers
-	amat::Matrix<int> vol_regions;			///< to hold volume region markers, if any
-	amat::Matrix<int> flag_bpoin;			///< Holds 1 or 0 for each point depending on whether or not that point is a boundary point
+	amat::Array2d<acfd_real> coords;		///< Specifies coordinates of each node
+	amat::Array2d<acfd_int> inpoel;			///< Interconnectivity matrix: lists node numbers of nodes in each element
+	amat::Array2d<acfd_int> bface;			///< Boundary face data: lists nodes belonging to a boundary face and contains boudnary markers
+	amat::Array2d<int> vol_regions;			///< to hold volume region markers, if any
+	amat::Array2d<int> flag_bpoin;			///< Holds 1 or 0 for each point depending on whether or not that point is a boundary point
 
 	/// List of indices of [esup](@ref esup) corresponding to vertices (vertices = "low order" nodes only)
-	amat::Matrix<acfd_int> esup_p;
+	amat::Array2d<acfd_int> esup_p;
 	/// List of elements surrounding vertices
 	/** Integers pointing to particular vertices' element lists are stored in [esup_p](@ref esup_p). */
-	amat::Matrix<acfd_int> esup;
+	amat::Array2d<acfd_int> esup;
 
 	/// Lists of indices of psup corresponding to vertices
-	amat::Matrix<acfd_int> psup_p;
+	amat::Array2d<acfd_int> psup_p;
 	/// List of vertices surrounding vertices
 	/** Integers pointing to particular vertices' vertex lists are stored in [psup_p](@ref psup_p)
 	 */
-	amat::Matrix<acfd_int> psup;
+	amat::Array2d<acfd_int> psup;
 	
 	/// Elements surrounding elements
-	amat::Matrix<acfd_int> esuel;
+	amat::Array2d<acfd_int> esuel;
 	/// Face data structure - contains info about elements and nodes associated with a face
-	amat::Matrix<acfd_int> intfac;
+	amat::Array2d<acfd_int> intfac;
 	/// Holds boundary tags (markers) corresponding to intfac
-	amat::Matrix<int> intfacbtags;
+	amat::Array2d<int> intfacbtags;
 	/// Holds face numbers of faces making up an element
-	amat::Matrix<acfd_int> elemface;
+	amat::Array2d<acfd_int> elemface;
 
-	amat::Matrix<acfd_int> bifmap;				///< relates boundary faces in intfac with bface, ie, bifmap(intfac no.) = bface no.
-	amat::Matrix<acfd_int> ifbmap;				///< relates boundary faces in bface with intfac, ie, ifbmap(bface no.) = intfac no.
+	amat::Array2d<acfd_int> bifmap;				///< relates boundary faces in intfac with bface, ie, bifmap(intfac no.) = bface no.
+	amat::Array2d<acfd_int> ifbmap;				///< relates boundary faces in bface with intfac, ie, ifbmap(bface no.) = intfac no.
 	bool isBoundaryMaps;			///< Specifies whether bface-intfac maps have been created
 
 public:
@@ -86,7 +86,7 @@ public:
 		return bface.get(faceno, val);
 	}
 
-	amat::Matrix<double >* getcoords()
+	amat::Array2d<double >* getcoords()
 	{ return &coords; }
 
 	acfd_int gesup(acfd_int i) const { return esup(i); }
@@ -122,13 +122,13 @@ public:
 		coords(pointno,dim) = value;
 	}
 
-	void setcoords(amat::Matrix<double >* c)
+	void setcoords(amat::Array2d<double >* c)
 	{ coords = *c; }
 
-	void setinpoel(amat::Matrix<int >* inp)
+	void setinpoel(amat::Array2d<int >* inp)
 	{ inpoel = *inp; }
 
-	void setbface(amat::Matrix<int >* bf)
+	void setbface(amat::Array2d<int >* bf)
 	{ bface = *bf; }
 
 	void modify_bface_marker(int iface, int pos, int number)

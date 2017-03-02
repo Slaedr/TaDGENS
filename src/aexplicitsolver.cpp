@@ -4,7 +4,7 @@
  * @date Feb 24, 2016
  */
 
-#include <aexplicitsolver.hpp>
+#include "aexplicitsolver.hpp"
 
 namespace acfd {
 
@@ -39,7 +39,7 @@ ExplicitSolver::ExplicitSolver(const UMesh2dh* mesh, const int _order, std::stri
 	rc.setup(m->gnelem(),m->gndim());
 	rcg.setup(m->gnface(),m->gndim());
 	ug.setup(m->gnface(),NVARS);
-	gr = new amat::Matrix<acfd_real>[m->gnaface()];
+	gr = new amat::Array2d<acfd_real>[m->gnaface()];
 	for(int i = 0; i <  m->gnaface(); i++)
 		gr[i].setup(ngaussf, m->gndim());
 
@@ -221,7 +221,7 @@ void ExplicitSolver::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_
 	std::cout << "ExplicitSolver: loaddata(): Initial data calculated.\n";
 }
 
-void ExplicitSolver::compute_boundary_states(const amat::Matrix<acfd_real>& ins, amat::Matrix<acfd_real>& bs)
+void ExplicitSolver::compute_boundary_states(const amat::Array2d<acfd_real>& ins, amat::Array2d<acfd_real>& bs)
 {
 #pragma omp parallel for default(shared)
 	for(int ied = 0; ied < m->gnbface(); ied++)
@@ -271,7 +271,7 @@ void ExplicitSolver::compute_boundary_states(const amat::Matrix<acfd_real>& ins,
 	}
 }
 
-acfd_real ExplicitSolver::l2norm(const amat::Matrix<acfd_real>* const v)
+acfd_real ExplicitSolver::l2norm(const amat::Array2d<acfd_real>* const v)
 {
 	acfd_real norm = 0;
 	for(int iel = 0; iel < m->gnelem(); iel++)
@@ -423,10 +423,10 @@ void ExplicitSolver::solve_rk1_steady(const acfd_real tol, const int maxiter, co
 	int step = 0;
 	acfd_real resi = 1.0;
 	acfd_real initres = 1.0;
-	amat::Matrix<acfd_real> res(NVARS,1);
+	amat::Array2d<acfd_real> res(NVARS,1);
 	res.ones();
-	amat::Matrix<acfd_real> dtm(m->gnelem(), 1);		// for local time-stepping
-	amat::Matrix<acfd_real> uold(u.rows(), u.cols());
+	amat::Array2d<acfd_real> dtm(m->gnelem(), 1);		// for local time-stepping
+	amat::Array2d<acfd_real> uold(u.rows(), u.cols());
 
 	while(resi/initres > tol && step < maxiter)
 	{
@@ -501,10 +501,10 @@ void ExplicitSolver::postprocess_point()
 	std::cout << "ExplicitSolver: postprocess_point(): Creating output arrays...\n";
 	scalars.setup(m->gnpoin(),3);
 	velocities.setup(m->gnpoin(),2);
-	amat::Matrix<acfd_real> c(m->gnpoin(),1);
+	amat::Array2d<acfd_real> c(m->gnpoin(),1);
 	
-	amat::Matrix<acfd_real> areasum(m->gnpoin(),1);
-	amat::Matrix<acfd_real> up(m->gnpoin(), NVARS);
+	amat::Array2d<acfd_real> areasum(m->gnpoin(),1);
+	amat::Array2d<acfd_real> up(m->gnpoin(), NVARS);
 	up.zeros();
 	areasum.zeros();
 
@@ -558,9 +558,9 @@ void ExplicitSolver::postprocess_cell()
 	std::cout << "ExplicitSolver: postprocess_cell(): Creating output arrays...\n";
 	scalars.setup(m->gnelem(), 3);
 	velocities.setup(m->gnelem(), 2);
-	amat::Matrix<acfd_real> c(m->gnelem(), 1);
+	amat::Array2d<acfd_real> c(m->gnelem(), 1);
 
-	amat::Matrix<acfd_real> d = u.col(0);
+	amat::Array2d<acfd_real> d = u.col(0);
 	scalars.replacecol(0, d);		// populate density data
 	//std::cout << "EulerFV: postprocess(): Written density\n";
 
@@ -584,7 +584,7 @@ acfd_real ExplicitSolver::compute_entropy_cell()
 	acfd_real vmaginf2 = uinf(0,1)/uinf(0,0)*uinf(0,1)/uinf(0,0) + uinf(0,2)/uinf(0,0)*uinf(0,2)/uinf(0,0);
 	acfd_real sinf = ( uinf(0,0)*(g-1) * (uinf(0,3)/uinf(0,0) - 0.5*vmaginf2) ) / pow(uinf(0,0),g);
 
-	amat::Matrix<acfd_real> s_err(m->gnelem(),1);
+	amat::Array2d<acfd_real> s_err(m->gnelem(),1);
 	acfd_real error = 0;
 	for(int iel = 0; iel < m->gnelem(); iel++)
 	{
@@ -601,12 +601,12 @@ acfd_real ExplicitSolver::compute_entropy_cell()
 	return error;
 }
 
-amat::Matrix<acfd_real> ExplicitSolver::getscalars() const
+amat::Array2d<acfd_real> ExplicitSolver::getscalars() const
 {
 	return scalars;
 }
 
-amat::Matrix<acfd_real> ExplicitSolver::getvelocities() const
+amat::Array2d<acfd_real> ExplicitSolver::getvelocities() const
 {
 	return velocities;
 }

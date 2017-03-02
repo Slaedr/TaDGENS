@@ -7,11 +7,11 @@
 #ifndef __ANUMERICALFLUX_H
 
 #ifndef __ACONSTANTS_H
-#include <aconstants.hpp>
+#include <constants.hpp>
 #endif
 
-#ifndef __AMATRIX_H
-#include <amatrix.hpp>
+#ifndef __AARRAY2D_H
+#include <array2d.hpp>
 #endif
 
 #define __ANUMERICALFLUX_H 1
@@ -48,9 +48,6 @@ public:
 /// Given left and right states at each face, the Van-Leer flux-vector-splitting is calculated at each face
 class VanLeerFlux : public InviscidFlux
 {
-	amat::Matrix<acfd_real> fiplus;
-	amat::Matrix<acfd_real> fjminus;
-
 public:
 	VanLeerFlux(int num_vars, int num_dims, acfd_real gamma);
 	void get_flux(const acfd_real *const ul, const acfd_real *const ur, const acfd_real* const n, acfd_real *const flux);
@@ -69,7 +66,6 @@ public:
  */
 class HLLCFlux : public InviscidFlux
 {
-	amat::Matrix<acfd_real> utemp;
 public:
 	HLLCFlux(int num_vars, int num_dims, acfd_real gamma);
 	void get_flux(const acfd_real *const ul, const acfd_real *const ur, const acfd_real* const n, acfd_real *const flux);
