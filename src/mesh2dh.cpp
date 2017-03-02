@@ -182,7 +182,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	/// elmtype is the standard element type in the Gmsh 2 mesh format - of either faces or elements
 	ndtag = 0; nbtag = 0;
 	infile >> nelm;
-	amat::Matrix<int > elms(nelm,width_elms);
+	amat::Matrix<acfd_int> elms(nelm,width_elms);
 	nface = 0; nelem = 0;
 	std::vector<int> nnodes(nelm,0);
 	std::vector<int> nnofas(nelm,0);
@@ -368,92 +368,6 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	for(int i = 0; i < nface; i++)
 		for(int j = 0; j < nnobfa[i]; j++)
 			flag_bpoin(bface(i,j)) = 1;
-}
-
-/**	Stores (in array bpointsb) for each boundary point: the associated global point number and the two bfaces associated with it.
- * Also calculates bfacebp, which is like inpoel for boundary faces - it gives the boundary node number (according to bpointsb) of each local node of a bface.
- * \note Only for linear meshes.
- */
-void UMesh2dh::compute_boundary_points()
-{
-	std::cout << "UMesh2dh: compute_boundary_points(): Calculating bpointsb structure"<< std::endl;
-
-	// first, get number of boundary points
-
-	nbpoin = 0;
-	amat::Matrix<int > flagb(npoin,1);
-	flagb.zeros();
-	for(int iface = 0; iface < nface; iface++)
-	{
-		for(int inofa = 0; inofa < nnofa[iface]; inofa++)
-			flagb(bface(iface,inofa)) = 1;
-	}
-	for(int ipoin = 0; ipoin < npoin; ipoin++)
-		nbpoin += flagb(ipoin);
-
-	std::cout << "UMesh2dh: compute_boundary_points(): No. of boundary points = " << nbpoin << std::endl;
-
-	bpointsb.setup(nbpoin,3);
-	for(int i = 0; i < nbpoin; i++)
-		for(int j = 0; j < 3; j++)
-			bpointsb(i,j) = -1;
-
-	bfacebp.setup(nface,maxnnofa);
-	
-	amat::Matrix<double > lpoin(npoin,1);
-
-	int bp = 0;
-
-	// Next, populate bpointsb by iterating over faces. Also populate bfacebp, which holds the boundary points numbers of the 2 points in a bface.
-	lpoin.zeros();		// lpoin will be 1 if the point has been visited
-	for(int iface = 0; iface < nface; iface++)
-	{
-		int p1, p2;
-		p1 = bface(iface,0);
-		p2 = bface(iface,1);
-
-		if(lpoin(p1) == 0)	// if this point has not been visited before
-		{
-			bpointsb(bp,0) = p1;
-			bpointsb(bp,2) = iface;
-			bfacebp(iface,0) = bp;
-			bp++;
-			lpoin(p1) = 1;
-		}
-		else
-		{
-			// search bpoints for point p1
-			int ibp=-1;
-			for(int i = 0; i < bp; i++)
-			{
-				if(bpointsb(i,0) == p1) ibp = i;
-			}
-			if(ibp==-1) std::cout << "UMesh2dh: compute_boundary_points(): Point not found!" << std::endl;
-			bpointsb(ibp,2) = iface;
-			bfacebp(iface,0) = ibp;
-		}
-
-		if(lpoin(p2) == 0)	// if this point has not been visited before
-		{
-			bpointsb(bp,0) = p2;
-			bpointsb(bp,1) = iface;
-			bfacebp(iface,1) = bp;
-			bp++;
-			lpoin(p2) = 1;
-		}
-		else
-		{
-			// search bpoints for point p2
-			int ibp=-1;
-			for(int i = 0; i < bp; i++)
-			{
-				if(bpointsb(i,0) == p2) ibp = i;
-			}
-			if(ibp==-1) std::cout << "UMesh2d: compute_boundary_points(): Point not found!" << std::endl;
-			bpointsb(ibp,1) = iface;
-			bfacebp(iface,1) = ibp;
-		}
-	}
 }
 
 void UMesh2dh::printmeshstats()
@@ -831,10 +745,10 @@ void UMesh2dh::compute_topological()
 				// high-order nodes
 				int nhighperface = (nnode[ie]-nfael[ie]-nintnodel[ie])/nfael[ie];
 				for(int i = 0; i < nhighperface; i++)
-					intfac(nbface,i+4) = inpoel(ie, nfael[ie] + in*nhighperface + i);
+					intfac(naface,i+4) = inpoel(ie, nfael[ie] + in*nhighperface + i);
 
 				// finally set nnofa
-				nnofa[nbface] = nhighperface + 2;
+				nnofa[naface] = nhighperface + 2;
 				
 				elemface(ie,in) = naface;
 				for(jnode = 0; jnode < nfael[je]; jnode++)

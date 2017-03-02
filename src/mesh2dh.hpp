@@ -20,10 +20,10 @@ namespace acfd {
 class UMesh2dh
 {
 private:
-	int npoin;								///< Number of nodes
-	int nelem;								///< Number of elements
-	int nface;								///< Number of boundary faces
-	int ndim;								///< Dimension of the mesh
+	int ndim;								///< Number of space dimensions of mesh - can only be 2, though
+	acfd_int npoin;							///< Number of nodes
+	acfd_int nelem;							///< Number of elements
+	acfd_int nface;							///< Number of boundary faces
 	std::vector<int> nnode;					///< number of nodes to an element, for each element
 	std::vector<int> nintnodel;				///< Number of internal (not lying on a face) nodes in an element
 	int maxnnode;							///< Maximum number of nodes per element for any element
@@ -32,54 +32,41 @@ private:
 	int maxnfael;							///< Maximum number of faces per element for any element
 	std::vector<int> nnofa;					///< number of nodes in a face
 	std::vector<int> nnobfa;				///< number of nodes in boundary faces
-	int naface;								///< total number of (internal and boundary) faces
-	int nbface;								///< number of boundary faces as calculated by compute_face_data(), as opposed to nface which is read from file
-	int nbpoin;								///< number of boundary points
+	acfd_int naface;						///< total number of (internal and boundary) faces
+	acfd_int nbface;						///< number of boundary faces as calculated by compute_face_data(), as opposed to nface which is read from file
+	acfd_int nbpoin;						///< number of boundary points
 	int nbtag;								///< number of tags for each boundary face
 	int ndtag;								///< number of tags for each element
-	amat::Matrix<double > coords;			///< Specifies coordinates of each node
-	amat::Matrix<int > inpoel;				///< Interconnectivity matrix: lists node numbers of nodes in each element
+	amat::Matrix<double> coords;			///< Specifies coordinates of each node
+	amat::Matrix<acfd_int> inpoel;			///< Interconnectivity matrix: lists node numbers of nodes in each element
 	amat::Matrix<int > bface;				///< Boundary face data: lists nodes belonging to a boundary face and contains boudnary markers
-	amat::Matrix<double > vol_regions;		///< to hold volume region markers, if any
-	amat::Matrix<acfd_real > flag_bpoin;	///< Holds 1 or 0 for each point depending on whether or not that point is a boundary point
+	amat::Matrix<int> vol_regions;			///< to hold volume region markers, if any
+	amat::Matrix<int> flag_bpoin;			///< Holds 1 or 0 for each point depending on whether or not that point is a boundary point
 
 	/// List of indices of [esup](@ref esup) corresponding to vertices (vertices = "low order" nodes only)
-	amat::Matrix<int > esup_p;
+	amat::Matrix<acfd_int> esup_p;
 	/// List of elements surrounding vertices
 	/** Integers pointing to particular vertices' element lists are stored in [esup_p](@ref esup_p). */
-	amat::Matrix<int > esup;
+	amat::Matrix<acfd_int> esup;
 
 	/// Lists of indices of psup corresponding to vertices
-	amat::Matrix<int > psup_p;
+	amat::Matrix<acfd_int> psup_p;
 	/// List of vertices surrounding vertices
 	/** Integers pointing to particular vertices' vertex lists are stored in [psup_p](@ref psup_p)
 	 */
-	amat::Matrix<int > psup;
+	amat::Matrix<acfd_int> psup;
 	
 	/// Elements surrounding elements
-	amat::Matrix<int > esuel;
+	amat::Matrix<acfd_int> esuel;
 	/// Face data structure - contains info about elements and nodes associated with a face
-	amat::Matrix<int > intfac;
+	amat::Matrix<acfd_int> intfac;
 	/// Holds boundary tags (markers) corresponding to intfac
-	amat::Matrix<int > intfacbtags;
+	amat::Matrix<int> intfacbtags;
 	/// Holds face numbers of faces making up an element
-	amat::Matrix<int> elemface;
-	
-	/** @brief Boundary points list
-	 * 
-	 * bpoints contains: bpoints(0) = global point number, bpoints(1) = first containing intfac face (face with intfac's second point as this point), 
-	 * bpoints(2) = second containing intfac face (face with intfac's first point as this point)
-	 */
-	amat::Matrix<int > bpoints;
-	
-	/// Like bpoints, but stores bface numbers corresponding to each face, rather than intfac faces
-	amat::Matrix<int > bpointsb;
+	amat::Matrix<acfd_int> elemface;
 
-	/// Stores boundary-points numbers (defined by bpointsb) of the two points making up a particular bface.
-	amat::Matrix<int > bfacebp;
-
-	amat::Matrix<int > bifmap;				///< relates boundary faces in intfac with bface, ie, bifmap(intfac no.) = bface no.
-	amat::Matrix<int > ifbmap;				///< relates boundary faces in bface with intfac, ie, ifbmap(bface no.) = intfac no.
+	amat::Matrix<acfd_int> bifmap;				///< relates boundary faces in intfac with bface, ie, bifmap(intfac no.) = bface no.
+	amat::Matrix<acfd_int> ifbmap;				///< relates boundary faces in bface with intfac, ie, ifbmap(bface no.) = intfac no.
 	bool isBoundaryMaps;			///< Specifies whether bface-intfac maps have been created
 
 public:
@@ -102,35 +89,31 @@ public:
 	amat::Matrix<double >* getcoords()
 	{ return &coords; }
 
-	int gesup(int i) const { return esup(i); }
-	int gesup_p(int i) const { return esup_p(i); }
-	int gpsup(int i) const { return psup(i); }
-	int gpsup_p(int i) const { return psup_p(i); }
-	int gesuel(int ielem, int jnode) const { return esuel(ielem, jnode); }
+	acfd_int gesup(acfd_int i) const { return esup(i); }
+	acfd_int gesup_p(acfd_int i) const { return esup_p(i); }
+	acfd_int gpsup(acfd_int i) const { return psup(i); }
+	acfd_int gpsup_p(acfd_int i) const { return psup_p(i); }
+	acfd_int gesuel(acfd_int ielem, int jnode) const { return esuel(ielem, jnode); }
 	acfd_int gelemface(acfd_int ielem, int inode) const { return elemface(ielem,inode); }
-	int gintfac(int face, int i) const { return intfac(face,i); }
-	int gintfacbtags(int face, int i) const { return intfacbtags(face,i); }
-	int gbpoints(int poin, int i) const { return bpoints(poin,i); }
-	int gbpointsb(int poin, int i) const { return bpointsb(poin,i); }
-	int gbfacebp(int iface, int i) const { return bfacebp(iface,i); }
-	int gbifmap(int intfacno) const { return bifmap(intfacno); }
-	int gifbmap(int bfaceno) const { return ifbmap(bfaceno); }
+	acfd_int gintfac(acfd_int face, int i) const { return intfac(face,i); }
+	int gintfacbtags(acfd_int face, int i) const { return intfacbtags(face,i); }
+	acfd_int gbifmap(acfd_int intfacno) const { return bifmap(intfacno); }
+	acfd_int gifbmap(acfd_int bfaceno) const { return ifbmap(bfaceno); }
 	int gflag_bpoin(const acfd_int pointno) const { return flag_bpoin(pointno); }
 
-	int gnpoin() const { return npoin; }
-	int gnelem() const { return nelem; }
-	int gnface() const { return nface; }
-	int gnbface() const { return nbface; }
-	int gnnode(int ielem) const { return nnode[ielem]; }
-	int gndim() const { return ndim; }
-	int gnaface() const {return naface; }
-	int gnfael(int ielem) const { return nfael[ielem]; }
-	int gnnofa(int iface) const { return nnofa[iface]; }
-	int gnnobfa(int ibface) const { return nnobfa[ibface]; }
+	acfd_int gnpoin() const { return npoin; }
+	acfd_int gnelem() const { return nelem; }
+	acfd_int gnface() const { return nface; }
+	acfd_int gnbface() const { return nbface; }
+	int gnnode(acfd_int ielem) const { return nnode[ielem]; }
+	acfd_int gnaface() const {return naface; }
+	int gnfael(acfd_int ielem) const { return nfael[ielem]; }
+	int gnnofa(acfd_int iface) const { return nnofa[iface]; }
+	int gnnobfa(acfd_int ibface) const { return nnobfa[ibface]; }
 	int gmaxnnofa() const { return maxnnofa; }
 	int gnbtag() const{ return nbtag; }
 	int gndtag() const { return ndtag; }
-	int gnbpoin() const { return nbpoin; }
+	acfd_int gnbpoin() const { return nbpoin; }
 
 	/* Functions to set some mesh data structures. */
 	/// set coordinates of a certain point; 'set' counterpart of the 'get' function [gcoords](@ref gcoords).

@@ -7,12 +7,30 @@ using namespace std;
 int loworder_hybridmesh()
 {
 	UMesh2dh m;
-	m.readGmsh2("../../data/testhybrid.msh",2);
+	m.readGmsh2("../../testcases/unittests/squarequad2.msh",2);
 	m.compute_topological();
 	
-	int naface = 15;
-	int face = m.gelemface(18-naface,3);
-	cout << m.gintfac(face,2) << " " << m.gintfac(face,3) << endl;
+	for(int i = 0; i < m.gnaface(); i++)
+	{
+	    cout << "nnofa = " << m.gnnofa(i) << "; ";
+	    for(int j = 0; j < 2+m.gnnofa(i); j++)
+	        cout << m.gintfac(i,j) << " ";
+    	cout << endl;
+    }
+	
+	int nbface = 8;
+	
+	cout << "Nbface = " << m.gnbface() << endl;
+	int elem = 1;
+	for(int i = 0; i < m.gnfael(elem); i++)
+	    cout << m.gesuel(elem,i) << " ";
+	cout << endl;
+	
+	/*int face = 10;
+	cout << "L and R elems: " << m.gintfac(face,0) << " " << m.gintfac(face,1) << endl << "Nodes: ";
+	for(int i = 0; i < m.gnnofa(face); i++)
+	    cout << m.gintfac(face,2+i) << " ";
+	cout << endl;*/
 	
 	cout << endl;
 	return 0;
