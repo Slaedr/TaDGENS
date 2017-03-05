@@ -15,15 +15,10 @@
 #include "aarray2d.hpp"
 #endif
 
-#ifndef EIGEN_CORE_H
-#include <Eigen/Core>
-typedef Eigen::Matrix<acfd::acfd_real, Eigen::dynamic, Eigen::dynamic> Matrix;
-#endif
-
 namespace acfd {
 
-/// Abstract geometric mapping between a physical element and a reference element
-class GeomMapping
+/// Abstract geometric mapping between a 2D physical element and a reference element
+class GeomMapping2D
 {
 protected:
 	int order;
@@ -54,32 +49,74 @@ public:
 		quadWeights = quadratureWeights;
 	}*/
 
+	/// Returns the value of the mapping function at given reference coordinates
+	virtual void evaluateMapping(const acfd_real xi[NDIM], acfd_real xg[NDIM]) = 0;
+	
 	/// Sets the jacobian, jacobian inverse and jacobian determinant corresponding to some reference coordinates
 	virtual void computeJacobians(const acfd_real xi[NDIM], Matrix& jac, Matrix& jacinv, acfd_real& jdet) = 0;
 
 	/// Read-only access to jacobians
-	virtual const Matrix& jac(int ipoint) const = 0;
+	const Matrix& jac(int ipoint) const {
+		return jaco[ipoint];
+	}
 	
 	/// Read-only access to inverse of jacobians
-	virtual const Matrix& jacInv(const int ipoint) const = 0;
+	const Matrix& jacInv(const int ipoint) const {
+		return jacoinv[ipoint];
+	}
 
 	/// Jacobian determinant
-	virtual acfd_real jacDet(const int ipoint) const = 0;
+	acfd_real jacDet(const int ipoint) const {
+		return jacodet[ipoint];
+	}
 };
 
-class LagrangeMapping2DTriangle : public GeomMapping
+class LagrangeMapping2DTriangle : public GeomMapping2D
 {
 public:
 };
 
-class LagrangeMapping2DQuadrangle : public GeomMapping
+class LagrangeMapping2DQuadrangle : public GeomMapping2D
 {
 public:
 };
 
-class LagrangeMapping1D : public GeomMapping
+/// Abstract class for a vector function of a single variable for parameterizing boundary curves
+/** The reference nodes are at equally-spaced points between (and including) -1 and 1.
+ */
+class GeomMapping1D
 {
+protected:
+	int order;
+	amat::Array2d<acfd_real> phyNodes;		///< Physical locations of the nodes
+	std::vector<acfd_real> speeds;			///< Magnitude of derivative of the curve w.r.t. reference coordinate at several points
+	std::vector<Vector> normals;			///< Normals at several points
 public:
+	/// Set polynomial order of mapping
+	void setOrder(const int ord) {
+		order = ord;
+	}
+
+	/// Return the order
+	int getOrder() const {
+		return order;
+	}
+
+	/// Sets the coordinates of physical nodes of the element
+	void setPhysicalNodes(const Array2d& physicalnodes) {
+		phyNodes = physicalnodes;
+	}
+	
+	/// Returns the value of the mapping function at a given reference coordinate
+	virtual void evaluateMapping(const acfd_real xi, acfd_real xg[NDIM]) = 0;
+
+	const Vector& normal(const int ipoin) const {
+		return normals[ipoin];
+	}
+
+	acfd_real speed(const int ipoin) const {
+		return speeds[ipoin];
+	}
 };
 
 /// Abstract finite element

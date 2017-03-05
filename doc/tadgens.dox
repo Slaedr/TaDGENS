@@ -4,7 +4,17 @@
 
 TADGENS
 =======
-A 2D, unstructured grid, discontinuous Galerkin (DG) solver for the compressible Euler equations. The code uses explicit time-stepping.
+A 2D, unstructured grid, discontinuous Galerkin (DG) solver for the compressible Euler equations.
+
+Storage of mesh data
+--------------------
+Mesh data, including coordinates of nodes (coord), interconnectivity matrix (what nodes each element is made up of) (inpoel), boundary face data (bface), elements surrounding elements (esuel), face connectivity data (intfac), faces making up an element (elemface) etc are stored as global arrays. This means that h-adpatation will be tough to incorporate at a later stage, while allowing faster iteration over elements and faces. Even if we move to local storage of mesh data at a (much) later stage, the current structures will be used to pre-compute that.
+
+Storage of precomputed FE data
+-----------------------------------
+Storage of various quantities at quadrature points, such as physical coordinates, basis function values, basis gradient values, geometric mapping Jacobians and normals etc are stored locally in element-level class objects. If only mesh data is also included in these classes, h-adaptation can be incorporated. Also, effecient p-adaptation, without pre-allocating based on the maximum p requirement for all elements, is possible. If no adaptation (or only p-adaptation with allocation based on maximum p) is needed , a gobal array of these element-local objects can be stored. If adaptation is needed, we can store a linked list of these objects. Both these would correspond to the so-called "array-of-structs" storage.
+
+The other option is to have global arrays of all the data needed. This would make a massive redesign necessary in case we wish to introduce adaptation. However, we get a "struct-of-arrays" type storage, which is supposedly better for memory access patterns. At this point, I do not see why that might be, and therefore nor how much better it is.
 
 */
 

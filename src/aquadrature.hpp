@@ -1,25 +1,62 @@
+/** @file aquadrature.hpp
+ * @brief Provides Gauss quadrature rules
+ * @author Aditya Kashi
+ * @date 2017-03-04
+ */
+
 #ifndef __AQUADRATURE_H
+#define __AQUADRATURE_H
+
+#ifndef __ACONSTANTS_H
+#include "aconstants.hpp"
+#endif
 
 #ifndef __AARRAY2D_H
 #include "aarray2d.hpp"
 #endif
 
-#define __AQUADRATURE2D_H
-
-using namespace amat;
-
 namespace acfd {
 
-class Quadrature
+/// Base class for defining quadrature rules
+class QuadratureRule
 {
+protected:
+	int ngauss;
+	amat::Array2d<acfd_real> gweights;
+	amat::Array2d<acfd_real> gpoints;
+public:
+	QuadratureRule(const int n_gauss) : nguass(n_guass) { }
+	
+	acfd_real weight(const int iguass) const {
+		return gweights(igauss);
+	}
+
+	acfd_real point(const int igauss, const int idim) const {
+		return gpoints(igauss, idim);
+	}
 };
 
-class Quadrature2D : public Quadrature
+/// 1D Gauss-Legendre quadrature
+class Quadrature1D : public QuadratureRule
 {
+public:
+	Quadrature1D(const int n_guass);
 };
 
-class Quadraturer1D : public Quadrature
+/// Integration over the reference square
+/** Note that currently, this is restricted to having the same number of quadrature points in the x- and y-directions.
+ */
+class Quadrature2DSquare : public QuadratureRule
 {
+public:
+	Quadrature2DSquare(const int n_guass);
+};
+
+/// Integration over the reference triangle [(0,0), (1,0), (0,1)]
+class Quadrature2DTriangle : public QuadratureRule
+{
+public:
+	Quadrature2DTriangle(const int n_guass);
 };
 
 } // end namespace acfd

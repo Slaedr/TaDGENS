@@ -1,20 +1,20 @@
-/** @file aexplicitsolver.cpp
- * @brief Implements a driver class for explicit solution of Euler/Navier-Stokes equations.
+/** @file asolverbase.cpp
+ * @brief Implements common functionality for solution of Euler/Navier-Stokes equations.
  * @author Aditya Kashi
- * @date Feb 24, 2016
+ * @date 2016-02-24
  */
 
-#include "aexplicitsolver.hpp"
+#include "asolverbase.hpp"
 
 namespace acfd {
 
-ExplicitSolver::ExplicitSolver(const UMesh2dh* mesh, const int _order, std::string invflux, std::string reconst, std::string limiter)
+SolverBase::SolverBase(const UMesh2dh* mesh, const int _order, std::string invflux, std::string reconst, std::string limiter)
 {
 	m = mesh;
 	order = _order;
 	g = 1.4;
 
-	std::cout << "ExplicitSolver: Setting up explicit solver for spatial order " << order << std::endl;
+	std::cout << "SolverBase: Setting up explicit solver for spatial order " << order << std::endl;
 
 	// for 2D Euler equations, we have 4 variables
 	nvars = NVARS;
@@ -22,8 +22,9 @@ ExplicitSolver::ExplicitSolver(const UMesh2dh* mesh, const int _order, std::stri
 	ngaussf = 1;
 
 	/// TODO: Take the two values below as input from control file, rather than hardcoding
-	solid_wall_id = 2;
+	slip_wall_id = 2;
 	inflow_outflow_id = 4;
+	periodic_id = 6;
 
 	// allocation
 	m_inverse.setup(m->gnelem(),1);		// just a vector for FVM. For DG, this will be an array of Matrices
@@ -52,43 +53,43 @@ ExplicitSolver::ExplicitSolver(const UMesh2dh* mesh, const int _order, std::stri
 	else if(invflux == "ROE")
 	{
 		inviflux = new RoeFlux(NVARS, m->gndim(), g);
-		std::cout << "ExplicitSolver: Using Roe fluxes." << std::endl;
+		std::cout << "SolverBase: Using Roe fluxes." << std::endl;
 	}
 	else if(invflux == "HLLC")
 	{
 		inviflux = new HLLCFlux(NVARS, m->gndim(), g);
-		std::cout << "ExplicitSolver: Using HLLC fluxes." << std::endl;
+		std::cout << "SolverBase: Using HLLC fluxes." << std::endl;
 	}
 	else
-		std::cout << "ExplicitSolver: ! Flux scheme not available!" << std::endl;
+		std::cout << "SolverBase: ! Flux scheme not available!" << std::endl;
 
 	// set reconstruction scheme
-	std::cout << "ExplicitSolver: Reconstruction scheme is " << reconst << std::endl;
+	std::cout << "SolverBase: Reconstruction scheme is " << reconst << std::endl;
 	if(reconst == "GREENGAUSS")
 	{
 		rec = new GreenGaussReconstruction();
 		//rec->setup(m, &u, &ug, &dudx, &dudy, &rc, &rcg);
 	}
-	else 
+	else
 	{
 		rec = new WeightedLeastSquaresReconstruction();
 	}
-	if(order == 1) std::cout << "ExplicitSolver: No reconstruction" << std::endl;
+	if(order == 1) std::cout << "SolverBase: No reconstruction" << std::endl;
 
 	// set limiter
 	if(limiter == "NONE")
 	{
 		lim = new NoLimiter(m, &u, &ug, &dudx, &dudy, &rcg, &rc, gr, &uleft, &uright);
-		std::cout << "ExplicitSolver: No limiter will be used." << std::endl;
+		std::cout << "SolverBase: No limiter will be used." << std::endl;
 	}
 	else if(limiter == "WENO")
 	{
 		lim = new WENOLimiter(m, &u, &ug, &dudx, &dudy, &rcg, &rc, gr, &uleft, &uright);
-		std::cout << "ExplicitSolver: WENO limiter selected.\n";
+		std::cout << "SolverBase: WENO limiter selected.\n";
 	}
 }
 
-ExplicitSolver::~ExplicitSolver()
+SolverBase::~SolverBase()
 {
 	delete rec;
 	delete inviflux;
@@ -96,7 +97,7 @@ ExplicitSolver::~ExplicitSolver()
 	delete [] gr;
 }
 
-void ExplicitSolver::compute_ghost_cell_coords_about_midpoint()
+void SolverBase::compute_ghost_cell_coords_about_midpoint()
 {
 	int iface, ielem, idim, ip1, ip2;
 	std::vector<acfd_real> midpoint(m->gndim());
@@ -116,7 +117,7 @@ void ExplicitSolver::compute_ghost_cell_coords_about_midpoint()
 	}
 }
 
-void ExplicitSolver::compute_ghost_cell_coords_about_face()
+void SolverBase::compute_ghost_cell_coords_about_face()
 {
 	int ied, ig, ielem;
 	acfd_real x1, y1, x2, y2, xs, ys, xi, yi;
@@ -164,7 +165,7 @@ void ExplicitSolver::compute_ghost_cell_coords_about_face()
  * \param a Angle of attack (radians)
  * \param rhoinf Free stream density
  */
-void ExplicitSolver::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_real rhoinf)
+void SolverBase::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_real rhoinf)
 {
 	// Note that reference density and reference velocity are the values at infinity
 	//std::cout << "EulerFV: loaddata(): Calculating initial data...\n";
@@ -182,7 +183,7 @@ void ExplicitSolver::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_
 			u(i,j) = uinf(0,j);
 
 	// Next, get cell centers (real and ghost)
-	
+
 	int idim, inode;
 
 	for(int ielem = 0; ielem < m->gnelem(); ielem++)
@@ -218,10 +219,10 @@ void ExplicitSolver::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_
 	}
 
 	rec->setup(m, &u, &ug, &dudx, &dudy, &rc, &rcg);
-	std::cout << "ExplicitSolver: loaddata(): Initial data calculated.\n";
+	std::cout << "SolverBase: loaddata(): Initial data calculated.\n";
 }
 
-void ExplicitSolver::compute_boundary_states(const amat::Array2d<acfd_real>& ins, amat::Array2d<acfd_real>& bs)
+void SolverBase::compute_boundary_states(const amat::Array2d<acfd_real>& ins, amat::Array2d<acfd_real>& bs)
 {
 #pragma omp parallel for default(shared)
 	for(int ied = 0; ied < m->gnbface(); ied++)
@@ -235,12 +236,16 @@ void ExplicitSolver::compute_boundary_states(const amat::Array2d<acfd_real>& ins
 		acfd_real ci = sqrt(g*pi/ins.get(ied,0));
 		acfd_real Mni = vni/ci;
 
-		if(m->ggallfa(ied,3) == solid_wall_id)
+		if(m->ggallfa(ied,3) == slip_wall_id)
 		{
 			bs(ied,0) = ins.get(ied,0);
 			bs(ied,1) = ins.get(ied,1) - 2*vni*nx*bs(ied,0);
 			bs(ied,2) = ins.get(ied,2) - 2*vni*ny*bs(ied,0);
 			bs(ied,3) = ins.get(ied,3);
+		}
+		
+		if(m->ggallfa(ied,3) == periodic_id) {
+			// TODO: Implement periodic boundary here //
 		}
 
 		if(m->ggallfa(ied,3) == inflow_outflow_id)
@@ -271,7 +276,7 @@ void ExplicitSolver::compute_boundary_states(const amat::Array2d<acfd_real>& ins
 	}
 }
 
-acfd_real ExplicitSolver::l2norm(const amat::Array2d<acfd_real>* const v)
+acfd_real SolverBase::l2norm(const amat::Array2d<acfd_real>* const v)
 {
 	acfd_real norm = 0;
 	for(int iel = 0; iel < m->gnelem(); iel++)
@@ -282,7 +287,7 @@ acfd_real ExplicitSolver::l2norm(const amat::Array2d<acfd_real>* const v)
 	return norm;
 }
 
-void ExplicitSolver::compute_RHS()
+void SolverBase::compute_RHS()
 {
 	//std::cout << "Computing res ---\n";
 #pragma omp parallel default(shared)
@@ -316,7 +321,7 @@ void ExplicitSolver::compute_RHS()
 	else
 	{
 		// if order is 1, set the face data same as cell-centred data for all faces
-		
+
 		// set both left and right states for all interior faces
 #pragma omp parallel for
 		for(acfd_int ied = m->gnbface(); ied < m->gnaface(); ied++)
@@ -349,9 +354,6 @@ void ExplicitSolver::compute_RHS()
 #pragma omp for
 		for(acfd_int ied = 0; ied < m->gnaface(); ied++)
 		{
-			//acfd_int lel = m->gintfac(ied,0);	// left element
-			//acfd_int rel = m->gintfac(ied,1);	// right element
-
 			acfd_real n[NDIM];
 			n[0] = m->ggallfa(ied,0);
 			n[1] = m->ggallfa(ied,1);
@@ -368,14 +370,6 @@ void ExplicitSolver::compute_RHS()
 			for(int ivar = 0; ivar < NVARS; ivar++)
 					fluxp[ivar] *= len;
 
-			// scatter the flux to elements' residuals
-			/*for(int ivar = 0; ivar < NVARS; ivar++)
-			{
-				residual(lel,ivar) -= fluxp[ivar];
-				if(rel >= 0 && rel < m->gnelem())
-					residual(rel,ivar) += fluxp[ivar];
-			}*/
-
 			//calculate presures from u
 			acfd_real pi = (g-1)*(uleft.get(ied,3) - 0.5*(pow(uleft.get(ied,1),2)+pow(uleft.get(ied,2),2))/uleft.get(ied,0));
 			acfd_real pj = (g-1)*(uright.get(ied,3) - 0.5*(pow(uright.get(ied,1),2)+pow(uright.get(ied,2),2))/uright.get(ied,0));
@@ -385,11 +379,6 @@ void ExplicitSolver::compute_RHS()
 			//calculate normal velocities
 			vni[ied] = (uleft.get(ied,1)*n[0] +uleft.get(ied,2)*n[1])/uleft.get(ied,0);
 			vnj[ied] = (uright.get(ied,1)*n[0] + uright.get(ied,2)*n[1])/uright.get(ied,0);
-
-			// calculate integ for CFL purposes
-			/*integ(lel,0) += (fabs(vni) + ci)*len;
-			if(rel >= 0 && rel < m->gnelem())
-				integ(rel,0) += (fabs(vnj) + cj)*len;*/
 		}
 
 		// update residual and integ
@@ -418,91 +407,13 @@ void ExplicitSolver::compute_RHS()
 	} // end parallel region
 }
 
-void ExplicitSolver::solve_rk1_steady(const acfd_real tol, const int maxiter, const acfd_real cfl)
+void SolverBase::postprocess_point()
 {
-	int step = 0;
-	acfd_real resi = 1.0;
-	acfd_real initres = 1.0;
-	amat::Array2d<acfd_real> res(NVARS,1);
-	res.ones();
-	amat::Array2d<acfd_real> dtm(m->gnelem(), 1);		// for local time-stepping
-	amat::Array2d<acfd_real> uold(u.rows(), u.cols());
-
-	while(resi/initres > tol && step < maxiter)
-	{
-		//std::cout << "EulerFV: solve_rk1_steady(): Entered loop. Step " << step << std::endl;
-
-		//calculate fluxes
-		compute_RHS();		// this invokes Flux calculating function after zeroing the residuals, also computes max wave speeds integ
-
-		acfd_real err[NVARS];
-		acfd_real errmass = 0;
-		for(int i = 0; i < NVARS; i++)
-			err[i] = 0;
-
-		//calculate dt based on CFL
-#pragma omp parallel default(shared)
-		{
-#pragma omp for simd
-			for(int iel = 0; iel < m->gnelem(); iel++)
-			{
-				dtm(iel) = cfl*(0.5*m->gjacobians(iel)/integ(iel));
-			}
-
-#pragma omp for simd
-			for(int iel = 0; iel < m->gnelem(); iel++)
-			{
-				for(int i = 0; i < NVARS; i++)
-				{
-					//uold(iel,i) = u(iel,i);
-					u(iel,i) += dtm.get(iel)*m_inverse.get(iel)*residual.get(iel,i);
-				}
-			}
-
-#pragma omp for simd reduction(+:errmass)
-//#pragma omp for simd reduction(+:err[:NVARS])
-			for(int iel = 0; iel < m->gnelem(); iel++)
-			{
-				/*for(int i = 0; i < NVARS; i++)
-				{
-					err[i] += residual(iel,i)*residual(iel,i)*m->garea(iel);
-				}*/
-				errmass += residual(iel,0)*residual(iel,0)*m->garea(iel);
-			}
-		} // end parallel region
-
-		/*resi = 2e-15;
-		for(int i = 0; i < NVARS; i++)
-			if(err[i] > resi*resi)
-				resi = err[i];
-		resi = sqrt(resi);*/
-		resi = sqrt(errmass);
-
-		if(step == 0)
-			initres = resi;
-
-		if(step % 50 == 0)
-			std::cout << "EulerFV: solve_rk1_steady(): Step " << step << ", rel residual " << resi/initres << std::endl;
-
-		step++;
-		/*acfd_real totalenergy = 0;
-		for(int i = 0; i < m->gnelem(); i++)
-			totalenergy += u(i,3)*m->jacobians(i);
-			std::cout << "EulerFV: solve(): Total energy = " << totalenergy << std::endl;*/
-		//if(step == 10000) break;
-	}
-
-	if(step == maxiter)
-		std::cout << "ExplicitSolver: solve_rk1_steady(): Exceeded max iterations!" << std::endl;
-}
-
-void ExplicitSolver::postprocess_point()
-{
-	std::cout << "ExplicitSolver: postprocess_point(): Creating output arrays...\n";
+	std::cout << "SolverBase: postprocess_point(): Creating output arrays...\n";
 	scalars.setup(m->gnpoin(),3);
 	velocities.setup(m->gnpoin(),2);
 	amat::Array2d<acfd_real> c(m->gnpoin(),1);
-	
+
 	amat::Array2d<acfd_real> areasum(m->gnpoin(),1);
 	amat::Array2d<acfd_real> up(m->gnpoin(), NVARS);
 	up.zeros();
@@ -537,7 +448,7 @@ void ExplicitSolver::postprocess_point()
 	for(ipoin = 0; ipoin < m->gnpoin(); ipoin++)
 		for(ivar = 0; ivar < NVARS; ivar++)
 			up(ipoin,ivar) /= areasum(ipoin);
-	
+
 	for(ipoin = 0; ipoin < m->gnpoin(); ipoin++)
 	{
 		scalars(ipoin,0) = up.get(ipoin,0);
@@ -553,9 +464,9 @@ void ExplicitSolver::postprocess_point()
 	std::cout << "EulerFV: postprocess_point(): Done.\n";
 }
 
-void ExplicitSolver::postprocess_cell()
+void SolverBase::postprocess_cell()
 {
-	std::cout << "ExplicitSolver: postprocess_cell(): Creating output arrays...\n";
+	std::cout << "SolverBase: postprocess_cell(): Creating output arrays...\n";
 	scalars.setup(m->gnelem(), 3);
 	velocities.setup(m->gnelem(), 2);
 	amat::Array2d<acfd_real> c(m->gnelem(), 1);
@@ -578,7 +489,7 @@ void ExplicitSolver::postprocess_cell()
 	std::cout << "EulerFV: postprocess_cell(): Done.\n";
 }
 
-acfd_real ExplicitSolver::compute_entropy_cell()
+acfd_real SolverBase::compute_entropy_cell()
 {
 	postprocess_cell();
 	acfd_real vmaginf2 = uinf(0,1)/uinf(0,0)*uinf(0,1)/uinf(0,0) + uinf(0,2)/uinf(0,0)*uinf(0,2)/uinf(0,0);
@@ -595,18 +506,18 @@ acfd_real ExplicitSolver::compute_entropy_cell()
 
 	//acfd_real h = sqrt((m->jacobians).max());
 	acfd_real h = 1.0/sqrt(m->gnelem());
- 
+
 	std::cout << "EulerFV:   " << log10(h) << "  " << std::setprecision(10) << log10(error) << std::endl;
 
 	return error;
 }
 
-amat::Array2d<acfd_real> ExplicitSolver::getscalars() const
+amat::Array2d<acfd_real> SolverBase::getscalars() const
 {
 	return scalars;
 }
 
-amat::Array2d<acfd_real> ExplicitSolver::getvelocities() const
+amat::Array2d<acfd_real> SolverBase::getvelocities() const
 {
 	return velocities;
 }

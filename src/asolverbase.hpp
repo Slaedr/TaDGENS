@@ -1,9 +1,12 @@
-/** @file aexplicitsolver.hpp
- * @brief Implements a driver class for explicit solution of Euler/Navier-Stokes equations.
+/** @file asolverbase.hpp
+ * @brief Base funtionality for solution of Euler/Navier-Stokes equations
  * @author Aditya Kashi
- * @date Feb 24, 2016
+ * @date 2017-03-04
  */
-#ifndef __AEXPLICITSOLVER_H
+
+#ifndef __ASOLVERBASE_H
+#define __ASOLVERBASE_H 1
+
 
 #ifndef __ACONSTANTS_H
 #include "aconstants.hpp"
@@ -21,32 +24,26 @@
 #include "anumericalflux.hpp"
 #endif
 
-#ifndef __ALIMITER_H
-#include "alimiter.hpp"
-#endif
-
-#ifndef __ARECONSTRUCTION_H
-#include "areconstruction.hpp"
-#endif
-
-#define __AEXPLICITSOLVER_H 1
-
 namespace acfd {
 
-/// A driver class to control the explicit time-stepping solution using TVD Runge-Kutta time integration
-/** \note Make sure compute_topological(), compute_face_data() and compute_jacobians() have been called on the mesh object prior to initialzing an object of this class.
+/// Base class to for time-stepping solution of Euler or Navier-Stokes equations
+/** Currently Euler only.
+ * Provides residual computation and solve interface for all solvers.
+ * \note Make sure compute_topological(), compute_face_data() and compute_jacobians() have been called on the mesh object prior to initialzing an object of this class.
  */
-class ExplicitSolver
+class SolverBase
 {
-	const UMesh2dh* m;
-	amat::Array2d<acfd_real> m_inverse;			///< Left hand side (just the volume of the element for FV)
-	amat::Array2d<acfd_real> residual;			///< Right hand side for boundary integrals and source terms
+protected:
+	const UMesh2dh* m;							///< Mesh context
+	std::vector<Matrix> m_inv;					///< Inverse of mass matrix
+	std::vector<Vector> residual;				///< Right hand side for boundary integrals and source terms
 	int nvars;									///< number of conserved variables ** deprecated, use the preprocessor constant NVARS instead **
-	amat::Array2d<acfd_real> uinf;				///< Free-stream/reference condition
+	int p_degree;								///< Polynomial degree of trial/test functions
+	std::vector<acfd_real> uinf;				///< Free-stream/reference condition
 	acfd_real g;								///< adiabatic index
 
-	/// stores (for each cell i) \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, where v_n and c are average values for each face of the cell
-	amat::Array2d<acfd_real> integ;
+	/// stores (for each cell i) \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, where v_n and c are average values of the cell faces
+	std::vector<acfd_real> integ;
 
 	/// Flux (boundary integral) calculation context
 	InviscidFlux* inviflux;
@@ -60,9 +57,9 @@ class ExplicitSolver
 	/// Cell centers
 	amat::Array2d<acfd_real> rc;
 
-	/// Ghost cell centers
+	/// Ghost element centers
 	amat::Array2d<acfd_real> rcg;
-	/// Ghost cell flow quantities
+	/// Ghost elements' flow quantities
 	amat::Array2d<acfd_real> ug;
 
 	/// Number of Guass points per face
@@ -70,31 +67,29 @@ class ExplicitSolver
 	/// Faces' Gauss points' coords, stored a 3D array of dimensions naface x nguassf x ndim (in that order)
 	amat::Array2d<acfd_real>* gr;
 
-	/// Flux across each face
-	amat::Array2d<acfd_real> fluxes;
+	/// Boundary integrals of fluxes across each face
+	std::vector<Vector> fluxes;
 	/// Left state at each face (assuming 1 Gauss point per face)
 	amat::Array2d<acfd_real> uleft;
 	/// Rigt state at each face (assuming 1 Gauss point per face)
 	amat::Array2d<acfd_real> uright;
-	
+
 	/// vector of unknowns
-	amat::Array2d<acfd_real> u;
-	/// x-slopes
-	amat::Array2d<acfd_real> dudx;
-	/// y-slopes
-	amat::Array2d<acfd_real> dudy;
+	/** Each Eigen3 (E3) Vector contains the DOF values for an element.
+	 * The E3 Vectors for all elements are stored as a std::vector, as with some other arrays such as the residual.
+	 */
+	std::vector<Vector> u;
 
-	amat::Array2d<acfd_real> scalars;		///< Holds density, Mach number and pressure for each cell
-	amat::Array2d<acfd_real> velocities;		///< Holds velocity components for each cell
+	amat::Array2d<acfd_real> scalars;			///< Holds density, Mach number and pressure for each mesh point
+	amat::Array2d<acfd_real> velocities;		///< Holds velocity components for each mesh point
 
-	int order;					///< Formal order of accuracy of the scheme (1 or 2)
-
-	int solid_wall_id;			///< Boundary marker corresponding to solid wall
+	int slip_wall_id;			///< Boundary marker corresponding to solid wall
 	int inflow_outflow_id;		///< Boundary marker corresponding to inflow/outflow
+	int periodic_id;			///< Boundary marker for periodic boundary
 
 public:
-	ExplicitSolver(const UMesh2dh* mesh, const int _order, std::string invflux, std::string reconst, std::string limiter);
-	~ExplicitSolver();
+	SolverBase(const UMesh2dh* mesh, const int _order, std::string invflux, std::string reconst, std::string limiter);
+	~SolverBase();
 	void loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_real rhoinf);
 
 	/// Computes flow variables at boundaries (either Gauss points or ghost cell centers) using the interior state provided
@@ -108,7 +103,7 @@ public:
 
 	/// Calls functions to assemble the [right hand side](@ref residual)
 	void compute_RHS();
-	
+
 	/// Computes the left and right states at each face, using the [reconstruction](@ref rec) and [limiter](@ref limiter) objects
 	void compute_face_states();
 
@@ -117,10 +112,10 @@ public:
 
 	/// Computes the L2 norm of a cell-centered quantity
 	acfd_real l2norm(const amat::Array2d<acfd_real>* const v);
-	
+
 	/// Compute cell-centred quantities to export
 	void postprocess_cell();
-	
+
 	/// Compute nodal quantities to export, based on area-weighted averaging (which takes into account ghost cells as well)
 	void postprocess_point();
 

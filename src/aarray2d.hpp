@@ -43,15 +43,13 @@ inline T gabs(T x)
 	if(x < 0) return -1*x;
 	else return x;
 }
+
 inline acfd_real minmod(acfd_real a, acfd_real b)
 {
 	if(a*b>0 && gabs<acfd_real>(a) <= gabs<acfd_real>(b)) return a;
 	else if (a*b>0 && gabs<acfd_real>(b) < gabs<acfd_real>(a)) return b;
 	else return 0.0;
 }
-
-template <typename T>
-T determinant(const Array2d<T>& mat);
 
 /**
  * @class Array2d
@@ -155,6 +153,31 @@ public:
 			delete [] elems;
 		elems = new T[nrows*ncols];
 		isalloc = true;
+	}
+	
+	/// Allocate and set an array using a raw C array
+	void initialize(acfd_int nr, acfd_int nc, const T *const *const array)
+	{
+		if(nc==0)
+		{
+			std::cout << "Array2d: initialize(): Error: Number of columns is zero. Setting it to 1.\n";
+			nc=1;
+		}
+		if(nr==0)
+		{
+			std::cout << "Array2d(): initialize(): Error: Number of rows is zero. Setting it to 1.\n";
+			nr=1;
+		}
+		nrows = nr; ncols = nc;
+		size = nrows*ncols;
+		if(isalloc == true)
+			delete [] elems;
+		elems = new T[nrows*ncols];
+		isalloc = true;
+
+		for(int i = 0; i < nr; i++)
+			for(int j = 0; j < nc; j++)
+				elems[i*ncols+j] = array[i][j];
 	}
 
 	/// Setup without deleting earlier allocation: use in case of Array2d<t>* (pointer to Array2d<t>)
