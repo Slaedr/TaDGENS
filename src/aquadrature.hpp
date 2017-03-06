@@ -27,12 +27,12 @@ protected:
 public:
 	QuadratureRule(const int n_gauss) : nguass(n_guass) { }
 	
-	acfd_real weight(const int iguass) const {
-		return gweights(igauss);
+	const amat::Array2d<acfd_real>& weight() const {
+		return gweights;
 	}
 
-	acfd_real point(const int igauss, const int idim) const {
-		return gpoints(igauss, idim);
+	const amat::Array2d<acfd_real>& point() const {
+		return gpoints;
 	}
 };
 
@@ -43,17 +43,22 @@ public:
 	Quadrature1D(const int n_guass);
 };
 
+class Quadrature2D : public QuadratureRule
+{
+
+};
+
 /// Integration over the reference square
 /** Note that currently, this is restricted to having the same number of quadrature points in the x- and y-directions.
  */
-class Quadrature2DSquare : public QuadratureRule
+class Quadrature2DSquare : public Quadrature2D
 {
 public:
 	Quadrature2DSquare(const int n_guass);
 };
 
 /// Integration over the reference triangle [(0,0), (1,0), (0,1)]
-class Quadrature2DTriangle : public QuadratureRule
+class Quadrature2DTriangle : public Quadrature2D
 {
 public:
 	Quadrature2DTriangle(const int n_guass);
