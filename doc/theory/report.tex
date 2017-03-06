@@ -15,16 +15,15 @@
 
 \bibliographystyle{plain}
 
-\title{Discontinuous Galerkin method with Taylor basis functions \\
-\large Proposal for MATH 579 project}
+\title{Discontinuous Galerkin method with Taylor basis functions}
 \author{Aditya Kashi}
-\date{March 5, 2017}
+%\date{March 5, 2017}
 
 \begin{document}
 
 \maketitle
 \begin{abstract}
-Discontinuous Galerkin (DG) finite element method (FEM) with Taylor basis theoretically has several advantages over traditional nodal Lagrange basis FEM for the numerical solution of hyperbolic problems. We wish to investigate theoretically and numerically a Taylor basis DG FEM. One of the advantages of using Taylor basis functions is that reconstructing higher order derivatives becomes straightforward, which is the key idea in the `reconstructed' DG (RDG) method. We would also like to investigate the effectiveness of this method as well.
+Discontinuous Galerkin (DG) finite element method (FEM) with Taylor basis theoretically has several advantages over traditional nodal Lagrange basis FEM for the numerical solution of hyperbolic problems. We wish to investigate theoretically and numerically a Taylor basis DG FEM. One of the advantages of using Taylor basis functions is that reconstructing higher order derivatives becomes straightforward, which is the key idea in the `reconstructed' DG (RDG) method. We would like to investigate the effectiveness of this method as well.
 \end{abstract}
 
 \section{Introduction}
@@ -77,7 +76,7 @@ In a Taylor basis, a function is expressed as a Taylor expansion about the eleme
 u_h = u_c + \frac{\partial u}{\partial x} \Big|_c(x-x_c) + \frac{\partial u}{\partial y} \Big|_c(y-y_c) + \frac{\partial^2 u}{\partial x^2} \Big|_c \frac{(x-x_c)^2}{2} + \frac{\partial^2 u}{\partial y^2} \Big|_c \frac{(y-y_c)^2}{2} + \frac{\partial^2 u}{\partial x\partial y} \Big|_c (x-x_x)(y-y_x)
 \label{eqn:taylorexpn_orig}
 \end{equation}
-where the subscript 'c' indicates the quantity at the element's geometric center. Let $A_e$ be the element area. Then we can take an average of both sides over the element to get
+where the subscript `c' indicates the quantity at the element's geometric center. Let $A_e$ be the element area. Then we can take an average of both sides over the element to get
 \begin{multline}
 \tilde{u} = u_c + \frac{\partial u}{\partial x} \Big|_c \frac{1}{A_e}\int_{\Omega_e}(x-x_c)d\mu + \frac{\partial u}{\partial y} \Big|_c \frac{1}{A_e}\int_{\Omega_e} (y-y_c)d\mu \\ \, + \frac{\partial^2 u}{\partial x^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(x-x_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial y^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(y-y_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial x\partial y} \Big|_c \frac{1}{A_e}\int_{\Omega_e} (x-x_x)(y-y_x)d\mu \\
 = u_c + \frac{\partial^2 u}{\partial x^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(x-x_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial y^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(y-y_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial x\partial y} \Big|_c \frac{1}{A_e}\int_{\Omega_e} (x-x_x)(y-y_x)d\mu
@@ -87,7 +86,7 @@ where $\tilde{u}$ is the average value of the unknown function over the element,
 u_h = \tilde{u} + \frac{\partial u}{\partial x} \Big|_c(x-x_c) + \frac{\partial u}{\partial y} \Big|_c(y-y_c) + \frac{\partial^2 u}{\partial x^2} \Big|_c \left( \frac{(x-x_c)^2}{2} - \frac{1}{A_e}\int_{\Omega_e} \frac{(x-x_c)^2}{2}d\mu \right) \\ + \frac{\partial^2 u}{\partial y^2} \Big|_c \left( \frac{(y-y_c)^2}{2} -\frac{1}{A_e}\int_{\Omega_e} \frac{(y-y_c)^2}{2}d\mu \right) + \frac{\partial^2 u}{\partial x\partial y} \Big|_c \left( (x-x_x)(y-y_x) - \frac{1}{A_e}\int_{\Omega_e} (x-x_x)(y-y_x)d\mu \right).
 \label{eqn:taylorexpn}
 \end{multline}
-This gives us our basis functions and corresponding degrees of freedom on a physical element $\Omega_e$. We also normalize the basis functions to get a better-conditioned discrete problem. Finally, the basis functions used for a P2 Taylor finite element are
+This gives us our basis functions and corresponding degrees of freedom on a physical element $\Omega_e$. We also normalize the basis functions to get a better-conditioned discrete problem. Finally, the basis functions used for a P2 `Taylor finite element' are
 \begin{align}
 &B_1(\bld{x}) = 1 \\
 &B_2(\bld{x}) = \frac{(x-x_c)}{\Delta x} \\
@@ -108,6 +107,12 @@ U_{xy} := \frac{\partial^2 u}{\partial x\partial y}\Big|_c \Delta x\Delta y
 where $\Delta x$ and $\Delta y$ are $\frac12 (x_{max}-x_{min})$ and $\frac12 (y_{max}-y_{min})$ respectively, and subscripts max and min indicate maximum and minimum values over the element. Note that symbols such as $U_x$ include their respective normalization factors.
 
 This can be similarly extended to any desired polynomial degree in any number of dimensions.
+
+An interesting point is that the Taylor basis functions above are defined on the physical element. Thus, any polynomial function of these functions or their gradients remains polynomial. This means that terms in the mass matrices, stiffness matrices etc. can be integrated exactly by Gaussian quadrature of high-enough order, \emph{even for curved elements}. This may be contrasted to how Lagrange basis functions are defined on physical elements (see, for example, chapter 12 in \cite{claesjohnson}). The finite-dimensional function space on element $K$ is defined as
+\begin{equation}
+P_K = \{ p: p(\bld{x}) = \hat{p}(F^{-1}(\bld{x})),\, \bld{x} \in K,\, \hat{p} \in P_{\hat{K}} \}
+\end{equation}
+where $F:\hat{K}\rightarrow K$ is a diffeomorphism from the reference element $\hat{K}$ to the physical element $K$. For curved elements, $F^{-1}$ is not a polynomial in general. Thus, integrands in a weak form will, in general, not be polynomials and thus cannot be integrated exactly.
 
 \section{Reconstruction DG scheme}
 One issue with the DG FEM method is its high cost compared to finite volume schemes for low to intermediate levels of desired accuracy. They become competitive only when a high-enough level of accuracy is required. DG FEM is also more expensive than a continuous FEM scheme of the same order on the same grid, since degrees of freedom are not shared among elements. One way of reducing the cost is the reconstruction DG (RDG) FEM scheme \cite{luo_rdg}. A Taylor basis RDG scheme can be implemented in a reasonably straightforward manner to give high-order accuracy using less degrees of freedom than a DG scheme.
@@ -150,13 +155,17 @@ R_1^j \\ R_2^j \\ R_3^j
 where the superscript $j$ indicates that the function is evaluated at the element-centre of $j$. Writing these equations for all face-neighbours $j$, we get a 9x3 system for a triangle and a 12x3 system for a quadrilateral, in the three variables - the three second derivatives at the centre of cell $i$. This can be solved in a least squares sense to give a unique solution. Further, a WENO reconstruction can be used to suppress spurious oscillations to preserve nonlinear stability \cite{luo_hweno}.
 
 \section{Outline of the project}
-One can think of the following questions that need answering; we have not found them in papers yet. They may be trivial, however.
+One can think of the following questions that need answering.
 \subsection{Taylor basis DG}
 \begin{itemize}
+\item (AW) For what $H^k$ functions are these degrees of freedom well-defined? Recall for a Lagrange interpolant, we need at least continuous functions for prescribe nodal values. How would this case be different? Solobev embedding theorem might be useful here.
 \item Show that the degrees of freedom described are unisolvent, and thus that a `Taylor element' is a valid finite element.
+\item (AW) How can we extend error estimates for standard DG FE space to DG Taylor basis FE? A starting point would depend on the answer to the first point above.
 \end{itemize}
 \subsection{RDG method}
 \begin{itemize}
+\item (AW) Given the example of reconstructing second derivatives, can one estimate the $H^2$ semi-norm of the local error between a generic $H^2$ function and its reconstructed interpolant over a triangle? If it can be done then it justifies that the reconstructed interpolant is a good approximation for the second derivative.
+\item (AW) Why solve a least-square system? If we are able to generate 9 equations for the reconstruction, why not include more higher derivatives in the basis and solve uniquely for 9 unknown coefficients?
 \item Prove that the least-squares system will have a unique solution, ie., that the 9x3 or 12x3 matrix has full column rank.
 \end{itemize}
 
