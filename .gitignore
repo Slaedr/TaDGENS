@@ -2,4 +2,12 @@
 *.o
 .directory
 
+*.aux
+*.log
+*.synctex.gz
+*.toc
+*.bbl
+*.blg
+*.blx
+
 build/** 
