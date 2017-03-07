@@ -51,6 +51,7 @@ public:
 		return speeds[ipoin];
 	}
 
+	/// Computes the curve tangents and normals at a list of points in the reference space
 	virtual void computeSpeedsAndNormals(const amat::Array2d<acfd_real>& points) = 0;
 };
 
@@ -74,7 +75,7 @@ class GeomMapping2D
 {
 protected:
 	int order;
-	Array2d<acfd_real> phyNodes;
+	amat::Array2d<acfd_real> phyNodes;
 	std::vector<Matrix> jaco;
 	std::vector<Matrix> jacoinv;
 	std::vector<acfd_real> jacodet;
