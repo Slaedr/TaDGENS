@@ -53,6 +53,9 @@ void LagrangeMapping1D::computeSpeedsAndNormals(const amat::Array2d<acfd_real>& 
 		std::cout << "! LagrangeMapping1D: Chosen geometric order not available!\n";
 }
 
+LagrangeMapping2DTriangle::LagrangeMapping2DTriangle() {
+}
+
 /** Mappings upto P2 are implemented.
  */
 void LagrangeMapping2DTriangle::computeJacobians(const amat::Array2d<acfd_real>& points)
@@ -88,6 +91,9 @@ void LagrangeMapping2DTriangle::computeJacobians(const amat::Array2d<acfd_real>&
 			jacoinv[ip](1,0) = -jaco[ip](1,0)/jacodet[ip]; jacoinv[ip](1,1) = jaco[ip](0,0)/jacodet[ip]
 		}
 	}
+}
+
+LagrangeMapping2DQuadrangle::LagrangeMapping2DQuadrangle() {
 }
 
 }

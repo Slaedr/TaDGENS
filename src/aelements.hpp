@@ -75,10 +75,10 @@ class GeomMapping2D
 {
 protected:
 	int order;
-	amat::Array2d<acfd_real> phyNodes;
-	std::vector<Matrix> jaco;
-	std::vector<Matrix> jacoinv;
-	std::vector<acfd_real> jacodet;
+	amat::Array2d<acfd_real> phyNodes;			///< Physical coordinates of the nodes
+	std::vector<Matrix> jaco;					///< Jacobian matrix of the mapping
+	std::vector<Matrix> jacoinv;				///< Inverse of the Jacobian matrix
+	std::vector<acfd_real> jacodet;				///< Determinant of the Jacobian matrix
 
 public:
 	/// Set polynomial order of mapping
@@ -121,15 +121,23 @@ public:
 	}
 };
 
+/// Lagrange geometric mapping on the reference triangle
+/** The ref triangle is the one having vertices (0,0), (1,0), (0,1) in that order.
+ */
 class LagrangeMapping2DTriangle : public GeomMapping2D
 {
 public:
+	LagrangeMapping2DTriangle();
 	void computeJacobians(const amat::Array2d<acfd_real>& points);
 };
 
+/// Lagrange geometric mapping on the reference square
+/** The reference square's vertices are (-1,-1), (1,-1), (1,1), (-1,1) in that order.
+ */
 class LagrangeMapping2DQuadrangle : public GeomMapping2D
 {
 public:
+	LagrangeMapping2DQuadrangle();
 	void computeJacobians(const amat::Array2d<acfd_real>& points);
 };
 
@@ -139,13 +147,15 @@ class Element
 protected:
 	int order;
 	std::vector<Array2d<acfd_real>> basis;
-	std::vector<Array2d<acfd_real>> basisGrad;
+	std::vector<Matrix> basisGrad;
 	GeomMapping* map;
 
 public:
 };
 
 /// Element described by Taylor basis functions and Lagrange geometric mapping
+/** The Taylor basis functions are defined on the \emph{physical} element.
+ */
 class TaylorElement : public Element
 {
 public:
