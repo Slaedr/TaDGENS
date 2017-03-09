@@ -25,8 +25,9 @@ class GeomMapping1D
 protected:
 	int order;
 	amat::Array2d<acfd_real> phyNodes;		///< Physical locations of the nodes
-	std::vector<acfd_real> speeds;			///< Magnitude of derivative of the curve w.r.t. reference coordinate at several points
-	std::vector<Vector> normals;			///< Normals at several points
+	std::vector<acfd_real> speeds;			///< Magnitude of derivative of the curve w.r.t. reference coordinate at quadrature points
+	std::vector<Vector> normals;			///< Normals at quadrature points
+	std::vector<Vector> mapping;			///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
 public:
 	/// Set polynomial order of mapping
 	void setOrder(const int ord) {
@@ -51,8 +52,13 @@ public:
 		return speeds[ipoin];
 	}
 
+	/// Read-only access to basis function values
+	const Vector& map(int ipoin) const {
+		return mapping[ipoin];
+	}
+
 	/// Computes the curve tangents and normals at a list of points in the reference space
-	virtual void computeSpeedsAndNormals(const amat::Array2d<acfd_real>& points) = 0;
+	virtual void computeAll(const amat::Array2d<acfd_real>& points) = 0;
 };
 
 /// 1D Lagrange basis parameterization of a boundary
@@ -67,10 +73,12 @@ public:
 class LagrangeMapping1D : public GeomMapping1D
 {
 public:
-	void computeSpeedsAndNormals(const amat::Array2d<acfd_real>& points);
+	void computeAll(const amat::Array2d<acfd_real>& points);
 };
 
 /// Abstract geometric mapping between a 2D physical element and a reference element
+/** For some kinds of elements we may not need Jacobian matrices but only the determinant. computeMapping is for that case.
+ */
 class GeomMapping2D
 {
 protected:
@@ -79,6 +87,7 @@ protected:
 	std::vector<Matrix> jaco;					///< Jacobian matrix of the mapping
 	std::vector<Matrix> jacoinv;				///< Inverse of the Jacobian matrix
 	std::vector<acfd_real> jacodet;				///< Determinant of the Jacobian matrix
+	std::vector<Vector> mapping;				///< Physical coords of the quadrature points
 
 public:
 	/// Set polynomial order of mapping
@@ -102,8 +111,16 @@ public:
 		quadWeights = quadratureWeights;
 	}*/
 
-	/// Sets the jacobians, jacobian inverses and jacobian determinants corresponding to a list of reference points
-	virtual void computeJacobians(/*const acfd_real xi[NDIM], Matrix& jac, Matrix& jacinv, acfd_real& jdet*/ const amat::Array2d<acfd_real>& points) = 0;
+	/// Sets the basis function values, jacobians, jacobian inverses and jacobian determinants corresponding to a list of reference points
+	virtual void computeAll(/*const acfd_real xi[NDIM], Matrix& jac, Matrix& jacinv, acfd_real& jdet*/ const amat::Array2d<acfd_real>& points) = 0;
+
+	/// Computes basis function values at quadrature points
+	virtual void computeMappingAndJacobianDet(const amat::Array2d<acfd_real>& points) = 0;
+
+	/// Read-only access to the mapping evaluated at quadrature points
+	const Vector& map(int ipoin) const {
+		return mapping[ipoin];
+	}
 
 	/// Read-only access to jacobians
 	const Matrix& jac(int ipoint) const {
