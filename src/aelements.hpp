@@ -40,6 +40,11 @@ public:
 		phyNodes = physicalnodes;
 	}
 
+	/// Read-only access to physical node locations
+	const amat::Array2d<acfd_real>& getPhyNodes() const {
+		return phyNodes;
+	}
+
 	/// Read-only access to the "area" vectors normal to the face at quadrature points
 	const Vector& normal(const int ipoin) const {
 		return normals[ipoin];
@@ -108,6 +113,11 @@ public:
 	 */
 	virtual void computeMappingAndJacobianDet(const amat::Array2d<acfd_real>& points) = 0;
 
+	/// Read-only access to physical node locations
+	const amat::Array2d<acfd_real>& getPhyNodes() const {
+		return phyNodes;
+	}
+
 	/// Read-only access to the mapping evaluated at quadrature points
 	const Vector& map(int ipoin) const {
 		return mapping[ipoin];
@@ -157,18 +167,24 @@ protected:
 	int ngauss;									///< Number of quadrature points
 	std::vector<Array2d<acfd_real>> basis;		///< Values of basis functions at quadrature points
 	std::vector<Matrix> basisGrad;				///< Values of derivatives of the basis functions at the quadrature points
-	GeomMapping2D gmap;							///< The 2D geometric map which maps this element to the reference element
+	const GeomMapping2D* gmap;					///< The 2D geometric map which maps this element to the reference element
 	const Quadrature2D* quad;					///< Numerical integration context
 
 public:
 	/// Set the data, compute geom map, and compute basis and basis grad
-	virtual void initialize(int degr, int nquadpoin, const Quadrature2D* q, const Array2d<acfd_real>& phynodes) = 0;
+	/** \param[in] geommap The geometric mapping should be initialized and all values computed externally; we'll not do that here
+	 */
+	virtual void initialize(int degr, int nquadpoin, const Quadrature2D* q, const GeomMapping2D* geommap) = 0;
 
 	/// Read-only access to basis at a given quadrature point
-	const Array2d<acfd_real>& basisFunctions(const int ipoin);
+	const Array2d<acfd_real>& basisFunctions(const int ipoin) {
+		return basis[ipoin];
+	}
 
 	/// Read-only access to basis gradients at a given quadrature point
-	const Matrix& basisGradients(const int ipoin);
+	const Matrix& basisGradients(const int ipoin) {
+		return basisGrad[ipoin];
+	}
 };
 
 /// Element described by Taylor basis functions and Lagrange geometric mapping
@@ -177,6 +193,7 @@ public:
 class TaylorElement : public Element
 {
 public:
+	void initialize(int degr, int nquadpoin, const Quadrature2D* q, const Array2d<acfd_real>& phynodes);
 };
 
 /// An interface "element" between 2 adjacent finite elements
@@ -187,16 +204,17 @@ class FaceElement
 {
 	const Element* leftel;							///< "Left" element
 	const Element* rightel;							///< "Right" element
-	GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
 	std::vector<Array2d<acfd_real>> leftbasis;		///< Values of the left element's basis functions at the face quadrature points
 	std::vector<Array2d<acfd_real>> rightbasis;		///< Values of the left element's basis functions at the face quadrature points
+	const GeomMapping1D* gmap;						///< 1D geometric mapping (parameterization) of the face
 	const Quadrature1D* quad;						///< Numerical integration context
 
 public:
-	/// Sets data; computes basis function values of left and right element, and normals to the face, at each quadrature point
+	/// Sets data; computes basis function values of left and right element at each quadrature point
 	/** NOTE: Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
+	 * \param[in] geommap The geometric mapping must be initialized externally; we don't do it here
 	 */
-	void initialize(int degr, int nquadpoin, const Element* lelem, const Element* relem, const Quadrature1D* q, const Array2d<acfd_real>& phynodes);
+	void initialize(int degr, int nquadpoin, const Element* lelem, const Element* relem, const Quadrature1D* q, const GeomMapping1D* gmap);
 
 	/// Read-only access to basis function values from left element
 	const Array2d<acfd_real>& leftBasis(const int ipoin) {

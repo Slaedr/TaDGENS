@@ -156,4 +156,24 @@ void LagrangeMapping2DTriangle::computeMappingAndJacobianDet(const amat::Array2d
 	}
 }
 
+void LagrangeMapping2DQuadrangle::computeAll(const amat::Array2d<acfd_real>& points)
+{
+	// TODO: Add geometric computations
+}
+
+void LagrangeMapping2DQuadrangle::computeMappingAndJacobianDet(const amat::Array2d<acfd_real>& points)
+{
+	// TODO: Add mapping and jaco det
+}
+	
+void TaylorElement::initialize(int degr, int nquadpoin, const Quadrature2D* q, const Array2d<acfd_real>& phynodes)
+{
+	degree = degre; ngauss = nquadpoin; quad = q;
+	gmap.setAll(degr, phynodes);
+	
+	acfd_real center[NDIM];					// Physical location of element's geometric center
+	acfd_real delta[NDIM];					// Maximum extent of the element in the coordinate directions
+	amat::Array2d<acfd_real> basisOffset;	// The quantities by which the basis functions are offset from actual Taylor polynomial basis
+}
+
 }

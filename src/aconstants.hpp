@@ -34,7 +34,7 @@ namespace acfd
 #ifndef EIGEN_CORE_H
 #include <Eigen/Core>
 /// Matrix type to be used for dense linear algebra
-typedef Eigen::Matrix<acfd::acfd_real, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> Matrix;
+typedef Eigen::Matrix<acfd::acfd_real, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Matrix;
 /// Vector type to be used for dense linear algebra
 typedef Eigen::Matrix<acfd::acfd_real, Eigen::Dynamic, 1> Vector;
 #endif
