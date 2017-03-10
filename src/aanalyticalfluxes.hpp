@@ -1,5 +1,11 @@
-#ifndef __AEULERFLUX_H
-#define __AEULERFLUX_H
+/** @file aanalyticalfluxes.hpp
+ * @brief Classes for computation of analytical flux function vectors
+ * @author Aditya Kashi
+ * @date 2016, 2017-03-10
+ */
+
+#ifndef __AANALYTICALFLUXES_H
+#define __AANALYTICALLUXES_H
 
 #ifndef __ACONSTANTS_H
 #include "aconstants.hpp"
@@ -12,12 +18,12 @@
 namespace acfd {
 
 /// Computation of the single-phase ideal gas Euler flux corresponding to any given state and along any given face-normal
-class NormalFluxFunction
+class NormalEulerFluxFunction
 {
 protected:
 	const acfd_real gamma;
 public:
-	NormalFluxFunction (acfd_real _gamma) : gamma(_gamma)
+	NormalEulerFluxFunction (acfd_real _gamma) : gamma(_gamma)
 	{ }
 
 	void evaluate_flux(const amat::Array2d<acfd_real>& state, const acfd_real* const n, amat::Array2d<acfd_real>& flux) const
@@ -41,7 +47,7 @@ public:
 	}
 };
 
-/// Abstract context for analytical flux vectors
+/// Abstract context for computation of analytical flux vectors
 class FluxFunction
 {
 public:
