@@ -6,10 +6,11 @@
 
 namespace acfd {
 
-Quadrature1D::Quadrature1D(const int n_guass) : QuadratureRule(n_guass)
+Quadrature1D::initialize(const int n_guass)
 {
 	using std::sqrt;
 
+	ngauss = n_gauss;
 	gweights.setup(ngauss,1);
 	gpoints.setup(ngauss,1);
 
@@ -53,8 +54,9 @@ Quadrature1D::Quadrature1D(const int n_guass) : QuadratureRule(n_guass)
 	}
 }
 
-Quadrature2DSquare::Quadrature2DSquare(const int n_gauss): Quadrature2DSquare(n_gauss)
+Quadrature2DSquare::initialize(const int n_gauss)
 {
+	ngauss = n_gauss;
 	if(ngauss == 1) {
 		acfd_real gp[][2] = {{0.0, 0.0}};
 		acfd_real gw[][1] = {{4.0}};
@@ -72,8 +74,9 @@ Quadrature2DSquare::Quadrature2DSquare(const int n_gauss): Quadrature2DSquare(n_
 	}
 }
 
-Quadrature2DTriangle::Quadrature2DTriangle(const int n_guass) : QuadratureRule(n_gauss) 
+Quadrature2DTriangle::initialize(const int n_guass)
 {
+	ngauss = n_gauss;
 	if(ngauss == 1) {
 		acfd_real gp[][2] = {{1.0/3, 1.0/3}};
 		acfd_real gw[][1] = {{0.5}};

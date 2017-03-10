@@ -25,7 +25,7 @@ protected:
 	amat::Array2d<acfd_real> gweights;
 	amat::Array2d<acfd_real> gpoints;
 public:
-	QuadratureRule(const int n_gauss) : nguass(n_guass) { }
+	virtual void initialize(const int n_gauss) = 0;
 	
 	const amat::Array2d<acfd_real>& weight() const {
 		return gweights;
@@ -40,7 +40,7 @@ public:
 class Quadrature1D : public QuadratureRule
 {
 public:
-	Quadrature1D(const int n_guass);
+	void initialize(const int n_gauss);
 };
 
 class Quadrature2D : public QuadratureRule
@@ -54,14 +54,14 @@ class Quadrature2D : public QuadratureRule
 class Quadrature2DSquare : public Quadrature2D
 {
 public:
-	Quadrature2DSquare(const int n_guass);
+	void initialize(const int n_gauss);
 };
 
 /// Integration over the reference triangle [(0,0), (1,0), (0,1)]
 class Quadrature2DTriangle : public Quadrature2D
 {
 public:
-	Quadrature2DTriangle(const int n_guass);
+	void initialize(const int n_gauss);
 };
 
 } // end namespace acfd
