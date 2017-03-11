@@ -165,15 +165,34 @@ void LagrangeMapping2DQuadrangle::computeMappingAndJacobianDet(const amat::Array
 {
 	// TODO: Add mapping and jaco det
 }
-	
+
+/** The number of DOFs is computed as \f$ \sum_{i=1}^{p+1} i \f$ for p = 0,1,2...
+ */
 void TaylorElement::initialize(int degr, int nquadpoin, const Quadrature2D* q, const Array2d<acfd_real>& phynodes)
 {
-	degree = degre; ngauss = nquadpoin; quad = q;
-	gmap.setAll(degr, phynodes);
+	degree = degr; ngauss = nquadpoin; quad = q; gmap = geommap;
+	int ndof = 0;
+	for(int i = 1; i <= degree+1; i++)
+		ndof += i;
+
+	basis.resize(ngauss);
+	basisGrad.resize(ngauss);
+	for(int i = 0; i < ngauss; i++) {
+		basis[i].setup(ndof,1);
+		basisGrad[i].resize(ndof,NDIM);
+	}
 	
 	acfd_real center[NDIM];					// Physical location of element's geometric center
 	acfd_real delta[NDIM];					// Maximum extent of the element in the coordinate directions
 	amat::Array2d<acfd_real> basisOffset;	// The quantities by which the basis functions are offset from actual Taylor polynomial basis
+
+	// TODO: Compute element centers and basis offsets
+	
+	// TODO: Compute basis functions and gradients
+	for(int idof = 1; idof <= degree+1; i++)
+	{
+		//
+	}
 }
 
 }

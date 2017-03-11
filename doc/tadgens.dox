@@ -28,5 +28,10 @@ Storage of various quantities at quadrature points, such as physical coordinates
 
 The other option is to have global arrays of all the data needed. This would make a massive redesign necessary in case we wish to introduce adaptation. However, we get a "struct-of-arrays" type storage, which is supposedly better for memory access patterns. At this point, I do not see why that might be, and therefore nor how much better it is.
 
+Current policy regarding Eigen's Matrix and Array2d
+---------------------------------------------------
+Storage for the purpose of only entry-wise access is done using Array2d. Eg. a list of coordinates of some points.
+Storage of matrices and vectors in the linear algebra sense, when matrix and vector operations would be needed, is done using Eigen's Matrix class. Eg. sorage of Jacobian inverses and gradients of test basis functions.
+
 */
 

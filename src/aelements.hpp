@@ -176,6 +176,9 @@ public:
 	 */
 	virtual void initialize(int degr, int nquadpoin, const Quadrature2D* q, const GeomMapping2D* geommap) = 0;
 
+	/// Compute values of basis functions at any given physical coordinates
+	virtual void computeBasis(const amat::Array2d<acfd_real>& points, std::vector<Array2d<acfd_real>>& basisvalues) = 0;
+
 	/// Read-only access to basis at a given quadrature point
 	const Array2d<acfd_real>& basisFunctions(const int ipoin) {
 		return basis[ipoin];
@@ -193,7 +196,8 @@ public:
 class TaylorElement : public Element
 {
 public:
-	void initialize(int degr, int nquadpoin, const Quadrature2D* q, const Array2d<acfd_real>& phynodes);
+	void initialize(int degr, int nquadpoin, const Quadrature2D* q, const GeomMapping2D* geommap);
+	void computeBasis(const amat::Array2d<acfd_real>& points, std::vector<Array2d<acfd_real>>& basisvalues);
 };
 
 /// An interface "element" between 2 adjacent finite elements

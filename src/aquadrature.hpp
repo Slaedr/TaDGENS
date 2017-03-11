@@ -27,11 +27,11 @@ protected:
 public:
 	virtual void initialize(const int n_gauss) = 0;
 	
-	const amat::Array2d<acfd_real>& weight() const {
+	const amat::Array2d<acfd_real>& weights() const {
 		return gweights;
 	}
 
-	const amat::Array2d<acfd_real>& point() const {
+	const amat::Array2d<acfd_real>& points() const {
 		return gpoints;
 	}
 };
