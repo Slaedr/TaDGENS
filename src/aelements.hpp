@@ -1,5 +1,10 @@
 /** @file elements.hpp
  * @brief Classes for geometric mappings and finite elements.
+ *
+ * Note that the geometric mapping classes do not let one compute the Jacobian etc. at any point;
+ * in other words, they do not provide functions into which reference/physical coordinates can be plugged in.
+ * Rather, they compute and store values of these functions at the quadrature points.
+ *
  * @author Aditya Kashi
  * @date 2017 March 1
  */
@@ -17,6 +22,9 @@
 
 namespace acfd {
 
+/// A type encoding the shape of 2D elements
+enum Shape2d {TRIANGLE, QUADRANGLE};
+
 /// Abstract class for a vector function of a single variable for parameterizing boundary curves
 /** The reference nodes are at equally-spaced points between (and including) -1 and 1.
  */
@@ -27,6 +35,7 @@ protected:
 	amat::Array2d<acfd_real> phyNodes;		///< Physical locations of the nodes
 	std::vector<Vector> normals;			///< Normals at quadrature points. Note that these are NOT unit vectors; they're the 1D analogue of "area" vectors
 	std::vector<Vector> mapping;			///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
+	const Quadrature1D* quadrature;			///< Gauss points and weights for integrating quantities
 
 public:
 	/// Return the order
@@ -34,10 +43,11 @@ public:
 		return degree;
 	}
 
-	/// Sets the polynomial degree and coordinates of physical nodes of the element
-	void setAll(const int deg, const Array2d& physicalnodes) {
+	/// Sets the polynomial degree and coordinates of physical nodes of the element and the quadrature context
+	void setAll(const int deg, const Array2d& physicalnodes, const Quadrature1D* q) {
 		degree = deg;
 		phyNodes = physicalnodes;
+		quadrature = q;
 	}
 
 	/// Read-only access to physical node locations
@@ -59,6 +69,11 @@ public:
 	/** \param[in] points is an npoin x ndim array, ie, whose each row contains the coordinates of one of the quadrature points
 	 */
 	virtual void computeAll(const amat::Array2d<acfd_real>& points) = 0;
+
+	/// Access to quadrature context
+	const Quadrature1D* getQuadrature() const {
+		return quadrature;
+	}
 };
 
 /// 1D Lagrange basis parameterization of a boundary
@@ -82,12 +97,14 @@ public:
 class GeomMapping2D
 {
 protected:
+	Shape2d shape;								///< Shape of the element
 	int degree;									///< Polynomial degree of the map
 	amat::Array2d<acfd_real> phyNodes;			///< Physical coordinates of the nodes
 	std::vector<Matrix> jaco;					///< Jacobian matrix of the mapping
 	std::vector<Matrix> jacoinv;				///< Inverse of the Jacobian matrix
 	std::vector<acfd_real> jacodet;				///< Determinant of the Jacobian matrix
 	std::vector<Vector> mapping;				///< Physical coords of the quadrature points
+	const Quadrature2D* quadrature;				///< Gauss points and weights for integrating quantities
 
 public:
 	/// Return the order
@@ -95,23 +112,26 @@ public:
 		return degree;
 	}
 
-	/// Sets the polynomial degree and coordinates of physical nodes of the element
-	void setAll(const int deg, const Array2d<acfd_real>& physicalnodes) {
-		degree = deg;
-		phyNodes = physicalnodes;
+	Shape2d getShape() const {
+		return shape;
 	}
 
-	/// Sets the basis function values, jacobians, jacobian inverses and jacobian determinants corresponding to a list of reference points
-	/** This function also allocates storage for all member data.
-	 * \param[in] points is an npoin x ndim array, ie, whose each row contains the coordinates of one of the quadrature points
+	/// Sets the polynomial degree, coordinates of physical nodes of the element and the integration context
+	void setAll(const int deg, const Array2d<acfd_real>& physicalnodes, const Quadrature2D* const quad) {
+		degree = deg;
+		phyNodes = physicalnodes;
+		quadrature = quad;
+	}
+
+	/// Sets the basis function values, jacobians, jacobian inverses and jacobian determinants corresponding to the quadrature points
+	/** This function also allocates storage for all member data except phyNodes, which must be set beforehand.
 	 */
-	virtual void computeAll(/*const acfd_real xi[NDIM], Matrix& jac, Matrix& jacinv, acfd_real& jdet*/ const amat::Array2d<acfd_real>& points) = 0;
+	virtual void computeAll() = 0;
 
 	/// Computes basis function values at quadrature points
 	/** Note that storage is allocated only for mapping and jacodet.
-	 * \param[in] points is an npoin x ndim array, ie, whose each row contains the coordinates of one of the quadrature points
 	 */
-	virtual void computeMappingAndJacobianDet(const amat::Array2d<acfd_real>& points) = 0;
+	virtual void computeMappingAndJacobianDet() = 0;
 
 	/// Read-only access to physical node locations
 	const amat::Array2d<acfd_real>& getPhyNodes() const {
@@ -137,6 +157,11 @@ public:
 	acfd_real jacDet(const int ipoint) const {
 		return jacodet[ipoint];
 	}
+
+	/// Access to quadrature context
+	const Quadrature2D* getQuadrature() const {
+		return quadrature;
+	}
 };
 
 /// Lagrange geometric mapping on the reference triangle
@@ -145,8 +170,8 @@ public:
 class LagrangeMapping2DTriangle : public GeomMapping2D
 {
 public:
-	void computeAll(const amat::Array2d<acfd_real>& points);
-	void computeMappingAndJacobianDet(const amat::Array2d<acfd_real>& points);
+	void computeAll();
+	void computeMappingAndJacobianDet();
 };
 
 /// Lagrange geometric mapping on the reference square
@@ -155,8 +180,8 @@ public:
 class LagrangeMapping2DQuadrangle : public GeomMapping2D
 {
 public:
-	void computeAll(const amat::Array2d<acfd_real>& points);
-	void computeMappingAndJacobianDet(const amat::Array2d<acfd_real>& points);
+	void computeAll();
+	void computeMappingAndJacobianDet();
 };
 
 /// Abstract finite element
@@ -168,35 +193,34 @@ protected:
 	std::vector<Array2d<acfd_real>> basis;		///< Values of basis functions at quadrature points
 	std::vector<Matrix> basisGrad;				///< Values of derivatives of the basis functions at the quadrature points
 	const GeomMapping2D* gmap;					///< The 2D geometric map which maps this element to the reference element
-	const Quadrature2D* quad;					///< Numerical integration context
 
 public:
 	/// Set the data, compute geom map, and compute basis and basis grad
-	/** \param[in] geommap The geometric mapping should be initialized and all values computed externally; we'll not do that here
+	/** \param[in] geommap The geometric mapping should be initialized and all values computed beforehand; we'll not do that here
 	 */
-	virtual void initialize(int degr, int nquadpoin, const Quadrature2D* q, const GeomMapping2D* geommap) = 0;
+	virtual void initialize(int degr, int nquadpoin, const GeomMapping2D* geommap, const Quadrature2D* q) = 0;
 
 	/// Compute values of basis functions at any given physical coordinates
 	virtual void computeBasis(const amat::Array2d<acfd_real>& points, std::vector<Array2d<acfd_real>>& basisvalues) = 0;
 
 	/// Read-only access to basis at a given quadrature point
-	const Array2d<acfd_real>& basisFunctions(const int ipoin) {
+	const Array2d<acfd_real>& bFunc(const int ipoin) {
 		return basis[ipoin];
 	}
 
 	/// Read-only access to basis gradients at a given quadrature point
-	const Matrix& basisGradients(const int ipoin) {
+	const Matrix& bGrad(const int ipoin) {
 		return basisGrad[ipoin];
 	}
 };
 
-/// Element described by Taylor basis functions and Lagrange geometric mapping
+/// Element described by Taylor basis functions
 /** The Taylor basis functions are defined on the \emph{physical} element.
  */
 class TaylorElement : public Element
 {
 public:
-	void initialize(int degr, int nquadpoin, const Quadrature2D* q, const GeomMapping2D* geommap);
+	void initialize(int degr, int nquadpoin, const GeomMapping2D* geommap);
 	void computeBasis(const amat::Array2d<acfd_real>& points, std::vector<Array2d<acfd_real>>& basisvalues);
 };
 
@@ -211,14 +235,13 @@ class FaceElement
 	std::vector<Array2d<acfd_real>> leftbasis;		///< Values of the left element's basis functions at the face quadrature points
 	std::vector<Array2d<acfd_real>> rightbasis;		///< Values of the left element's basis functions at the face quadrature points
 	const GeomMapping1D* gmap;						///< 1D geometric mapping (parameterization) of the face
-	const Quadrature1D* quad;						///< Numerical integration context
 
 public:
 	/// Sets data; computes basis function values of left and right element at each quadrature point
 	/** NOTE: Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
 	 * \param[in] geommap The geometric mapping must be initialized externally; we don't do it here
 	 */
-	void initialize(int degr, int nquadpoin, const Element* lelem, const Element* relem, const Quadrature1D* q, const GeomMapping1D* gmap);
+	void initialize(int degr, const Element* lelem, const Element* relem, const GeomMapping1D* geommap);
 
 	/// Read-only access to basis function values from left element
 	const Array2d<acfd_real>& leftBasis(const int ipoin) {

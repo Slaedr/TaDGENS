@@ -21,11 +21,12 @@ namespace acfd {
 class QuadratureRule
 {
 protected:
-	int ngauss;
+	int ngauss;										///< Number of quadrature points
+	int nPoly;										///< Degree of polynomial to integrate exactly
 	amat::Array2d<acfd_real> gweights;
 	amat::Array2d<acfd_real> gpoints;
 public:
-	virtual void initialize(const int n_gauss) = 0;
+	virtual void initialize(const int n_poly) = 0;
 	
 	const amat::Array2d<acfd_real>& weights() const {
 		return gweights;
@@ -34,13 +35,17 @@ public:
 	const amat::Array2d<acfd_real>& points() const {
 		return gpoints;
 	}
+
+	int numGauss() const {
+		return ngauss;
+	}
 };
 
 /// 1D Gauss-Legendre quadrature
 class Quadrature1D : public QuadratureRule
 {
 public:
-	void initialize(const int n_gauss);
+	void initialize(const int n_poly);
 };
 
 class Quadrature2D : public QuadratureRule
@@ -54,14 +59,14 @@ class Quadrature2D : public QuadratureRule
 class Quadrature2DSquare : public Quadrature2D
 {
 public:
-	void initialize(const int n_gauss);
+	void initialize(const int n_poly);
 };
 
 /// Integration over the reference triangle [(0,0), (1,0), (0,1)]
 class Quadrature2DTriangle : public Quadrature2D
 {
 public:
-	void initialize(const int n_gauss);
+	void initialize(const int n_poly);
 };
 
 } // end namespace acfd

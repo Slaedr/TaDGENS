@@ -8,10 +8,13 @@
 
 namespace acfd {
 
+using namespace amat;
+
 /** Currently, Lagrange mappings upto polynomial degree 2 are implemented.
  */
-void LagrangeMapping1D::computeAll(const amat::Array2d<acfd_real>& points)
+void LagrangeMapping1D::computeAll()
 {
+	const Array2d<acfd_real>& points = quadrature->points();
 	int npoin = points.rows();
 	//speeds.resize(npoin);
 	normals.resize(npoin,NDIM);
@@ -62,8 +65,10 @@ void LagrangeMapping1D::computeAll(const amat::Array2d<acfd_real>& points)
 
 /** Mappings upto P2 are implemented.
  */
-void LagrangeMapping2DTriangle::computeAll(const amat::Array2d<acfd_real>& points)
+void LagrangeMapping2DTriangle::computeAll()
 {
+	const Array2d<acfd_real>& points = quadrature->points();
+	shape = TRIANGLE;
 	int npoin = points.rows();
 	jaco.resize(npoin);
 	jacoinv.resize(npoin);
@@ -113,8 +118,10 @@ void LagrangeMapping2DTriangle::computeAll(const amat::Array2d<acfd_real>& point
 	}
 }
 
-void LagrangeMapping2DTriangle::computeMappingAndJacobianDet(const amat::Array2d<acfd_real>& points)
+void LagrangeMapping2DTriangle::computeMappingAndJacobianDet()
 {
+	const Array2d<acfd_real>& points = quadrature->points();
+	shape = TRIANGLE;
 	int npoin = points.rows();
 	jacodet.resize(npoin);
 	mapping.resize(npoin);
@@ -156,25 +163,32 @@ void LagrangeMapping2DTriangle::computeMappingAndJacobianDet(const amat::Array2d
 	}
 }
 
-void LagrangeMapping2DQuadrangle::computeAll(const amat::Array2d<acfd_real>& points)
+void LagrangeMapping2DQuadrangle::computeAll()
 {
+	const Array2d<acfd_real>& qp = quadrature->points();
 	// TODO: Add geometric computations
 }
 
-void LagrangeMapping2DQuadrangle::computeMappingAndJacobianDet(const amat::Array2d<acfd_real>& points)
+void LagrangeMapping2DQuadrangle::computeMappingAndJacobianDet()
 {
+	const Array2d<acfd_real>& qp = quadrature->points();
 	// TODO: Add mapping and jaco det
 }
 
-/** The number of DOFs is computed as \f$ \sum_{i=1}^{p+1} i \f$ for p = 0,1,2...
+/** We currently have upto P2 elements.
+ * The number of DOFs is computed as \f$ \sum_{i=1}^{p+1} i \f$ for p = 0,1,2...
+ * For computing the element centers and area, we use enough quadrature points to exactly get the element centers.
+ * Note that for a quad element of degree bi p (p=1 is bi linear etc), the jacodet is of degree bi 2p-1.
+ * For a tri element of degree p, the jacodet is of degree 2p-2.
  */
-void TaylorElement::initialize(int degr, int nquadpoin, const Quadrature2D* q, const Array2d<acfd_real>& phynodes)
+void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 {
-	degree = degr; ngauss = nquadpoin; quad = q; gmap = geommap;
+	degree = degr; gmap = geommap;
 	int ndof = 0;
 	for(int i = 1; i <= degree+1; i++)
 		ndof += i;
 
+	int ngauss = gmap->getQuadrature()->numGauss();
 	basis.resize(ngauss);
 	basisGrad.resize(ngauss);
 	for(int i = 0; i < ngauss; i++) {
@@ -182,17 +196,93 @@ void TaylorElement::initialize(int degr, int nquadpoin, const Quadrature2D* q, c
 		basisGrad[i].resize(ndof,NDIM);
 	}
 	
+	int geomdeg = gmap->getDegree();
+	acfd_real area = 0;
 	acfd_real center[NDIM];					// Physical location of element's geometric center
 	acfd_real delta[NDIM];					// Maximum extent of the element in the coordinate directions
 	amat::Array2d<acfd_real> basisOffset;	// The quantities by which the basis functions are offset from actual Taylor polynomial basis
-
-	// TODO: Compute element centers and basis offsets
-	
-	// TODO: Compute basis functions and gradients
-	for(int idof = 1; idof <= degree+1; i++)
-	{
-		//
+	basisOffset.resize(ndof-3,1);
+	basisOffset.zeros();
+	for(int i = 0; i<NDIM; i++) {
+		center[i] = 0;
+		delta[i] = 0;
 	}
+
+	// Compute max extents of the physical element
+	
+	const Array2d<acfd_real>& phn = gmap->getPhyNodes();
+	for(int i = 0; i < phn.rows(); i++) {
+		for(int j = i+1; j < phn.rows(); j++) 
+		{
+			acfd_real dist[NDIM];
+			for(int idim = 0; idim < NDIM; idim++) 
+			{
+				dist[idim] = phn(i,idim)-phn(j,idim);
+				if(dist[idim] > delta[idim])
+					delta[idim] = dist[idim];
+			}
+		}
+	}
+	
+	// Compute element centers and basis offsets
+
+	const Array2d<acfd_real>& gp = gmap->getQuadrature()->points();
+	const Array2d<acfd_real>& gw = gmap->getQuadrature()->weights();
+	int ng = gp.rows();
+	for(int ig = 0; ig < ng; ig++) 
+	{
+		area += gmap->jacDet(ig) * gw(ig);
+		for(int idim = 0; idim < NDIM; idim++)
+			center[idim] += gmap->map(ig)(idim) * gmap->jacDet(ig) * gw(ig);
+	}
+	for(int idim = 0; idim < NDIM; idim++)
+		center[idim] /= area;
+
+	if(degree >= 2) {
+		for(int ig = 0; ig < ng; ig++)
+		{
+			basisOffset(0,0) += (gmap->map(ig)(0)-center[0])*(gmap->map(ig)(0)-center[0]) * gmap->jacDet(ig) * gw(ig);
+			basisOffset(0,1) += (gmap->map(ig)(1)-center[1])*(gmap->map(ig)(1)-center[1]) * gmap->jacDet(ig) * gw(ig);
+			basisOffset(0,2) += (gmap->map(ig)(0)-center[0])*(gmap->map(ig)(1)-center[1]) * gmap->jacDet(ig) * gw(ig);
+		}
+		basisOffset(0,0) *= 1.0/(area*2*delta[0]*delta[0]);
+		basisOffset(0,1) *= 1.0/(area*2*delta[1]*delta[1]);
+		basisOffset(0,2) *= 1.0/(area*delta[0]*delta[1]);
+	}
+	
+	// Compute basis functions and gradients
+	
+	for(int ip = 0; ip < ngauss; ip++)
+	{
+		// get physical coords of quadrature point
+		const Vector& gp = gmap->map(ip);
+		
+		basis[ip](0) = 1.0;
+		basisGrad[ip](0,0) = basisGrad[ip](0,1) = 0.0;
+
+		if(degree >= 1) {
+			basis[ip](1) = (gp(0)-center[0])/delta[0];
+			basis[ip](2) = (gp(1)-center[1])/delta[1];
+
+			basisGrad[ip](1,0) = 1.0/delta[0]; basisGrad[ip](1,1) = 0.0;
+			basisGrad[1p](2,0) = 0.0; basisGrad[ip](2,1) = 1.0/delta[1];
+		}
+
+		if(degree >= 2) {
+			basis[ip](3) = (gp(0)-center[0])*(gp(0)-center[0])/(2.0*delta[0]*delta[0]) - basisOffset[0][0];
+			basis[ip](4) = (gp(1)-center[1])*(gp(1)-center[1])/(2.0*delta[1]*delta[1]) - basisOffset[0][1];
+			basis[ip](5) = (gp(0)-center[0])*(gp(1)-center[1])/(delta[0]*delta[1]) - basisOffset[0][2];
+
+			basisGrad[ip](3,0) = (gp(0)-center[0])/(delta[0]*delta[0]); basisGrad[ip](3,1) = 0.0;
+			basisGrad[ip](4,0) = 0.0; basisGrad[ip](4,1) = (gp(1)-center[1])/(delta[1]*delta[1]);
+			basisGrad[ip](5,0) = (gp(1)-center[1])/(delta[0]*delta[1]); basisGrad[ip](5,1) = (gp(0)-center[0])/(delta[0]*delta[1]);
+		}
+	}
+}
+
+void FaceElement::initialize(int degr, const Element* lelem, const Element* relem, const GeomMapping1D* gmapping)
+{
+	gmap = gmapping; leftel = lelem; rightel = relem;
 }
 
 }
