@@ -198,10 +198,7 @@ public:
 	/// Set the data, compute geom map, and compute basis and basis grad
 	/** \param[in] geommap The geometric mapping should be initialized and all values computed beforehand; we'll not do that here
 	 */
-	virtual void initialize(int degr, int nquadpoin, const GeomMapping2D* geommap, const Quadrature2D* q) = 0;
-
-	/// Compute values of basis functions at any given physical coordinates
-	virtual void computeBasis(const amat::Array2d<acfd_real>& points, std::vector<Array2d<acfd_real>>& basisvalues) = 0;
+	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
 
 	/// Read-only access to basis at a given quadrature point
 	const Array2d<acfd_real>& bFunc(const int ipoin) {
@@ -214,27 +211,46 @@ public:
 	}
 };
 
-/// Element described by Taylor basis functions
-/** The Taylor basis functions are defined on the \emph{physical} element.
+/// Abstract element defined on the physical element
+/** Taylor basis element is an implementation of this, while Lagrange element is generally not.
  */
-class TaylorElement : public Element
+class Element_PhysicalSpace : public Element
 {
 public:
-	void initialize(int degr, int nquadpoin, const GeomMapping2D* geommap);
-	void computeBasis(const amat::Array2d<acfd_real>& points, std::vector<Array2d<acfd_real>>& basisvalues);
+	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
+
+	/// Computes values of basis functions at a given point in physical space
+	virtual void computeBasis(const std::vector<acfd_real>& point, std::vector<acfd_real>& basisvalues) = 0;
 };
 
-/// An interface "element" between 2 adjacent finite elements
+/// Element described by Taylor basis functions
+/** The Taylor basis functions are defined on the \emph{physical} element.
+ *
+ * Note that the first (p0) DOF is not the value at the element center, but the average value over the element.
+ * We thus need to compute offsets from Taylor polynomials for terms associated with P2 and higher.
+ */
+class TaylorElement : public Element_PhysicalSpace
+{
+	acfd_real area;										///< Area of the element
+	acfd_real center[NDIM];								///< Physical location of element's geometric center
+	acfd_real delta[NDIM];								///< Maximum extent of the element in the coordinate directions
+	std::vector<std::vector<acfd_real>> basisOffset;	///< The quantities by which the basis functions are offset from actual Taylor polynomial basis
+public:
+	void initialize(int degr, const GeomMapping2D* geommap);
+	void computeBasis(const std::vector<acfd_real>& point, std::vector<acfd_real>& basisvalues);
+};
+
+/// An interface "element" between 2 adjacent finite elements with basis defined on physical elements
 /** 
  * In future, perhaps intfac data could be stored in this class.
  */
-class FaceElement
+class FaceElement_PhysicalSpace
 {
-	const Element* leftel;							///< "Left" element
-	const Element* rightel;							///< "Right" element
-	std::vector<Array2d<acfd_real>> leftbasis;		///< Values of the left element's basis functions at the face quadrature points
-	std::vector<Array2d<acfd_real>> rightbasis;		///< Values of the left element's basis functions at the face quadrature points
-	const GeomMapping1D* gmap;						///< 1D geometric mapping (parameterization) of the face
+	const Element_PhysicalSpace* leftel;				///< "Left" element
+	const Element_PhysicalSpace* rightel;				///< "Right" element
+	std::vector<Array2d<acfd_real>> leftbasis;			///< Values of the left element's basis functions at the face quadrature points
+	std::vector<Array2d<acfd_real>> rightbasis;			///< Values of the left element's basis functions at the face quadrature points
+	const GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
 
 public:
 	/// Sets data; computes basis function values of left and right element at each quadrature point

@@ -197,12 +197,16 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	}
 	
 	int geomdeg = gmap->getDegree();
-	acfd_real area = 0;
-	acfd_real center[NDIM];					// Physical location of element's geometric center
-	acfd_real delta[NDIM];					// Maximum extent of the element in the coordinate directions
-	amat::Array2d<acfd_real> basisOffset;	// The quantities by which the basis functions are offset from actual Taylor polynomial basis
-	basisOffset.resize(ndof-3,1);
-	basisOffset.zeros();
+	area = 0;
+
+	if(degree > 1)
+		basisOffset.resize(degree-1);
+	for(int i = 0; i < degree-1; i++) {
+		basisOffset[i].resize(i+3);
+		for(int j = 0; j < i+3; j++)
+			basisOffset[i][j] = 0;
+	}
+
 	for(int i = 0; i<NDIM; i++) {
 		center[i] = 0;
 		delta[i] = 0;
@@ -241,13 +245,13 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	if(degree >= 2) {
 		for(int ig = 0; ig < ng; ig++)
 		{
-			basisOffset(0,0) += (gmap->map(ig)(0)-center[0])*(gmap->map(ig)(0)-center[0]) * gmap->jacDet(ig) * gw(ig);
-			basisOffset(0,1) += (gmap->map(ig)(1)-center[1])*(gmap->map(ig)(1)-center[1]) * gmap->jacDet(ig) * gw(ig);
-			basisOffset(0,2) += (gmap->map(ig)(0)-center[0])*(gmap->map(ig)(1)-center[1]) * gmap->jacDet(ig) * gw(ig);
+			basisOffset[0][0] += (gmap->map(ig)(0)-center[0])*(gmap->map(ig)(0)-center[0]) * gmap->jacDet(ig) * gw(ig);
+			basisOffset[0][1] += (gmap->map(ig)(1)-center[1])*(gmap->map(ig)(1)-center[1]) * gmap->jacDet(ig) * gw(ig);
+			basisOffset[0][2] += (gmap->map(ig)(0)-center[0])*(gmap->map(ig)(1)-center[1]) * gmap->jacDet(ig) * gw(ig);
 		}
-		basisOffset(0,0) *= 1.0/(area*2*delta[0]*delta[0]);
-		basisOffset(0,1) *= 1.0/(area*2*delta[1]*delta[1]);
-		basisOffset(0,2) *= 1.0/(area*delta[0]*delta[1]);
+		basisOffset[0][0] *= 1.0/(area*2*delta[0]*delta[0]);
+		basisOffset[0][1] *= 1.0/(area*2*delta[1]*delta[1]);
+		basisOffset[0][2] *= 1.0/(area*delta[0]*delta[1]);
 	}
 	
 	// Compute basis functions and gradients
