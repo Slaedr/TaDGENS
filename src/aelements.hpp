@@ -34,7 +34,7 @@ protected:
 	int degee;								///< Polynomial degree of the mapping
 	amat::Array2d<acfd_real> phyNodes;		///< Physical locations of the nodes
 	std::vector<Vector> normals;			///< Normals at quadrature points. Note that these are NOT unit vectors; they're the 1D analogue of "area" vectors
-	std::vector<Vector> mapping;			///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
+	amat::Array2d<acfd_real> mapping;		///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
 	const Quadrature1D* quadrature;			///< Gauss points and weights for integrating quantities
 
 public:
@@ -61,8 +61,8 @@ public:
 	}
 
 	/// Read-only access to physical coords of the quadrature points
-	const Vector& map(int ipoin) const {
-		return mapping[ipoin];
+	const amat::Array2d<acfd_real>& map() const {
+		return mapping;
 	}
 
 	/// Computes the curve normals at a list of points in the reference space
@@ -103,7 +103,7 @@ protected:
 	std::vector<Matrix> jaco;					///< Jacobian matrix of the mapping
 	std::vector<Matrix> jacoinv;				///< Inverse of the Jacobian matrix
 	std::vector<acfd_real> jacodet;				///< Determinant of the Jacobian matrix
-	std::vector<Vector> mapping;				///< Physical coords of the quadrature points
+	amat::Array2d<acfd_real> mapping;			///< Physical coords of the quadrature points
 	const Quadrature2D* quadrature;				///< Gauss points and weights for integrating quantities
 
 public:
@@ -139,8 +139,8 @@ public:
 	}
 
 	/// Read-only access to the mapping evaluated at quadrature points
-	const Vector& map(int ipoin) const {
-		return mapping[ipoin];
+	const amat::Array2d<acfd_real>& map() const {
+		return mapping;
 	}
 
 	/// Read-only access to jacobians
@@ -188,11 +188,11 @@ public:
 class Element
 {
 protected:
-	int degree;									///< Polynomial degree
-	int ngauss;									///< Number of quadrature points
-	std::vector<Array2d<acfd_real>> basis;		///< Values of basis functions at quadrature points
-	std::vector<Matrix> basisGrad;				///< Values of derivatives of the basis functions at the quadrature points
-	const GeomMapping2D* gmap;					///< The 2D geometric map which maps this element to the reference element
+	int degree;										///< Polynomial degree
+	int ndof;										///< Number of local DOFs
+	std::vector<amat::Array2d<acfd_real>> basis;	///< Values of basis functions at quadrature points
+	std::vector<Matrix> basisGrad;					///< Values of derivatives of the basis functions at the quadrature points
+	const GeomMapping2D* gmap;						///< The 2D geometric map which maps this element to the reference element
 
 public:
 	/// Set the data, compute geom map, and compute basis and basis grad
@@ -209,6 +209,14 @@ public:
 	const Matrix& bGrad(const int ipoin) {
 		return basisGrad[ipoin];
 	}
+
+	int getDegree() const {
+		return degree;
+	}
+
+	int getNumDOFs() const {
+		return ndof;
+	}
 };
 
 /// Abstract element defined on the physical element
@@ -220,7 +228,7 @@ public:
 	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
 
 	/// Computes values of basis functions at a given point in physical space
-	virtual void computeBasis(const std::vector<acfd_real>& point, std::vector<acfd_real>& basisvalues) = 0;
+	virtual void computeBasis(const Vector& point, std::vector<acfd_real>& basisvalues) = 0;
 };
 
 /// Element described by Taylor basis functions
@@ -237,7 +245,7 @@ class TaylorElement : public Element_PhysicalSpace
 	std::vector<std::vector<acfd_real>> basisOffset;	///< The quantities by which the basis functions are offset from actual Taylor polynomial basis
 public:
 	void initialize(int degr, const GeomMapping2D* geommap);
-	void computeBasis(const std::vector<acfd_real>& point, std::vector<acfd_real>& basisvalues);
+	void computeBasis(const acfd_real* point, acfd_real* basisvalues);
 };
 
 /// An interface "element" between 2 adjacent finite elements with basis defined on physical elements
@@ -248,8 +256,8 @@ class FaceElement_PhysicalSpace
 {
 	const Element_PhysicalSpace* leftel;				///< "Left" element
 	const Element_PhysicalSpace* rightel;				///< "Right" element
-	std::vector<Array2d<acfd_real>> leftbasis;			///< Values of the left element's basis functions at the face quadrature points
-	std::vector<Array2d<acfd_real>> rightbasis;			///< Values of the left element's basis functions at the face quadrature points
+	amat::Array2d<acfd_real> leftbasis;					///< Values of the left element's basis functions at the face quadrature points
+	amat::Array2d<acfd_real> rightbasis;				///< Values of the left element's basis functions at the face quadrature points
 	const GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
 
 public:
@@ -257,16 +265,16 @@ public:
 	/** NOTE: Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
 	 * \param[in] geommap The geometric mapping must be initialized externally; we don't do it here
 	 */
-	void initialize(int degr, const Element* lelem, const Element* relem, const GeomMapping1D* geommap);
+	void initialize(int degr, const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* geommap);
 
 	/// Read-only access to basis function values from left element
-	const Array2d<acfd_real>& leftBasis(const int ipoin) {
-		return leftbasis[ipoin];
+	const Array2d<acfd_real>& leftBasis() {
+		return leftbasis;
 	}
 
 	/// Read-only access to basis function values from right element
-	const Array2d<acfd_real>& rightBasis(const int ipoin) {
-		return rightbasis[ipoin];
+	const Array2d<acfd_real>& rightBasis() {
+		return rightbasis;
 	}
 };
 

@@ -11,8 +11,8 @@ Quadrature1D::initialize(const int n_poly)
 	using std::sqrt;
 
 	nPoly = n_poly;
-		gweights.setup(ngauss,1);
-		gpoints.setup(ngauss,1);
+		gweights.resize(ngauss,1);
+		gpoints.resize(ngauss,1);
 
 	if(nPoly == 1) {
 		ngauss = 1;
@@ -47,8 +47,8 @@ Quadrature1D::initialize(const int n_poly)
 	}
 	else {
 		ngauss = 5;
-		gweights.setup(ngauss,1);
-		gpoints.setup(ngauss,1);
+		gweights.resize(ngauss,1);
+		gpoints.resize(ngauss,1);
 		printf("! Quadrature1D: Quadrature with this number of Gauss points is not supported! Setting to 5.\n");
 		gpoints(0) = -1.0/3*sqrt(5.0 + 2.0*sqrt(10.0/7)); gpoints(1) = -1.0/3*sqrt(5.0 - 2.0*sqrt(10.0/7));
 		gpoints(2) = 0.0;
@@ -71,6 +71,7 @@ Quadrature2DSquare::initialize(const int n_poly)
 		std::printf("Quadrature2DSquare: Ngauss = 1.\n");
 	}
 	else {
+		npoly = 2;	// override argument
 		ngauss = 4;
 		acfd_real gp[][2] = {{-1.0/SQRT3, -1.0/SQRT3}, {-1.0/SQRT3, 1.0/SQRT3}, {1.0/SQRT3, -1.0/SQRT3}, {1.0/SQRT3, 1.0/SQRT3}};
 		acfd_real gw[][1] = {{1.0}, {1.0}, {1.0}, {1.0}};

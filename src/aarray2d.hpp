@@ -155,6 +155,27 @@ public:
 		isalloc = true;
 	}
 	
+	/// Alternative to setup function
+	void resize(acfd_int nr, acfd_int nc=1)
+	{
+		if(nc==0)
+		{
+			std::cout << "Array2d: setup(): Error: Number of columns is zero. Setting it to 1.\n";
+			nc=1;
+		}
+		if(nr==0)
+		{
+			std::cout << "Array2d(): setup(): Error: Number of rows is zero. Setting it to 1.\n";
+			nr=1;
+		}
+		nrows = nr; ncols = nc;
+		size = nrows*ncols;
+		if(isalloc == true)
+			delete [] elems;
+		elems = new T[nrows*ncols];
+		isalloc = true;
+	}
+	
 	/// Allocate and set an array using a raw C array
 	void initialize(acfd_int nr, acfd_int nc, const T *const *const array)
 	{
@@ -330,7 +351,7 @@ public:
 	const T* operator[](const acfd_int r) const
 	{
 #ifdef DEBUG
-		if(r >= nrows) { std::cout << "! Array2d: const_row_pointer(): Row index beyond array size!\n"; return nullptr;}
+		if(r >= nrows) { std::cout << "! Array2d: const []: Row index beyond array size!\n"; return nullptr;}
 #endif
 		return &elems[r*ncols];
 	}
@@ -348,7 +369,7 @@ public:
 	T* operator[](const acfd_int r)
 	{
 #ifdef DEBUG
-		if(r >= nrows) { std::cout << "! Array2d: row_pointer(): Row index beyond array size!\n"; return nullptr;}
+		if(r >= nrows) { std::cout << "! Array2d: []: Row index beyond array size!\n"; return nullptr;}
 #endif
 		return &elems[r*ncols];
 	}
