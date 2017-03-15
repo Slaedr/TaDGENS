@@ -110,19 +110,18 @@ We can then write $\bld{u}_h = \sum_{j=1}^n \bld{u}_j B_j(\bld{x})$. Further, we
 \end{equation}
 This is necessary because $\bld{u}$ is, in general, discontinuous across element interfaces $f$ and the analytical flux $\bld{F}(\bld{u})|_f$ is not uniquely defined.
 
-The discrete form becomes: find $\bld{u}_h \in W_h^m$ such that
+The discrete form becomes: find the degrees of freedom (DOFs) $\bld{u}_{lj}$ of each conserved variable $\bld{u}_l$ such that ($\bld{u}_L, \bld{u}_R$ and $\bld{u}_h$ still denote functions in the discrete space $W_h^m$)
 \begin{equation}
-\sum_{i=1}^n\int_{\Omega_e} B_iB_j\,d\mu\, \frac{d\bld{u}_j}{d t} + \int_{\Gamma_e}  \bld{h}(\bld{u}_L, \bld{u}_R, \hat{\bld{n}})B_i \,ds - \int_{\Omega_e}\bld{F}(\bld{u}_h)\nabla B_i \,d\mu = \bld{0} \quad \forall i \in {1,2,...n},\, \forall \,\Omega_e \in \mathcal{T}.
+\sum_{i=1}^n\int_{\Omega_e} B_iB_j\,d\mu\, \frac{d\bld{u}_{lj}}{d t} + \int_{\Gamma_e}  \bld{h}(\bld{u}_L(\bld{x}), \bld{u}_R(\bld{x}), \hat{\bld{n}})B_i \,ds - \int_{\Omega_e}\bld{F}(\bld{u}_h(\bld{x}))\nabla B_i \,d\mu = \bld{0}, \quad i \in {1,...n},\, \forall \,\Omega_e \in \mathcal{T}.
 \label{df}
 \end{equation}
-We thus need to solve the following ODE.
+
+We denote by $\bld{U} := [\bld{u}_1\, \bld{u}_2\, ...\, \bld{u}_m]^T \in \mathbb{R}^{mn}$ the stacked vector of all degrees of freedom of all conserved variables on the element $\Omega_e$. We thus need to solve the following ODE on each element.
 \begin{equation}
-M \frac{d\bld{u}_h}{dt} = \bld{R}(\bld{u}_h(t)).
+M \frac{d\bld{U}}{dt} = \bld{r}(\bld{U}(t)).
 \label{ode}
 \end{equation}
-where $[M]_{ij} = \int_{\Omega_e} B_iB_j\,d\mu$ and $\bld{R}(\bld{u}_h) :=  - \int_{\Gamma_e}  \bld{h}(\bld{u}_L, \bld{u}_R, \hat{\bld{n}})B_i \,ds + \int_{\Omega_e}\bld{F}(\bld{u}_h)\nabla B_i \,d\mu$.
-
-We denote by $\bld{U} := [\bld{u}_1\, \bld{u}_2\, ...\, \bld{u}_n]^T \in \mathbb{R}^{mn}$ the stacked vector of all degrees of freedom of all conserved variables on the element $\Omega_e$.
+where $M \in \mathbb{R}^{mn\times mn}$ is a block-diagonal matrix having the $m$ diagonal blocks $[M_D]_{ij} = \int_{\Omega_e} B_iB_j\,d\mu$ and $\bld{r}(\bld{U})$ is a stacked vector of the same form as $\bld{U}$, with the $i$th sub-vector having DOFs corresponding to the $i$th conserved variable: $\bld{r}_i(\bld{u}) :=  - \int_{\Gamma_e}  \bld{h}(\bld{u}_{hL}, \bld{u}_{hR}, \hat{\bld{n}})B_i \,ds + \int_{\Omega_e}\bld{F}(\bld{u}_h)\nabla B_i \,d\mu$.
 
 \section{Taylor basis functions}
 In a Taylor basis, a function is expressed as a Taylor expansion about the element center. In 2D, a quadratic or P2 expansion in an element e would be written as
