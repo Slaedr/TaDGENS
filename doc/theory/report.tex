@@ -110,13 +110,13 @@ We can then write $\bld{u}_h = \sum_{j=1}^n \bld{u}_j B_j(\bld{x})$. Further, we
 \end{equation}
 This is necessary because $\bld{u}$ is, in general, discontinuous across element interfaces $f$ and the analytical flux $\bld{F}(\bld{u})|_f$ is not uniquely defined.
 
-The discrete form becomes: find the degrees of freedom (DOFs) $\bld{u}_{lj}$ of each conserved variable $\bld{u}_l$ such that ($\bld{u}_L, \bld{u}_R$ and $\bld{u}_h$ still denote functions in the discrete space $W_h^m$)
+The discrete form becomes: find the $n$ degrees of freedom (DOFs) $u_{lj}$ of each conserved variable $\bld{u}_l \in \mathbb{R}^n, l=1,...,m$ such that (note: $\bld{u}_L, \bld{u}_R$ and $\bld{u}_h$ still denote functions in the discrete space $W_h^m$)
 \begin{equation}
-\sum_{i=1}^n\int_{\Omega_e} B_iB_j\,d\mu\, \frac{d\bld{u}_{lj}}{d t} + \int_{\Gamma_e}  \bld{h}(\bld{u}_L(\bld{x}), \bld{u}_R(\bld{x}), \hat{\bld{n}})B_i \,ds - \int_{\Omega_e}\bld{F}(\bld{u}_h(\bld{x}))\nabla B_i \,d\mu = \bld{0}, \quad i \in {1,...n},\, \forall \,\Omega_e \in \mathcal{T}.
+\sum_{j=1}^n\int_{\Omega_e} B_iB_j\,d\mu\, \frac{d\bld{u}_{l}}{d t} + \int_{\Gamma_e}  \bld{h}(\bld{u}_L(\bld{x}), \bld{u}_R(\bld{x}), \hat{\bld{n}})B_i \,ds - \int_{\Omega_e}\bld{F}(\bld{u}_h(\bld{x}))\nabla B_i \,d\mu = \bld{0}, \quad i \in {1,...n},\, \forall \,\Omega_e \in \mathcal{T}.
 \label{df}
 \end{equation}
 
-We denote by $\bld{U} := [\bld{u}_1\, \bld{u}_2\, ...\, \bld{u}_m]^T \in \mathbb{R}^{mn}$ the stacked vector of all degrees of freedom of all conserved variables on the element $\Omega_e$. We thus need to solve the following ODE on each element.
+We denote by $\bld{U} := [\bld{u}_1\, \bld{u}_2\, ...\, \bld{u}_m]^T \in \mathbb{R}^{mn}$ the stacked vector of all degrees of freedom of all conserved variables on the element $\Omega_e$; note that all DOFs of any conserved variable are put consecutively together before starting the next conserved variable. We thus need to solve the following ODE on each element.
 \begin{equation}
 M \frac{d\bld{U}}{dt} = \bld{r}(\bld{U}(t)).
 \label{ode}
