@@ -94,17 +94,17 @@ W := \{ v \in L^2(\Omega)\, |\, v|_{K} \in C^k(K) \,\forall K \in \mathcal{T} \}
 
 We can then state the weak formulation as follows. Find $\bld{u} \in W^m$ such that
 \begin{equation}
-\int_{\Omega_e} \frac{\partial\bld{u}}{\partial t}w\,d\mu + \int_{\Gamma_e} \bld{F}(\bld{u})\hat{\bld{n}}w \,ds - \int_{\Omega_e}\bld{F}(\bld{u})\nabla w \,d\mu = \bld{0} \quad \forall w \in W,\, \forall \,\Omega_e \in \mathcal{T}.
+\int_{K} \frac{\partial\bld{u}}{\partial t}w\,d\mu + \int_{\partial K} \bld{F}(\bld{u})\hat{\bld{n}}w \,ds - \int_{K}\bld{F}(\bld{u})\nabla w \,d\mu = \bld{0} \quad \forall w \in W,\, \forall \,K \in \mathcal{T}.
 \label{wf}
 \end{equation}
 
 Let $W_h$ be a discrete subspace of $W$, with basis $B_i(\bld{x})$ on an element $\Omega_e$ of the mesh $\mathcal{T}_h$. Then the discrete form can be written as: Find $\bld{u}_h \in W_h^m$ such that
 \begin{equation}
-\int_{\Omega_e} \frac{\partial\bld{u}_h}{\partial t}B_i\,d\mu + \int_{\Gamma_e} \bld{F}(\bld{u}_h)\hat{\bld{n}}B_i \,ds - \int_{\Omega_e}\bld{F}(\bld{u}_h)\nabla B_i \,d\mu = \bld{0} \quad \forall i \in {1,2,...n},\, \forall \,\Omega_e \in \mathcal{T}
+\int_{\Omega_e} \frac{\partial\bld{u}_h}{\partial t}B_i\,d\mu + \int_{\Gamma_e} \bld{F}(\bld{u}_h)\hat{\bld{n}}B_i \,ds - \int_{\Omega_e}\bld{F}(\bld{u}_h)\nabla B_i \,d\mu = \bld{0} \quad \forall i \in {1,2,...n},\, \forall \,\Omega_e \in \mathcal{T}_h
 \end{equation}
 where $n$ is the number of degrees of freedom in an element. 
 
-We can write $\bld{u}_h = \sum_{j=1}^n \bld{u}_j B_j(\bld{x})$. Further, we introduce the numerical flux $bld{h}$ defined such that for a face $f$ between two elements $\Omega_L$ and $\Omega_R$ with states (conserved variables) $\bld{u}_L$ and $ \bld{u}_R$,
+We can then write $\bld{u}_h = \sum_{j=1}^n \bld{u}_j B_j(\bld{x})$. Further, we introduce the numerical flux $\bld{h}$ defined such that for a face $f$ between two elements $\Omega_L$ and $\Omega_R$ with states (conserved variables) $\bld{u}_L$ and $ \bld{u}_R$,
 \begin{equation}
 \bld{F}(\bld{u})|_f\hat{\bld{n}} \approx \bld{h}(\bld{u}_L, \bld{u}_R, \hat{\bld{n}}).
 \end{equation}
