@@ -20,6 +20,10 @@
 #include "aarray2d.hpp"
 #endif
 
+#ifndef __AQUADRATURE_H
+#include "aquadrature.hpp"
+#endif
+
 namespace acfd {
 
 /// A type encoding the shape of 2D elements
@@ -31,7 +35,7 @@ enum Shape2d {TRIANGLE, QUADRANGLE};
 class GeomMapping1D
 {
 protected:
-	int degee;								///< Polynomial degree of the mapping
+	int degree;								///< Polynomial degree of the mapping
 	amat::Array2d<acfd_real> phyNodes;		///< Physical locations of the nodes
 	std::vector<Vector> normals;			///< Normals at quadrature points. Note that these are NOT unit vectors; they're the 1D analogue of "area" vectors
 	amat::Array2d<acfd_real> mapping;		///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
@@ -44,7 +48,7 @@ public:
 	}
 
 	/// Sets the polynomial degree and coordinates of physical nodes of the element and the quadrature context
-	void setAll(const int deg, const Array2d& physicalnodes, const Quadrature1D* q) {
+	void setAll(const int deg, const amat::Array2d<acfd_real>& physicalnodes, const Quadrature1D* q) {
 		degree = deg;
 		phyNodes = physicalnodes;
 		quadrature = q;
@@ -117,7 +121,7 @@ public:
 	}
 
 	/// Sets the polynomial degree, coordinates of physical nodes of the element and the integration context
-	void setAll(const int deg, const Array2d<acfd_real>& physicalnodes, const Quadrature2D* const quad) {
+	void setAll(const int deg, const amat::Array2d<acfd_real>& physicalnodes, const Quadrature2D* const quad) {
 		degree = deg;
 		phyNodes = physicalnodes;
 		quadrature = quad;
@@ -201,7 +205,7 @@ public:
 	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
 
 	/// Read-only access to basis at a given quadrature point
-	const Array2d<acfd_real>& bFunc(const int ipoin) {
+	const amat::Array2d<acfd_real>& bFunc(const int ipoin) {
 		return basis[ipoin];
 	}
 
@@ -268,12 +272,12 @@ public:
 	void initialize(int degr, const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* geommap);
 
 	/// Read-only access to basis function values from left element
-	const Array2d<acfd_real>& leftBasis() {
+	const amat::Array2d<acfd_real>& leftBasis() {
 		return leftbasis;
 	}
 
 	/// Read-only access to basis function values from right element
-	const Array2d<acfd_real>& rightBasis() {
+	const amat::Array2d<acfd_real>& rightBasis() {
 		return rightbasis;
 	}
 };

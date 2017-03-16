@@ -1,10 +1,25 @@
-mesh:
-	$(CXX) -c -std=c++11 ../mesh2dh.cpp -Wall
-	$(CXX) -c -std=c++11 testmesh.cpp -Wall
-	$(CXX) -o testmesh mesh2dh.o testmesh.o -Wall
+EIGEN_PATH :=  ../../eigen-3.3.3
+CXXFLAGS := -std=c++14 -Wall -I${EIGEN_PATH}
+
+meshlib:
+	$(CXX) -c ${CXXFLAGS} ../amesh2dh.cpp
 	
 mat:
-	$(CXX) -o testmat -std=c++11 testmat.cpp -Wall
+	$(CXX) -o testmat -std=c++14 testmat.cpp -Wall
+
+quadraturelib:
+	$(CXX) -c ${CXXFLAGS} ../aquadrature.cpp
+
+elemlib:
+	$(CXX) -c ${CXXFLAGS} ../aelements.cpp
+
+mesh: meshlib
+	$(CXX) -c ${CXXFLAGS} testmesh.cpp
+	$(CXX) -o testmesh amesh2dh.o testmesh.o
+
+element: elemlib quadraturelib meshlib
+	$(CXX) -c ${CXXFLAGS} testelements.cpp
+	$(CXX) -o element aquadrature.o aelements.o amesh2dh.o testelements.o
 
 run:
 	./testmesh

@@ -4,6 +4,8 @@
  * @date 2017-03-04
  */
 
+#include "aquadrature.hpp"
+
 namespace acfd {
 
 Quadrature1D::initialize(const int n_poly)

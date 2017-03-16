@@ -1,4 +1,4 @@
-#include "../mesh2dh.hpp"
+#include "../amesh2dh.hpp"
 
 using namespace amat;
 using namespace acfd;
@@ -7,7 +7,7 @@ using namespace std;
 int loworder_hybridmesh()
 {
 	UMesh2dh m;
-	m.readGmsh2("../../testcases/unittests/circlehybrid2.msh",2);
+	m.readGmsh2("../../testcases/unittests/circlehybrid_p2.msh",2);
 	m.compute_topological();
 	
 	for(int i = 0; i < m.gnelem(); i++)
