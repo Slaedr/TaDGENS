@@ -17,8 +17,10 @@ void LagrangeMapping1D::computeAll()
 	const Array2d<acfd_real>& points = quadrature->points();
 	int npoin = points.rows();
 	//speeds.resize(npoin);
-	normals.resize(npoin,NDIM);
-	mapping.resize(NDIM);
+	normals.resize(npoin);
+	for(int i = 0; i < npoin; i++)
+		normals[i].resize(NDIM);
+	mapping.resize(npoin,NDIM);
 
 	acfd_real vel[NDIM];
 
@@ -27,7 +29,7 @@ void LagrangeMapping1D::computeAll()
 		{
 			for(int idim = 0; idim < NDIM; idim++) {
 				// mapping - num of Lagrange shape functions mulitplied by resp coeffs
-				mapping[i](idim) = phyNodes(0,idim)*(1.0-points(i))*0.5 + phyNodes(1,idim)*(1.0+points(i))*0.5;
+				mapping[i][idim] = phyNodes(0,idim)*(1.0-points(i))*0.5 + phyNodes(1,idim)*(1.0+points(i))*0.5;
 				// get sum Lagrange derivatives multiplied by coeffs
 				vel[idim] = (phyNodes[1][idim] - phyNodes[0][idim])/2.0;
 			}
@@ -44,8 +46,8 @@ void LagrangeMapping1D::computeAll()
 		for(int i = 0; i < npoin; i++)
 		{
 			for(int idim = 0; idim < NDIM; idim++) {
-				mapping[ip](idim) = phyNodes(0,idim)*points(i)*(points(i)-1.0)/2 + phyNodes(1,idim)*points(i)*(points(i)+1.0)/2 + phyNodes(2,idim)*(1.0-points(i)*points(i));
-				vel[idim] = phyNodes[0][idim]*(points[i]-0.5) + phyNodes[1][idim]*(points[i]+0.5) + phyNodes[2][idim]*(-2.0*points[i]);
+				mapping[i][idim] = phyNodes(0,idim)*points(i)*(points(i)-1.0)/2 + phyNodes(1,idim)*points(i)*(points(i)+1.0)/2 + phyNodes(2,idim)*(1.0-points(i)*points(i));
+				vel[idim] = phyNodes[0][idim]*(points(i)-0.5) + phyNodes[1][idim]*(points(i)+0.5) + phyNodes[2][idim]*(-2.0*points(i));
 			}
 
 			normals[i][0] = vel[1]; normals[i][1] = -vel[0];
@@ -80,9 +82,9 @@ void LagrangeMapping2DTriangle::computeAll()
 				jaco[ip](idim,0) = phyNodes(1,idim)-phyNodes(0,idim);
 				jaco[ip](idim,1) = phyNodes(2,idim)-phyNodes(0,idim);
 			}
-			jacodet[ip] = jaco[ip](0,0)*jaco[ip](1,1) - jaco[ip](0,1)*jaco[ip](1,0)
-			jacoinv[ip](0,0) = jaco[ip](1,1)/jacodet[ip]; jacoinv[ip](0,1) = -jaco[ip](0,1)/jacodet[ip]
-			jacoinv[ip](1,0) = -jaco[ip](1,0)/jacodet[ip]; jacoinv[ip](1,1) = jaco[ip](0,0)/jacodet[ip]
+			jacodet[ip] = jaco[ip](0,0)*jaco[ip](1,1) - jaco[ip](0,1)*jaco[ip](1,0);
+			jacoinv[ip](0,0) = jaco[ip](1,1)/jacodet[ip]; jacoinv[ip](0,1) = -jaco[ip](0,1)/jacodet[ip];
+			jacoinv[ip](1,0) = -jaco[ip](1,0)/jacodet[ip]; jacoinv[ip](1,1) = jaco[ip](0,0)/jacodet[ip];
 		}
 	}
 	else if(degree == 2) {
@@ -92,20 +94,20 @@ void LagrangeMapping2DTriangle::computeAll()
 			jacoinv[ip].resize(NDIM,NDIM);
 			for(int idim = 0; idim < NDIM; idim++) 
 			{
-				mapping(ip,idim) = phynodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
-					+ phynodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
-					+ phynodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
-					+ phynodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
-					+ phynodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
-					+ phynodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
+				mapping(ip,idim) = phyNodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
+					+ phyNodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
+					+ phyNodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
+					+ phyNodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
+					+ phyNodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
+					+ phyNodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
 				jaco[ip](idim,0) = phyNodes(0,idim)*(-3+4*points(ip,0)+4*points(ip,1)) +phyNodes(1,idim)*(4*points(ip,0)-1) +phyNodes(3,idim)*4*(1-2*points(ip,0)-points(ip,1)) 
 					+phyNodes(4,idim)*4*points(ip,1) -phyNodes(5,idim)*4.0*points(ip,1);
 				jaco[ip](idim,1) = phyNodes(0,idim)*(-3+4*points(ip,1)+4*points(ip,0)) +phyNodes(2,idim)*(4*points(ip,1)-1) -phyNodes(3,idim)*4*points(ip,0) 
 					+ phyNodes(4,idim)*4*points(ip,0) +phyNodes(5,idim)*4*(1-2*points(ip,1)-points(ip,0));
 			}
-			jacodet[ip] = jaco[ip](0,0)*jaco[ip](1,1) - jaco[ip](0,1)*jaco[ip](1,0)
-			jacoinv[ip](0,0) = jaco[ip](1,1)/jacodet[ip]; jacoinv[ip](0,1) = -jaco[ip](0,1)/jacodet[ip]
-			jacoinv[ip](1,0) = -jaco[ip](1,0)/jacodet[ip]; jacoinv[ip](1,1) = jaco[ip](0,0)/jacodet[ip]
+			jacodet[ip] = jaco[ip](0,0)*jaco[ip](1,1) - jaco[ip](0,1)*jaco[ip](1,0);
+			jacoinv[ip](0,0) = jaco[ip](1,1)/jacodet[ip]; jacoinv[ip](0,1) = -jaco[ip](0,1)/jacodet[ip];
+			jacoinv[ip](1,0) = -jaco[ip](1,0)/jacodet[ip]; jacoinv[ip](1,1) = jaco[ip](0,0)/jacodet[ip];
 		}
 	}
 }
@@ -118,7 +120,7 @@ void LagrangeMapping2DTriangle::computeMappingAndJacobianDet()
 	jacodet.resize(npoin);
 	mapping.resize(npoin,NDIM);
 
-	Matrix jacol.resize(NDIM,NDIM);
+	Matrix jacol; jacol.resize(NDIM,NDIM);
 
 	if(degree == 1) {
 		for(int ip = 0; ip < npoin; ip++)
@@ -129,7 +131,7 @@ void LagrangeMapping2DTriangle::computeMappingAndJacobianDet()
 				jacol(idim,0) = phyNodes(1,idim)-phyNodes(0,idim);
 				jacol(idim,1) = phyNodes(2,idim)-phyNodes(0,idim);
 			}
-			jacodet[ip] = jacol(0,0)*jacol(1,1) - jacol(0,1)*jacol(1,0)
+			jacodet[ip] = jacol(0,0)*jacol(1,1) - jacol(0,1)*jacol(1,0);
 		}
 	}
 	else if(degree == 2) {
@@ -137,18 +139,18 @@ void LagrangeMapping2DTriangle::computeMappingAndJacobianDet()
 		{
 			for(int idim = 0; idim < NDIM; idim++) 
 			{
-				mapping(ip,idim) = phynodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
-					+ phynodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
-					+ phynodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
-					+ phynodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
-					+ phynodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
-					+ phynodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
+				mapping(ip,idim) = phyNodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
+					+ phyNodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
+					+ phyNodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
+					+ phyNodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
+					+ phyNodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
+					+ phyNodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
 				jacol(idim,0) = phyNodes(0,idim)*(-3+4*points(ip,0)+4*points(ip,1)) +phyNodes(1,idim)*(4*points(ip,0)-1) +phyNodes(3,idim)*4*(1-2*points(ip,0)-points(ip,1)) 
 					+phyNodes(4,idim)*4*points(ip,1) -phyNodes(5,idim)*4.0*points(ip,1);
 				jacol(idim,1) = phyNodes(0,idim)*(-3+4*points(ip,1)+4*points(ip,0)) +phyNodes(2,idim)*(4*points(ip,1)-1) -phyNodes(3,idim)*4*points(ip,0) 
 					+ phyNodes(4,idim)*4*points(ip,0) +phyNodes(5,idim)*4*(1-2*points(ip,1)-points(ip,0));
 			}
-			jacodet[ip] = jacol(0,0)*jacol(1,1) - jacol(0,1)*jacol(1,0)
+			jacodet[ip] = jacol(0,0)*jacol(1,1) - jacol(0,1)*jacol(1,0);
 		}
 	}
 }
@@ -186,7 +188,6 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 		basisGrad[i].resize(ndof,NDIM);
 	}
 	
-	int geomdeg = gmap->getDegree();
 	area = 0;
 
 	if(degree > 1)
@@ -223,11 +224,15 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	const Array2d<acfd_real>& gp = gmap->getQuadrature()->points();
 	const Array2d<acfd_real>& gw = gmap->getQuadrature()->weights();
 	int ng = gp.rows();
+#ifdef DEBUG
+	if(ng != ngauss)
+		std::cout << "! TaylorElement: initialize(): ngauss does not match size of gauss point array!" << std::endl;
+#endif
 	for(int ig = 0; ig < ng; ig++) 
 	{
 		area += gmap->jacDet(ig) * gw(ig);
 		for(int idim = 0; idim < NDIM; idim++)
-			center[idim] += gmap->map(ig)(idim) * gmap->jacDet(ig) * gw(ig);
+			center[idim] += gmap->map()(ig,idim) * gmap->jacDet(ig) * gw(ig);
 	}
 	for(int idim = 0; idim < NDIM; idim++)
 		center[idim] /= area;
@@ -235,9 +240,9 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	if(degree >= 2) {
 		for(int ig = 0; ig < ng; ig++)
 		{
-			basisOffset[0][0] += (gmap->map(ig)(0)-center[0])*(gmap->map(ig)(0)-center[0]) * gmap->jacDet(ig) * gw(ig);
-			basisOffset[0][1] += (gmap->map(ig)(1)-center[1])*(gmap->map(ig)(1)-center[1]) * gmap->jacDet(ig) * gw(ig);
-			basisOffset[0][2] += (gmap->map(ig)(0)-center[0])*(gmap->map(ig)(1)-center[1]) * gmap->jacDet(ig) * gw(ig);
+			basisOffset[0][0] += (gmap->map()(ig,0)-center[0])*(gmap->map()(ig,0)-center[0]) * gmap->jacDet(ig) * gw(ig);
+			basisOffset[0][1] += (gmap->map()(ig,1)-center[1])*(gmap->map()(ig,1)-center[1]) * gmap->jacDet(ig) * gw(ig);
+			basisOffset[0][2] += (gmap->map()(ig,0)-center[0])*(gmap->map()(ig,1)-center[1]) * gmap->jacDet(ig) * gw(ig);
 		}
 		basisOffset[0][0] *= 1.0/(area*2*delta[0]*delta[0]);
 		basisOffset[0][1] *= 1.0/(area*2*delta[1]*delta[1]);
@@ -259,7 +264,7 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 			basis[ip](2) = (gp(ip,1)-center[1])/delta[1];
 
 			basisGrad[ip](1,0) = 1.0/delta[0]; basisGrad[ip](1,1) = 0.0;
-			basisGrad[1p](2,0) = 0.0; basisGrad[ip](2,1) = 1.0/delta[1];
+			basisGrad[ip](2,0) = 0.0; basisGrad[ip](2,1) = 1.0/delta[1];
 		}
 
 		if(degree >= 2) {
@@ -274,7 +279,7 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	}
 }
 
-void TaylorElement::computeBasis(const acfd_real* gp, acfd_real* basis)
+void TaylorElement::computeBasis(const acfd_real* gp, acfd_real* basis) const
 {
 	basis[0] = 1.0;
 
@@ -293,9 +298,7 @@ void TaylorElement::computeBasis(const acfd_real* gp, acfd_real* basis)
 void FaceElement_PhysicalSpace::initialize(int degr, const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* gmapping)
 {
 	gmap = gmapping; leftel = lelem; rightel = relem;
-	const Array2d<acfd_real>& gp = gmap->getQuadrature()->points();
 	int ng = gmap->getQuadrature()->numGauss();
-	int ldeg = leftel->getDegree(); int rdeg = rightel->getDegree();
 
 	leftbasis.resize(ng,lelem->getNumDOFs()); rightbasis.resize(ng,relem->getNumDOFs());
 

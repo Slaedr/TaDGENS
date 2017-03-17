@@ -72,7 +72,7 @@ public:
 	/// Computes the curve normals at a list of points in the reference space
 	/** \param[in] points is an npoin x ndim array, ie, whose each row contains the coordinates of one of the quadrature points
 	 */
-	virtual void computeAll(const amat::Array2d<acfd_real>& points) = 0;
+	virtual void computeAll() = 0;
 
 	/// Access to quadrature context
 	const Quadrature1D* getQuadrature() const {
@@ -92,7 +92,7 @@ public:
 class LagrangeMapping1D : public GeomMapping1D
 {
 public:
-	void computeAll(const amat::Array2d<acfd_real>& points);
+	void computeAll();
 };
 
 /// Abstract geometric mapping between a 2D physical element and a reference element
@@ -232,7 +232,7 @@ public:
 	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
 
 	/// Computes values of basis functions at a given point in physical space
-	virtual void computeBasis(const Vector& point, std::vector<acfd_real>& basisvalues) = 0;
+	virtual void computeBasis(const acfd_real* point, acfd_real* basisvalues) const = 0;
 };
 
 /// Element described by Taylor basis functions
@@ -249,7 +249,7 @@ class TaylorElement : public Element_PhysicalSpace
 	std::vector<std::vector<acfd_real>> basisOffset;	///< The quantities by which the basis functions are offset from actual Taylor polynomial basis
 public:
 	void initialize(int degr, const GeomMapping2D* geommap);
-	void computeBasis(const acfd_real* point, acfd_real* basisvalues);
+	void computeBasis(const acfd_real* point, acfd_real* basisvalues) const;
 };
 
 /// An interface "element" between 2 adjacent finite elements with basis defined on physical elements
