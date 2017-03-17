@@ -8,7 +8,7 @@
 
 namespace acfd {
 
-Quadrature1D::initialize(const int n_poly)
+void Quadrature1D::initialize(const int n_poly)
 {
 	using std::sqrt;
 
@@ -61,53 +61,61 @@ Quadrature1D::initialize(const int n_poly)
 	}
 }
 
-Quadrature2DSquare::initialize(const int n_poly)
+void Quadrature2DSquare::initialize(const int n_poly)
 {
 	nPoly = n_poly;
 	if(nPoly == 1) {
 		ngauss = 1;
 		acfd_real gp[][2] = {{0.0, 0.0}};
 		acfd_real gw[][1] = {{4.0}};
-		gpoints.initialize(ngauss, 2, gp);
-		gweights.initialize(ngauss, 1, gw);
+		/*acfd_real * gp[NDIM] = (acfd_real*[NDIM])malloc(ngauss*sizeof(acfd_real));
+		acfd_real ** gw = (acfd_real**)malloc(ngauss*sizeof(acfd_real*));
+		for(int i = 0; i < ngauss; i++) {
+			gp[i] = (acfd_real*)malloc(NDIM*sizeof(acfd_real));
+			gw[i] = (acfd_real*)malloc(sizeof(acfd_real));
+		}
+		gp = {{0.0, 0.0}};
+		gw = {{4.0}};*/
+		gpoints.initialize(ngauss, 2, (acfd_real*)gp);
+		gweights.initialize(ngauss, 1, (acfd_real*)gw);
 		std::printf("Quadrature2DSquare: Ngauss = 1.\n");
 	}
 	else {
-		npoly = 2;	// override argument
+		nPoly = 2;	// override argument
 		ngauss = 4;
 		acfd_real gp[][2] = {{-1.0/SQRT3, -1.0/SQRT3}, {-1.0/SQRT3, 1.0/SQRT3}, {1.0/SQRT3, -1.0/SQRT3}, {1.0/SQRT3, 1.0/SQRT3}};
 		acfd_real gw[][1] = {{1.0}, {1.0}, {1.0}, {1.0}};
-		gpoints.initialize(ngauss, 2, gp);
-		gweights.initialize(ngauss, 1, gw);
+		gpoints.initialize(ngauss, 2, (acfd_real*)gp);
+		gweights.initialize(ngauss, 1, (acfd_real*)gw);
 		std::printf("Quadrature2DSquare: Ngauss = 4.\n");
 	}
 }
 
-Quadrature2DTriangle::initialize(const int n_poly)
+void Quadrature2DTriangle::initialize(const int n_poly)
 {
 	nPoly = n_poly;
 	if(nPoly == 1) {
 		ngauss = 1;
 		acfd_real gp[][2] = {{1.0/3, 1.0/3}};
 		acfd_real gw[][1] = {{0.5}};
-		gpoints.initialize(ngauss, 2, gp);
-		gweights.initialize(ngauss, 1, gw);
+		gpoints.initialize(ngauss, 2, (acfd_real*)gp);
+		gweights.initialize(ngauss, 1, (acfd_real*)gw);
 		printf("Quadrature2DTriangle: Ngauss = 1.\n");
 	}
 	else if(nPoly == 2) {
 		ngauss = 3;
 		acfd_real gp[][2] = {{0.6666666666667,0.1666666666667}, {0.1666666666667,0.6666666666667}, {0.1666666666667,0.1666666666667}};
 		acfd_real gw[][1] = {{0.1666666666667}, {0.1666666666667}, {0.1666666666667}};
-		gpoints.initialize(ngauss, 2, gp);
-		gweights.initialize(ngauss, 1, gw);
+		gpoints.initialize(ngauss, 2, (acfd_real*)gp);
+		gweights.initialize(ngauss, 1, (acfd_real*)gw);
 		printf("Quadrature2DTriangle: Ngauss = 3.\n");
 	}
 	else if(nPoly == 3) {
 		ngauss = 4;
 		acfd_real gp[][2] = {{0.33333333333,0.33333333333}, {0.20000000000,0.20000000000}, {0.20000000000, 0.60000000000}, {0.60000000000, 0.20000000000}};
 		acfd_real gw[][1] = {{-0.28125000000}, {0.26041666667}, {0.26041666667}, {0.26041666667}};
-		gpoints.initialize(ngauss, 2, gp);
-		gweights.initialize(ngauss, 1, gw);
+		gpoints.initialize(ngauss, 2, (acfd_real*)gp);
+		gweights.initialize(ngauss, 1, (acfd_real*)gw);
 		printf("Quadrature2DTriangle: Ngauss = 4.\n");
 	}
 	else if(nPoly == 4) {
@@ -124,8 +132,8 @@ Quadrature2DTriangle::initialize(const int n_poly)
 							{0.0549758718276610},
 							{0.0549758718276610},
 							{0.0549758718276610}};
-		gpoints.initialize(ngauss, 2, gp);
-		gweights.initialize(ngauss, 1, gw);
+		gpoints.initialize(ngauss, 2, (acfd_real*)gp);
+		gweights.initialize(ngauss, 1, (acfd_real*)gw);
 		printf("Quadrature2DTriangle: Ngauss = 6.\n");
 	}
 	else if(nPoly == 5) {
@@ -145,8 +153,8 @@ Quadrature2DTriangle::initialize(const int n_poly)
 							{0.12593918054483},
 							{0.12593918054483},
 							{0.12593918054483}};
-		gpoints.initialize(ngauss, 2, gp);
-		gweights.initialize(ngauss, 1, gw);
+		gpoints.initialize(ngauss, 2, (acfd_real*)gp);
+		gweights.initialize(ngauss, 1, (acfd_real*)gw);
 		printf("Quadrature2DTriangle: Ngauss = 7.\n");
 	}
 	else { /* npoly == 6 */
@@ -162,7 +170,7 @@ Quadrature2DTriangle::initialize(const int n_poly)
 							{0.310352451033785,0.636502499121399},
 							{0.310352451033785,0.053145049844816},
 							{0.053145049844816,0.310352451033785},
-							{0.053145049844816,0.636502499121399}}
+							{0.053145049844816,0.636502499121399}};
 		acfd_real gw[][1] = {{0.0254224531851035},
 							{0.0254224531851035},
 							{0.0254224531851035},
@@ -175,8 +183,8 @@ Quadrature2DTriangle::initialize(const int n_poly)
 							{0.0414255378091870},
 							{0.0414255378091870},
 							{0.0414255378091870}};
-		gpoints.initialize(ngauss, 2, gp);
-		gweights.initialize(ngauss, 1, gw);
+		gpoints.initialize(ngauss, 2, (acfd_real*)gp);
+		gweights.initialize(ngauss, 1, (acfd_real*)gw);
 		printf("Quadrature2DTriangle: Ngauss = 12.\n");
 	}
 }

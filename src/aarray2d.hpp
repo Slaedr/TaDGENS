@@ -177,7 +177,7 @@ public:
 	}
 	
 	/// Allocate and set an array using a raw C array
-	void initialize(acfd_int nr, acfd_int nc, const T *const *const array)
+	void initialize(acfd_int nr, acfd_int nc, const T *const array)
 	{
 		if(nc==0)
 		{
@@ -197,8 +197,9 @@ public:
 		isalloc = true;
 
 		for(int i = 0; i < nr; i++)
-			for(int j = 0; j < nc; j++)
-				elems[i*ncols+j] = array[i][j];
+			for(int j = 0; j < nc; j++) {
+				elems[i*ncols+j] = array[i*nc+j];
+			}
 	}
 
 	/// Setup without deleting earlier allocation: use in case of Array2d<t>* (pointer to Array2d<t>)

@@ -50,7 +50,8 @@ public:
 
 class Quadrature2D : public QuadratureRule
 {
-
+public:
+	virtual void initialize(const int n_poly) = 0;
 };
 
 /// Integration over the reference square

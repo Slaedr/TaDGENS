@@ -1,8 +1,10 @@
 #include "../aquadrature.hpp"
 #include "../amesh2dh.hpp"
-#include "../aelement.hpp"
+#include "../aelements.hpp"
 
-using namespace std, amat, acfd;
+using namespace std;
+using namespace amat;
+using namespace acfd;
 
 int main()
 {
@@ -10,7 +12,7 @@ int main()
 	m.readGmsh2("../../testcases/unittests/trimesh.msh",2);
 	
 	int p = 1;
-	int nintp = 2;
+	int nintp = 3;
 	
 	Quadrature2DTriangle integ;
 	integ.initialize(nintp);
