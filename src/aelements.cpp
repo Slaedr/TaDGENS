@@ -212,7 +212,7 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 			acfd_real dist[NDIM];
 			for(int idim = 0; idim < NDIM; idim++) 
 			{
-				dist[idim] = phn(i,idim)-phn(j,idim);
+				dist[idim] = fabs(phn(i,idim)-phn(j,idim));
 				if(dist[idim] > delta[idim])
 					delta[idim] = dist[idim];
 			}

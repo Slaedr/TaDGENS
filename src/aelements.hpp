@@ -5,6 +5,9 @@
  * in other words, they do not provide functions into which reference/physical coordinates can be plugged in.
  * Rather, they compute and store values of these functions at the quadrature points.
  *
+ * TODO: Verify P2 geometric map for triangles, P1 and P2 map for quads
+ * TODO: Verify P2 Taylor basis for triangles, P1 and P2 for quads
+ *
  * @author Aditya Kashi
  * @date 2017 March 1
  */
@@ -221,6 +224,10 @@ public:
 	int getNumDOFs() const {
 		return ndof;
 	}
+
+	const GeomMapping2D* getGeometricMapping() const {
+		return gmap;
+	}
 };
 
 /// Abstract element defined on the physical element
@@ -250,6 +257,10 @@ class TaylorElement : public Element_PhysicalSpace
 public:
 	void initialize(int degr, const GeomMapping2D* geommap);
 	void computeBasis(const acfd_real* point, acfd_real* basisvalues) const;
+
+	void printDetails() const {
+		std::printf("  (%f,%f), %f, %f, %f\n", center[0], center[1], delta[0], delta[1], area);
+	}
 };
 
 /// An interface "element" between 2 adjacent finite elements with basis defined on physical elements
