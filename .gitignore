@@ -1,6 +1,7 @@
 *.swp
 *.o
 .directory
+.fuse*
 
 *.aux
 *.log
