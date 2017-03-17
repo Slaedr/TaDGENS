@@ -1,7 +1,7 @@
 TADGENS
 =======
 
-A Taylor-basis discontinuous Galerkin compressible Euler solver.
+A Taylor-basis discontinuous Galerkin solver for the compressible Euler equations.
 
 Building
 --------
