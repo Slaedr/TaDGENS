@@ -1,12 +1,12 @@
-/** @file asolverexplicitsteady.cpp
- * @brief Implementation of explicit TVDRK solver
+/** @file asolversteady.cpp
+ * @brief Implementation of solvers for steady-state problems
  * @author Aditya Kashi
  * @date 2017-03-04
  */
 
-#include "asolverexplicitsteady.hpp"
+#include "asolversteady.hpp"
 
-void SolverExplicitSteady::solve_rk1_steady()
+void SolverSteadyExplicit::solve()
 {
 	int step = 0;
 	acfd_real resi = 1.0;

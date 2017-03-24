@@ -8,13 +8,13 @@
 
 namespace acfd {
 
-SolverBase::SolverBase(const UMesh2dh* mesh, const int _order, std::string invflux, std::string reconst, std::string limiter)
+SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _order, std::string invflux, std::string reconst, std::string limiter)
 {
 	m = mesh;
 	order = _order;
 	g = 1.4;
 
-	std::cout << "SolverBase: Setting up explicit solver for spatial order " << order << std::endl;
+	std::cout << "SpatialBase: Setting up explicit solver for spatial order " << order << std::endl;
 
 	// for 2D Euler equations, we have 4 variables
 	nvars = NVARS;
@@ -46,58 +46,14 @@ SolverBase::SolverBase(const UMesh2dh* mesh, const int _order, std::string invfl
 
 	for(int i = 0; i < m->gnelem(); i++)
 		m_inverse(i) = 2.0/mesh->gjacobians(i);
-
-	// set inviscid flux scheme
-	if(invflux == "VANLEER")
-		inviflux = new VanLeerFlux(NVARS, m->gndim(), g);
-	else if(invflux == "ROE")
-	{
-		inviflux = new RoeFlux(NVARS, m->gndim(), g);
-		std::cout << "SolverBase: Using Roe fluxes." << std::endl;
-	}
-	else if(invflux == "HLLC")
-	{
-		inviflux = new HLLCFlux(NVARS, m->gndim(), g);
-		std::cout << "SolverBase: Using HLLC fluxes." << std::endl;
-	}
-	else
-		std::cout << "SolverBase: ! Flux scheme not available!" << std::endl;
-
-	// set reconstruction scheme
-	std::cout << "SolverBase: Reconstruction scheme is " << reconst << std::endl;
-	if(reconst == "GREENGAUSS")
-	{
-		rec = new GreenGaussReconstruction();
-		//rec->setup(m, &u, &ug, &dudx, &dudy, &rc, &rcg);
-	}
-	else
-	{
-		rec = new WeightedLeastSquaresReconstruction();
-	}
-	if(order == 1) std::cout << "SolverBase: No reconstruction" << std::endl;
-
-	// set limiter
-	if(limiter == "NONE")
-	{
-		lim = new NoLimiter(m, &u, &ug, &dudx, &dudy, &rcg, &rc, gr, &uleft, &uright);
-		std::cout << "SolverBase: No limiter will be used." << std::endl;
-	}
-	else if(limiter == "WENO")
-	{
-		lim = new WENOLimiter(m, &u, &ug, &dudx, &dudy, &rcg, &rc, gr, &uleft, &uright);
-		std::cout << "SolverBase: WENO limiter selected.\n";
-	}
 }
 
-SolverBase::~SolverBase()
+SpatialBase::~SpatialBase()
 {
-	delete rec;
-	delete inviflux;
-	delete lim;
 	delete [] gr;
 }
 
-void SolverBase::compute_ghost_cell_coords_about_midpoint()
+void SpatialBase::compute_ghost_cell_coords_about_midpoint()
 {
 	int iface, ielem, idim, ip1, ip2;
 	std::vector<acfd_real> midpoint(m->gndim());
@@ -117,7 +73,7 @@ void SolverBase::compute_ghost_cell_coords_about_midpoint()
 	}
 }
 
-void SolverBase::compute_ghost_cell_coords_about_face()
+void SpatialBase::compute_ghost_cell_coords_about_face()
 {
 	int ied, ig, ielem;
 	acfd_real x1, y1, x2, y2, xs, ys, xi, yi;
@@ -165,7 +121,7 @@ void SolverBase::compute_ghost_cell_coords_about_face()
  * \param a Angle of attack (radians)
  * \param rhoinf Free stream density
  */
-void SolverBase::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_real rhoinf)
+void SpatialBase::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_real rhoinf)
 {
 	// Note that reference density and reference velocity are the values at infinity
 	//std::cout << "EulerFV: loaddata(): Calculating initial data...\n";
@@ -219,10 +175,10 @@ void SolverBase::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_real
 	}
 
 	rec->setup(m, &u, &ug, &dudx, &dudy, &rc, &rcg);
-	std::cout << "SolverBase: loaddata(): Initial data calculated.\n";
+	std::cout << "SpatialBase: loaddata(): Initial data calculated.\n";
 }
 
-void SolverBase::compute_boundary_states(const amat::Array2d<acfd_real>& ins, amat::Array2d<acfd_real>& bs)
+void SpatialBase::compute_boundary_states(const amat::Array2d<acfd_real>& ins, amat::Array2d<acfd_real>& bs)
 {
 #pragma omp parallel for default(shared)
 	for(int ied = 0; ied < m->gnbface(); ied++)
@@ -276,7 +232,7 @@ void SolverBase::compute_boundary_states(const amat::Array2d<acfd_real>& ins, am
 	}
 }
 
-acfd_real SolverBase::l2norm(const amat::Array2d<acfd_real>* const v)
+acfd_real SpatialBase::l2norm(const amat::Array2d<acfd_real>* const v)
 {
 	acfd_real norm = 0;
 	for(int iel = 0; iel < m->gnelem(); iel++)
@@ -287,7 +243,7 @@ acfd_real SolverBase::l2norm(const amat::Array2d<acfd_real>* const v)
 	return norm;
 }
 
-void SolverBase::compute_RHS()
+void SpatialBase::compute_RHS()
 {
 	//std::cout << "Computing res ---\n";
 #pragma omp parallel default(shared)
@@ -407,9 +363,9 @@ void SolverBase::compute_RHS()
 	} // end parallel region
 }
 
-void SolverBase::postprocess_point()
+void SpatialBase::postprocess_point()
 {
-	std::cout << "SolverBase: postprocess_point(): Creating output arrays...\n";
+	std::cout << "SpatialBase: postprocess_point(): Creating output arrays...\n";
 	scalars.setup(m->gnpoin(),3);
 	velocities.setup(m->gnpoin(),2);
 	amat::Array2d<acfd_real> c(m->gnpoin(),1);
@@ -464,9 +420,9 @@ void SolverBase::postprocess_point()
 	std::cout << "EulerFV: postprocess_point(): Done.\n";
 }
 
-void SolverBase::postprocess_cell()
+void SpatialBase::postprocess_cell()
 {
-	std::cout << "SolverBase: postprocess_cell(): Creating output arrays...\n";
+	std::cout << "SpatialBase: postprocess_cell(): Creating output arrays...\n";
 	scalars.setup(m->gnelem(), 3);
 	velocities.setup(m->gnelem(), 2);
 	amat::Array2d<acfd_real> c(m->gnelem(), 1);
@@ -489,7 +445,7 @@ void SolverBase::postprocess_cell()
 	std::cout << "EulerFV: postprocess_cell(): Done.\n";
 }
 
-acfd_real SolverBase::compute_entropy_cell()
+acfd_real SpatialBase::compute_entropy_cell()
 {
 	postprocess_cell();
 	acfd_real vmaginf2 = uinf(0,1)/uinf(0,0)*uinf(0,1)/uinf(0,0) + uinf(0,2)/uinf(0,0)*uinf(0,2)/uinf(0,0);
@@ -512,12 +468,12 @@ acfd_real SolverBase::compute_entropy_cell()
 	return error;
 }
 
-amat::Array2d<acfd_real> SolverBase::getscalars() const
+amat::Array2d<acfd_real> SpatialBase::getscalars() const
 {
 	return scalars;
 }
 
-amat::Array2d<acfd_real> SolverBase::getvelocities() const
+amat::Array2d<acfd_real> SpatialBase::getvelocities() const
 {
 	return velocities;
 }
