@@ -65,11 +65,13 @@ protected:
 	/// Ghost elements' flow quantities
 	std::vector<Vector> ug;
 
-	/// Boundary integrals of fluxes across each face
-	std::vector<Vector> fluxes;
-	/// Left state at each face (assuming 1 Gauss point per face)
+	/// Integral of fluxes across each face for all dofs
+	/** The entries corresponding to different DOFs of a given flow variable are stored contiguously.
+	 */
+	std::vector<Array2d<acfd_real>> faceintegral;
+	/// Left state at each face
 	amat::Array2d<acfd_real> uleft;
-	/// Rigt state at each face (assuming 1 Gauss point per face)
+	/// Rigt state at each face
 	amat::Array2d<acfd_real> uright;
 
 	/// vector of unknowns

@@ -207,6 +207,15 @@ public:
 	 */
 	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
 
+	/// Computes interpolated values at the quadrature point with index ig from given DOF values
+	acfd_real interpolate(const int ig, const acfd_real* const dofs)
+	{
+		acfd_real val = 0;
+		for(int i = 0; i < ndof; i++)
+			val += dofs[i]*basis[ig](i);
+		return val;
+	}
+
 	/// Read-only access to basis at a given quadrature point
 	const amat::Array2d<acfd_real>& bFunc(const int ipoin) {
 		return basis[ipoin];
@@ -290,6 +299,24 @@ public:
 	/// Read-only access to basis function values from right element
 	const amat::Array2d<acfd_real>& rightBasis() {
 		return rightbasis;
+	}
+
+	/// Interpolates values from left element at the face quadrature points
+	acfd_real interpolate_left(const int ig, const acfd_real *const dofs)
+	{
+		acfd_real val = 0;
+		for(int i = 0; i < leftel->getNumDOFS(); i++)
+			val += dofs[i]*leftbasis(ig,i);
+		return val;
+	}
+	
+	/// Interpolates values from right element at the face quadrature points
+	acfd_real interpolate_right(const int ig, const acfd_real *const dofs)
+	{
+		acfd_real val = 0;
+		for(int i = 0; i < rightel->getNumDOFS(); i++)
+			val += dofs[i]*rightbasis(ig,i);
+		return val;
 	}
 };
 
