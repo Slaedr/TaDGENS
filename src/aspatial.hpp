@@ -35,6 +35,7 @@ namespace acfd {
  * Provides residual computation, and potentially residual Jacobian evaluation, interface for all solvers.
  * \note Make sure compute_topological(), compute_face_data() and compute_jacobians() have been called on the mesh object prior to initialzing an object of any subclass.
  */
+template <int nvars>
 class SpatialBase
 {
 protected:
@@ -69,16 +70,11 @@ protected:
 	/** The entries corresponding to different DOFs of a given flow variable are stored contiguously.
 	 */
 	std::vector<Array2d<acfd_real>> faceintegral;
-	/// Left state at each face
-	amat::Array2d<acfd_real> uleft;
-	/// Rigt state at each face
-	amat::Array2d<acfd_real> uright;
 
 	/// vector of unknowns
 	/** Each Eigen3 (E3) Vector contains the DOF values for an element.
 	 */
 	std::vector<Vector> u;
-
 
 	amat::Array2d<acfd_real> scalars;			///< Holds density, Mach number and pressure for each mesh point
 	amat::Array2d<acfd_real> velocities;		///< Holds velocity components for each mesh point
@@ -92,14 +88,6 @@ protected:
 
 	/// computes ghost cell centers assuming symmetry about the face
 	void compute_ghost_cell_coords_about_face();
-
-	/// Computes the left and right states at each face
-	/** If applicable, the [reconstruction](@ref rec) and [limiter](@ref limiter) objects are used too.
-	 */
-	void compute_face_states();
-
-	/// Add contribution of inviscid numerical flux to flux storage
-	void inviscidFluxContribution();
 
 public:
 	SpatialBase(const UMesh2dh* mesh, const int _p_degree, const InviscidFlux* invflux/*, const Reconstruction* reconst*/);
@@ -115,7 +103,7 @@ public:
 	void compute_boundary_states(const std::vector<Vector>& instates, std::vector<Vector>& bounstates);
 
 	/// Calls functions to assemble the [right hand side](@ref residual)
-	void compute_residual();
+	virtual void compute_residual() = 0;
 
 	/// Computes the L2 norm of a cell-centered quantity
 	acfd_real l2norm(const amat::Array2d<acfd_real>* const v);
@@ -130,22 +118,28 @@ public:
 	std::vector<Matrix>& mass();
 
 	/// Compute cell-centred quantities to export
-	void postprocess_cell();
+	//void postprocess_cell();
 
 	/// Compute nodal quantities to export, based on area-weighted averaging (which takes into account ghost cells as well)
-	void postprocess_point();
-
-	/// Compute norm of entropy production
-	/// Call after computing pressure etc \sa postprocess_cell
-	acfd_real compute_entropy();
+	virtual void postprocess_point() = 0;
 
 	amat::Array2d<acfd_real> getscalars() const;
 	amat::Array2d<acfd_real> getvelocities() const;
 };
 
-class InviscidFlow : public SpatialBase
+class InviscidFlow : public SpatialBase<NVARS>
 {
+protected:
+	/// Add contribution of inviscid numerical flux to flux storage
+	void inviscidFluxContribution();
 
+public:
+	/// Calls functions to assemble the [right hand side](@ref residual)
+	void compute_residual();
+
+	/// Compute norm of entropy production
+	/// Call after computing pressure etc \sa postprocess_cell
+	acfd_real compute_entropy();
 };
 
 }	// end namespace
