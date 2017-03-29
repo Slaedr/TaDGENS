@@ -87,24 +87,18 @@ Integrating the flux term by parts, we have
 \end{equation}
 where $\Gamma_e$ is the boundary of element $\Omega_e$, and $\hat{\bld{n}}$ is the unit normal vector to $\Gamma_e$.
 
-Let $\mathcal{T}$ be a set of subsets of $\Omega$ such that $\bigcup_{K\in \mathcal{T}}K = \Omega$ and $K_i \cap K_j = \phi \, \forall K_i, K_j \in \mathcal{T}, i \neq j$, and $\partial K$ is a Lipschitz boundary for all $K \in \mathcal{T}$. One choice of the function space could be, for some positive integer $k$,
+Let $\mathcal{T}_h$ be a set of subsets of $\Omega_h$ such that $\bigcup_{K\in \mathcal{T}_h}K = \Omega_h$ and $K_i \cap K_j = \phi \, \forall K_i, K_j \in \mathcal{T}_h, i \neq j$, and $\partial K$ is a Lipschitz boundary for all $K \in \mathcal{T}_h$. One choice of the discrete function space could be, for some positive integer $k$,
 \begin{equation}
-W := \{ v \in L^2(\Omega)\, |\, v|_{K} \in C^k(K) \,\forall K \in \mathcal{T} \}.
+W_h := \{ v \in L^2(\Omega)\, |\, v|_{K} \in C^k(K) \,\forall K \in \mathcal{T} \}.
 \end{equation}
 
-We can then state the weak formulation as follows. Find $\bld{u} \in W^m$ such that
+We can then state the discrete weak formulation on each element as follows. Find $\bld{u}_h \in W_h^m$ such that
 \begin{equation}
-\int_{K} \frac{\partial\bld{u}}{\partial t}w\,d\mu + \int_{\partial K} \bld{F}(\bld{u})\hat{\bld{n}}w \,ds - \int_{K}\bld{F}(\bld{u})\nabla w \,d\mu = \bld{0} \quad \forall w \in W,\, \forall \,K \in \mathcal{T}.
+\int_{K} \frac{\partial\bld{u}_h}{\partial t}w\,d\mu + \int_{\partial K} \bld{F}(\bld{u}_h)\hat{\bld{n}}w \,ds - \int_{K}\bld{F}(\bld{u}_h)\nabla w \,d\mu = \bld{0} \quad \forall w \in W_h,\, \forall \,K \in \mathcal{T_h}.
 \label{wf}
 \end{equation}
 
-Let $W_h$ be a discrete subspace of $W$, with basis $B_i(\bld{x})$ on an element $\Omega_e$ of the mesh $\mathcal{T}_h$. Then the discrete form can be written as: Find $\bld{u}_h \in W_h^m$ such that
-\begin{equation}
-\int_{\Omega_e} \frac{\partial\bld{u}_h}{\partial t}B_i\,d\mu + \int_{\Gamma_e} \bld{F}(\bld{u}_h)\hat{\bld{n}}B_i \,ds - \int_{\Omega_e}\bld{F}(\bld{u}_h)\nabla B_i \,d\mu = \bld{0} \quad \forall i \in {1,2,...n},\, \forall \,\Omega_e \in \mathcal{T}_h
-\end{equation}
-where $n$ is the number of degrees of freedom in an element. 
-
-We can then write $\bld{u}_h = \sum_{j=1}^n \bld{u}_j B_j(\bld{x})$. Further, we introduce the numerical flux $\bld{h}$ defined such that for a face $f$ between two elements $\Omega_L$ and $\Omega_R$ with states (conserved variables) $\bld{u}_L$ and $ \bld{u}_R$,
+Consider basis $B_i(\bld{x})$ on an element $\Omega_e$ of the mesh $\mathcal{T}_h$. We can then write $\bld{u}_h = \sum_{j=1}^n \bld{u}_j B_j(\bld{x})$. Further, we introduce the numerical flux $\bld{h}$ defined such that for a face $f$ between two elements $\Omega_L$ and $\Omega_R$ with states (conserved variables) $\bld{u}_L$ and $ \bld{u}_R$,
 \begin{equation}
 \bld{F}(\bld{u})|_f\hat{\bld{n}} \approx \bld{h}(\bld{u}_L, \bld{u}_R, \hat{\bld{n}}).
 \end{equation}
@@ -206,6 +200,9 @@ R_1^j \\ R_2^j \\ R_3^j
 \end{bmatrix}
 \end{equation}
 where the superscript $j$ indicates that the function is evaluated at the element-centre of $j$. Writing these equations for all face-neighbours $j$, we get a 9x3 system for a triangle and a 12x3 system for a quadrilateral, in the three variables - the three second derivatives at the centre of cell $i$. This can be solved in a least squares sense to give a unique solution. Further, a WENO reconstruction can be used to suppress spurious oscillations to preserve nonlinear stability \cite{luo_hweno}.
+
+\section{DG vs SUPG}
+The `streamline upwind Petrov-Galerkin' method is a technique for solving hyperbolic PDEs that uses continuous trial and test function spaces, as opposed to DG methods. This means that degrees of freedom are shared between surrounding elements, and thus the number of degrees of freedom required to attain a given error level is lower than DG, at least for smooth solutions. SUPG is stable in presence shocks as well. However, it has its issues, as described nicely in section 2.5 of \cite{hartmann_thesis}.
 
 \section{Outline of the project}
 One can think of the following questions that need answering.
