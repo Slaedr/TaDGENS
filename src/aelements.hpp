@@ -305,7 +305,7 @@ public:
 	acfd_real interpolate_left(const int ig, const acfd_real *const dofs)
 	{
 		acfd_real val = 0;
-		for(int i = 0; i < leftel->getNumDOFS(); i++)
+		for(int i = 0; i < leftel->getNumDOFs(); i++)
 			val += dofs[i]*leftbasis(ig,i);
 		return val;
 	}
@@ -314,7 +314,7 @@ public:
 	acfd_real interpolate_right(const int ig, const acfd_real *const dofs)
 	{
 		acfd_real val = 0;
-		for(int i = 0; i < rightel->getNumDOFS(); i++)
+		for(int i = 0; i < rightel->getNumDOFs(); i++)
 			val += dofs[i]*rightbasis(ig,i);
 		return val;
 	}

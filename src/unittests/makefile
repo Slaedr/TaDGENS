@@ -1,5 +1,5 @@
-EIGEN_PATH :=  ../../eigen-3.3.3
-CXXFLAGS := -std=c++14 -Wall -ggdb -I${EIGEN_PATH} -DDEBUG
+
+CXXFLAGS := -std=c++14 -Wall -ggdb -DDEBUG -I${EIGEN_DIR}
 
 .PHONY: run
 

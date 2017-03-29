@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 2.8)
 
 project (tadgens)
 
-# set compiler
-#set (CMAKE_C_COMPILER $ENV{GC})
-#set (CMAKE_CXX_COMPILER $ENV{GPP})
-
 # to compile with OpenMP
 if(OMP)
 	message(STATUS "Compiling with OpenMP")
@@ -27,7 +23,7 @@ endif()
 
 # Eigen
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_DONT_PARALLELIZE)
-include_directories(${CMAKE_SOURCE_DIR}/../eigen-3.3.3/Eigen)
+include_directories($ENV{EIGEN_DIR})
 
 # ---------------------------------------------------------------------------- #
 
