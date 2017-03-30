@@ -8,52 +8,27 @@
 
 namespace acfd {
 
-SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _order, std::string invflux, std::string reconst, std::string limiter)
+template<int nvars>
+SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree) : m(mesh), p_degree(_p_degree)
 {
-	m = mesh;
-	order = _order;
-	g = 1.4;
-
-	std::cout << "SpatialBase: Setting up explicit solver for spatial order " << order << std::endl;
-
-	// for 2D Euler equations, we have 4 variables
-	nvars = NVARS;
-	// for upto second-order finite volume, we only need 1 Guass point per face
-	ngaussf = 1;
-
-	/// TODO: Take the two values below as input from control file, rather than hardcoding
-	slip_wall_id = 2;
-	inflow_outflow_id = 4;
-	periodic_id = 6;
+	std::cout << "SpatialBase: Setting up spaital integrator for FE polynomial degree " << p_degree << std::endl;
+	
+	// set quadrature strength
+	int quaddegree = 2*p_degree;
+	if(m->degree() == 2) quaddegree += 1;
 
 	// allocation
-	m_inverse.setup(m->gnelem(),1);		// just a vector for FVM. For DG, this will be an array of Matrices
-	residual.setup(m->gnelem(),NVARS);
-	u.setup(m->gnelem(), NVARS);
-	uinf.setup(1, NVARS);
-	integ.setup(m->gnelem(), 1);
-	dudx.setup(m->gnelem(), NVARS);
-	dudy.setup(m->gnelem(), NVARS);
-	fluxes.setup(m->gnaface(), NVARS);
-	uleft.setup(m->gnaface(), NVARS);
-	uright.setup(m->gnaface(), NVARS);
-	rc.setup(m->gnelem(),m->gndim());
-	rcg.setup(m->gnface(),m->gndim());
-	ug.setup(m->gnface(),NVARS);
-	gr = new amat::Array2d<acfd_real>[m->gnaface()];
-	for(int i = 0; i <  m->gnaface(); i++)
-		gr[i].setup(ngaussf, m->gndim());
-
-	for(int i = 0; i < m->gnelem(); i++)
-		m_inverse(i) = 2.0/mesh->gjacobians(i);
+	dtquad = new Quadrature2DTriangle();
+	dsquad = new Quadrature2DSquare();
 }
 
 SpatialBase::~SpatialBase()
 {
-	delete [] gr;
+	delete dtquad;
+	delete dsquad;
 }
 
-void SpatialBase::compute_ghost_cell_coords_about_midpoint()
+/*void SpatialBase::compute_ghost_cell_coords_about_midpoint()
 {
 	int iface, ielem, idim, ip1, ip2;
 	std::vector<acfd_real> midpoint(m->gndim());
@@ -95,7 +70,7 @@ void SpatialBase::compute_ghost_cell_coords_about_face()
 		y1 = m->gcoords(m->gintfac(ied,2),1);
 		y2 = m->gcoords(m->gintfac(ied,3),1);
 
-		if(fabs(nx)>A_SMALL_NUMBER && fabs(ny)>A_SMALL_NUMBER)		// check if nx != 0 and ny != 0
+		if(fabs(nx)>SMALL_NUMBER && fabs(ny)>SMALL_NUMBER)		// check if nx != 0 and ny != 0
 		{
 			xs = ( yi-y1 - ny/nx*xi + (y2-y1)/(x2-x1)*x1 ) / ((y2-y1)/(x2-x1)-ny/nx);
 			ys = ny/nx*xs + yi - ny/nx*xi;
@@ -113,7 +88,7 @@ void SpatialBase::compute_ghost_cell_coords_about_face()
 		rcg(ied,0) = 2*xs-xi;
 		rcg(ied,1) = 2*ys-yi;
 	}
-}
+}*/
 
 /// Function to feed needed data, and compute cell-centers
 /** \param Minf Free-stream Mach number
@@ -121,7 +96,7 @@ void SpatialBase::compute_ghost_cell_coords_about_face()
  * \param a Angle of attack (radians)
  * \param rhoinf Free stream density
  */
-void SpatialBase::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_real rhoinf)
+void InviscidFlow::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_real rhoinf)
 {
 	// Note that reference density and reference velocity are the values at infinity
 	//std::cout << "EulerFV: loaddata(): Calculating initial data...\n";
@@ -178,7 +153,15 @@ void SpatialBase::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_rea
 	std::cout << "SpatialBase: loaddata(): Initial data calculated.\n";
 }
 
-void SpatialBase::compute_boundary_states(const amat::Array2d<acfd_real>& ins, amat::Array2d<acfd_real>& bs)
+InviscidFlow::InviscidFlow(const Vector& freestream)
+{
+	/// TODO: Take the two values below as input from control file, rather than hardcoding
+	slip_wall_id = 2;
+	inflow_outflow_id = 4;
+	periodic_id = 6;
+}
+
+void InviscidFlow::compute_boundary_states(const amat::Array2d<acfd_real>& ins, amat::Array2d<acfd_real>& bs)
 {
 #pragma omp parallel for default(shared)
 	for(int ied = 0; ied < m->gnbface(); ied++)
@@ -232,18 +215,7 @@ void SpatialBase::compute_boundary_states(const amat::Array2d<acfd_real>& ins, a
 	}
 }
 
-acfd_real SpatialBase::l2norm(const amat::Array2d<acfd_real>* const v)
-{
-	acfd_real norm = 0;
-	for(int iel = 0; iel < m->gnelem(); iel++)
-	{
-		norm += v->get(iel)*v->get(iel)*m->gjacobians(iel)/2.0;
-	}
-	norm = sqrt(norm);
-	return norm;
-}
-
-void SpatialBase::compute_RHS()
+void InviscidFlow::compute_RHS()
 {
 	//std::cout << "Computing res ---\n";
 #pragma omp parallel default(shared)
@@ -363,7 +335,30 @@ void SpatialBase::compute_RHS()
 	} // end parallel region
 }
 
-void SpatialBase::postprocess_point()
+acfd_real InviscidFlow::compute_entropy()
+{
+	postprocess_cell();
+	acfd_real vmaginf2 = uinf(0,1)/uinf(0,0)*uinf(0,1)/uinf(0,0) + uinf(0,2)/uinf(0,0)*uinf(0,2)/uinf(0,0);
+	acfd_real sinf = ( uinf(0,0)*(g-1) * (uinf(0,3)/uinf(0,0) - 0.5*vmaginf2) ) / pow(uinf(0,0),g);
+
+	amat::Array2d<acfd_real> s_err(m->gnelem(),1);
+	acfd_real error = 0;
+	for(int iel = 0; iel < m->gnelem(); iel++)
+	{
+		s_err(iel) = (scalars(iel,2)/pow(scalars(iel,0),g) - sinf)/sinf;
+		error += s_err(iel)*s_err(iel)*m->gjacobians(iel)/2.0;
+	}
+	error = sqrt(error);
+
+	//acfd_real h = sqrt((m->jacobians).max());
+	acfd_real h = 1.0/sqrt(m->gnelem());
+
+	std::cout << "EulerFV:   " << log10(h) << "  " << std::setprecision(10) << log10(error) << std::endl;
+
+	return error;
+}
+
+void InviscidFlow::postprocess_point()
 {
 	std::cout << "SpatialBase: postprocess_point(): Creating output arrays...\n";
 	scalars.setup(m->gnpoin(),3);
@@ -420,62 +415,9 @@ void SpatialBase::postprocess_point()
 	std::cout << "EulerFV: postprocess_point(): Done.\n";
 }
 
-void SpatialBase::postprocess_cell()
-{
-	std::cout << "SpatialBase: postprocess_cell(): Creating output arrays...\n";
-	scalars.setup(m->gnelem(), 3);
-	velocities.setup(m->gnelem(), 2);
-	amat::Array2d<acfd_real> c(m->gnelem(), 1);
-
-	amat::Array2d<acfd_real> d = u.col(0);
-	scalars.replacecol(0, d);		// populate density data
-	//std::cout << "EulerFV: postprocess(): Written density\n";
-
-	for(int iel = 0; iel < m->gnelem(); iel++)
-	{
-		velocities(iel,0) = u.get(iel,1)/u.get(iel,0);
-		velocities(iel,1) = u.get(iel,2)/u.get(iel,0);
-		//velocities(iel,0) = dudx(iel,1);
-		//velocities(iel,1) = dudy(iel,1);
-		acfd_real vmag2 = pow(velocities(iel,0), 2) + pow(velocities(iel,1), 2);
-		scalars(iel,2) = d(iel)*(g-1) * (u.get(iel,3)/d(iel) - 0.5*vmag2);		// pressure
-		c(iel) = sqrt(g*scalars(iel,2)/d(iel));
-		scalars(iel,1) = sqrt(vmag2)/c(iel);
-	}
-	std::cout << "EulerFV: postprocess_cell(): Done.\n";
-}
-
-acfd_real SpatialBase::compute_entropy_cell()
-{
-	postprocess_cell();
-	acfd_real vmaginf2 = uinf(0,1)/uinf(0,0)*uinf(0,1)/uinf(0,0) + uinf(0,2)/uinf(0,0)*uinf(0,2)/uinf(0,0);
-	acfd_real sinf = ( uinf(0,0)*(g-1) * (uinf(0,3)/uinf(0,0) - 0.5*vmaginf2) ) / pow(uinf(0,0),g);
-
-	amat::Array2d<acfd_real> s_err(m->gnelem(),1);
-	acfd_real error = 0;
-	for(int iel = 0; iel < m->gnelem(); iel++)
-	{
-		s_err(iel) = (scalars(iel,2)/pow(scalars(iel,0),g) - sinf)/sinf;
-		error += s_err(iel)*s_err(iel)*m->gjacobians(iel)/2.0;
-	}
-	error = sqrt(error);
-
-	//acfd_real h = sqrt((m->jacobians).max());
-	acfd_real h = 1.0/sqrt(m->gnelem());
-
-	std::cout << "EulerFV:   " << log10(h) << "  " << std::setprecision(10) << log10(error) << std::endl;
-
-	return error;
-}
-
-amat::Array2d<acfd_real> SpatialBase::getscalars() const
+amat::Array2d<acfd_real> InviscidFlow::getOutput() const
 {
 	return scalars;
-}
-
-amat::Array2d<acfd_real> SpatialBase::getvelocities() const
-{
-	return velocities;
 }
 
 }	// end namespace

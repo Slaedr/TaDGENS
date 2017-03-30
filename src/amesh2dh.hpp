@@ -21,6 +21,7 @@ class UMesh2dh
 {
 private:
 	int ndim;								///< Number of space dimensions of mesh - can only be 2, though
+	int g_degree;							///< Degree of (polynomial) geometric mapping from reference element to physical element
 	acfd_int npoin;							///< Number of nodes
 	acfd_int nelem;							///< Number of elements
 	acfd_int nface;							///< Number of boundary faces
@@ -100,6 +101,7 @@ public:
 	acfd_int gbifmap(acfd_int intfacno) const { return bifmap(intfacno); }
 	acfd_int gifbmap(acfd_int bfaceno) const { return ifbmap(bfaceno); }
 	int gflag_bpoin(const acfd_int pointno) const { return flag_bpoin(pointno); }
+	int degree() const { return g_degree; }
 
 	acfd_int gnpoin() const { return npoin; }
 	acfd_int gnelem() const { return nelem; }

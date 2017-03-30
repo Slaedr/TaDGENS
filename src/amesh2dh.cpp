@@ -189,6 +189,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	std::vector<int> nfaels(nelm,0);
 	std::vector<int> nintnodes(nelm,0);
 	maxnnofa = 2;
+	g_degree = 1;
 	
 	std::cout << "UMesh2d: readGmsh2(): Total number of elms is " << nelm << std::endl;
 
@@ -199,6 +200,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 
 		/** elmtype is different for all faces and for all elements.
 		 * nnodes contains number of nodes per face for the faces and number of nodes per element for elements.
+		 * It is assumed that all elements have the same geometric order.
 		 */
 
 		switch(elmtype)
@@ -215,6 +217,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 				nface++;
 				break;
 			case(8): // quadratic edge
+				g_degree = 2;
 				nnodes[i] = 3;
 				if (nnodes[i] > maxnnofa) maxnnofa = nnodes[i];
 				infile >> nbtags;
@@ -252,6 +255,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 				nelem++;
 				break;
 			case(9):	// quadratic triangles
+				g_degree = 2;
 				nnodes[i] = 6;
 				nfaels[i] = 3;
 				nintnodes[i] = 0;
@@ -265,6 +269,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 				nelem++;
 				break;
 			case(16):	// quadratic quad (8 nodes)
+				g_degree = 2;
 				nnodes[i] = 8;
 				nfaels[i] = 4;
 				nintnodes[i] = 0;
@@ -278,6 +283,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 				nelem++;
 				break;
 			case(10):	// quadratic quad (9 nodes)
+				g_degree = 2;
 				nnodes[i] = 9;
 				nfaels[i] = 4;
 				nintnodes[i] = 1;
@@ -332,7 +338,8 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	vol_regions.setup(nelem, ndtag);
 
 	std::cout << "UMesh2dh: readGmsh2(): Done. No. of points: " << npoin << ", number of elements: " << nelem << ", number of boundary faces " << nface << 
-		",\n max number of nodes per element: " << maxnnode << ", max number of nodes per face: " << maxnnofa << ", max number of faces per element: " << maxnfael << std::endl;
+		",\n max number of nodes per element: " << maxnnode << ", max number of nodes per face: " << maxnnofa << ", max number of faces per element: " << maxnfael 
+		<< ", geometric degree: " << g_degree << std::endl;
 
 	// write into inpoel and bface
 	// the first nface rows to be read are boundary faces
