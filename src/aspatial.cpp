@@ -14,18 +14,24 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree) : m(mesh), p
 	std::cout << "SpatialBase: Setting up spaital integrator for FE polynomial degree " << p_degree << std::endl;
 	
 	// set quadrature strength
-	int quaddegree = 2*p_degree;
-	if(m->degree() == 2) quaddegree += 1;
+	int dom_quaddegree = 2*p_degree;
+	if(m->degree() == 2) dom_quaddegree += 1;
+	int boun_quaddegree = p_degree;
+	if(m->degree() == 2) boun_quaddegree += 1;
 
-	// allocation
 	dtquad = new Quadrature2DTriangle();
+	dtquad.initialize(dom_quaddegree);
 	dsquad = new Quadrature2DSquare();
+	dsquad.initialize(dom_quaddegree);
+	bquad = new Quadrature1D();
+	bquad.initialize(boun_quaddegree);
 }
 
 SpatialBase::~SpatialBase()
 {
 	delete dtquad;
 	delete dsquad;
+	delete bquad;
 }
 
 /*void SpatialBase::compute_ghost_cell_coords_about_midpoint()

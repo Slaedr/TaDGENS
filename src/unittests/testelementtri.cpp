@@ -1,3 +1,9 @@
+/** \file testelementtri.cpp
+ * \brief Unit test for geometric mapping and Taylor basis functions on P2 triangles
+ * \author Aditya Kashi
+ * \date 2017 March 20
+ */
+
 #include "../aquadrature.hpp"
 #include "../amesh2dh.hpp"
 #include "../aelements.hpp"
@@ -8,20 +14,18 @@ using namespace acfd;
 
 int main()
 {
-	// global setup
 	UMesh2dh m;
-	m.readGmsh2("../../testcases/unittests/trimesh.msh",2);
+	m.readGmsh2("../../testcases/unittests/trimesh-skew_p2.msh",2);
+	m.compute_topological();
 	
 	int p = 1;
-	int geomdeg = 1;
+	int geomdeg = 2;
 	int nintp = 3;
 	
 	Quadrature2DTriangle integ;
 	integ.initialize(nintp);
 
-	// per-element setup
-	
-	int elem = 1;
+	int elem = 13-1-m.gnface();
 	Array2d<acfd_real> elpoints(m.gnnode(elem),NDIM);
 	for(int i = 0; i < m.gnnode(elem); i++)
 		for(int j = 0; j < NDIM; j++)
@@ -30,15 +34,20 @@ int main()
 	LagrangeMapping2DTriangle map;
 	map.setAll(geomdeg, elpoints, &integ);
 	map.computeMappingAndJacobianDet();
+		
+	// check jacobian det and quad point coords
+	/* The coords should be
+	 * (2.0/3,1.4), (0.4,1.256), (0.8, 1.672), (0.8, 1.24)
+	 */
+	printf("Phy coords of quad points and Jacobian determinant of element %d:\n  ", elem);
+	for(int ig = 0; ig < map.getQuadrature()->numGauss(); ig++) {
+		cout << "(" << map.map()(ig,0) << ", " << map.map()(ig,1) << "), ";
+		cout << map.jacDet(ig) << ".  ";
+	}
+	cout << endl;
 
 	TaylorElement tel;
 	tel.initialize(p, &map);
-		
-	// check jacobian det
-	printf("Jacobian determinant of element %d:\n  ", elem);
-	for(int ig = 0; ig < map.getQuadrature()->numGauss(); ig++)
-		cout << map.jacDet(ig) << " ";
-	cout << endl;
 
 	// check basis function values
 	printf("Element center, delta x, delta y and area:\n");
@@ -54,6 +63,12 @@ int main()
 		printf("\n");
 	}
 	printf("\n");
+	
+	// 1D
+	Quadrature1D i1d;
+	i1d.initialize(nintp);
+	LagrangeMapping1D map1;
+	int face = m.gelemface(elem, 2);
 	
 	return 0;
 }
