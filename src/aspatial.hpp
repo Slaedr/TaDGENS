@@ -40,13 +40,13 @@ template <int nvars>
 class SpatialBase
 {
 protected:
-	const UMesh2dh* m;									///< Mesh context
-	std::vector<std::array<Matrix, nvars>> m_inv;		///< Inverse of mass matrix for each variable of each element
-	std::vector<Vector> residual;						///< Right hand side for boundary integrals and source terms
-	int p_degree;										///< Polynomial degree of trial/test functions
+	const UMesh2dh* m;								///< Mesh context
+	std::vector<Matrix> m_inv;						///< Inverse of mass matrix for each variable of each element
+	std::vector<Vector> residual;					///< Right hand side for boundary integrals and source terms
+	int p_degree;									///< Polynomial degree of trial/test functions
 
 	/// stores (for each cell i) \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, where v_n and c are average values of the cell faces
-	std::vector<acfd_real> integ;
+	std::vector<a_real> integ;
 
 	Quadrature2DTriangle* dtquad;				///< Domain quadrature context
 	Quadrature2DSquare* dsquad;					///< Domain quadrature context
@@ -59,22 +59,22 @@ protected:
 	/// Integral of fluxes across each face for all dofs
 	/** The entries corresponding to different DOFs of a given flow variable are stored contiguously.
 	 */
-	std::vector<Array2d<acfd_real>> faceintegral;
+	std::vector<Array2d<a_real>> faceintegral;
 
 	/// vector of unknowns
 	/** Each Eigen3 (E3) Vector contains the DOF values for an element.
 	 */
 	std::vector<Vector> u;
 
-	amat::Array2d<acfd_real> scalars;			///< Holds density, Mach number and pressure for each mesh point
-	amat::Array2d<acfd_real> velocities;		///< Holds velocity components for each mesh point
+	amat::Array2d<a_real> scalars;			///< Holds density, Mach number and pressure for each mesh point
+	amat::Array2d<a_real> velocities;		///< Holds velocity components for each mesh point
 
 	/* Reconstruction-related stuff - currently not implemented
 	//Reconstruction* rec;						///< Reconstruction context
 	//FaceDataComputation* lim;					///< Limiter context
 
 	// Ghost cell centers
-	amat::Array2d<acfd_real> ghc;
+	amat::Array2d<a_real> ghc;
 
 	/// Ghost elements' flow quantities
 	std::vector<Vector> ug;
@@ -123,7 +123,7 @@ public:
 	virtual void postprocess() = 0;
 
 	/// Read-only access to output quantities
-	virtual const amat::Array2d<acfd_real>& getoutput() const = 0;
+	virtual const amat::Array2d<a_real>& getoutput() const = 0;
 };
 
 /// Spatial discretization for 2D Euler equations
@@ -156,13 +156,13 @@ public:
 
 	/// Compute norm of entropy production
 	/// Call after computing pressure etc \sa postprocess_cell
-	acfd_real compute_entropy();
+	a_real compute_entropy();
 
 	/// Compute nodal quantities to export, based on area-weighted averaging (which takes into account ghost cells as well)
 	virtual void postprocess();
 
 	/// Read-only access to output quantities
-	virtual const amat::Array2d<acfd_real>& getoutput() const;
+	virtual const amat::Array2d<a_real>& getoutput() const;
 };
 
 }	// end namespace

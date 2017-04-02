@@ -33,6 +33,7 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree) : m(mesh), p
 	faces = new FaceElement_PhysicalSpace[m->gnaface()];
 }
 
+template <int nvars>
 SpatialBase::~SpatialBase()
 {
 	delete dtquad;
@@ -44,17 +45,50 @@ SpatialBase::~SpatialBase()
 	delete [] elems;
 }
 
+template <int nvars>
 SpatialBase::computeFEData()
 {
+	std::cout << "SpatialBase: computeFEData(): Computing basis functions, basis gradients and mass matrices for each element" << std::endl;
+	minv.resize(m.gnelem());
+
 	// loop over elements to setup and compute maps and elements and compute mass matrices
+	for(int iel = 0; iel < m->gnelem(); iel++)
+	{
+		amat::Array2d<a_real> phynodes(m->gnnode(iel),NDIM);
+		for(int i = 0; i < m->gnnode(iel); i++)
+			for(int j = 0; j < NDIM; j++)
+				phynodes(i,j) = m->gcoords(m->ginpoel(iel,i),j);
+
+		if(m->gnnode(iel) == 4 || m->gnnode(iel) == 9)
+			map2d[iel].setAll(m->degree(), phynodes, dsquad);
+		else
+			map2d[iel].setAll(m->degree(), phynodes, dtquad);
+		map2d[iel].computeMappingAndJacobianDet();
+
+		elems[iel].initialize(p_degree, &map2d[iel]);
+
+		// allocate mass matrix
+		minv[iel].resize(elems[iel].getNumDOFs(), elems[iel].getNumDOFs());
+
+		// compute mass matrix
+		const Quadrature2D* lquad = map2d[iel].getQuadrature();
+		for(int ig = 0; ig < lquad->numGauss(); ig++)
+		{
+			for(int idof = 0; idof < elems[iel].getNumDOFs(); idof++)
+				for(int jdof = 0; jdof < elems[iel].getNumDOFs(); jdof++)
+					minv[iel](idof,jdof) += elems[iel].bFunc(ig)(idof)*elems[iel].bFunc(ig)(jdof)*map2d[iel].jacDet(ig);
+		}
+	}
 	
 	// loop over faces
+	
+	std::cout << "SpatialBase: computeFEData(): Done." << std::endl;
 }
 
 /*void SpatialBase::compute_ghost_cell_coords_about_midpoint()
 {
 	int iface, ielem, idim, ip1, ip2;
-	std::vector<acfd_real> midpoint(m->gndim());
+	std::vector<a_real> midpoint(m->gndim());
 	for(iface = 0; iface < m->gnbface(); iface++)
 	{
 		ielem = m->gintfac(iface,0);
@@ -74,14 +108,14 @@ SpatialBase::computeFEData()
 void SpatialBase::compute_ghost_cell_coords_about_face()
 {
 	int ied, ig, ielem;
-	acfd_real x1, y1, x2, y2, xs, ys, xi, yi;
+	a_real x1, y1, x2, y2, xs, ys, xi, yi;
 
 	for(ied = 0; ied < m->gnbface(); ied++)
 	{
 		ielem = m->gintfac(ied,0); //int lel = ielem;
 		//jelem = m->gintfac(ied,1); //int rel = jelem;
-		acfd_real nx = m->ggallfa(ied,0);
-		acfd_real ny = m->ggallfa(ied,1);
+		a_real nx = m->ggallfa(ied,0);
+		a_real ny = m->ggallfa(ied,1);
 
 		xi = rc.get(ielem,0);
 		yi = rc.get(ielem,1);
@@ -119,13 +153,13 @@ void SpatialBase::compute_ghost_cell_coords_about_face()
  * \param a Angle of attack (radians)
  * \param rhoinf Free stream density
  */
-void InviscidFlow::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_real rhoinf)
+void InviscidFlow::loaddata(a_real Minf, a_real vinf, a_real a, a_real rhoinf)
 {
 	// Note that reference density and reference velocity are the values at infinity
 	//std::cout << "EulerFV: loaddata(): Calculating initial data...\n";
-	acfd_real vx = vinf*cos(a);
-	acfd_real vy = vinf*sin(a);
-	acfd_real p = rhoinf*vinf*vinf/(g*Minf*Minf);
+	a_real vx = vinf*cos(a);
+	a_real vy = vinf*sin(a);
+	a_real p = rhoinf*vinf*vinf/(g*Minf*Minf);
 	uinf(0,0) = rhoinf;		// should be 1
 	uinf(0,1) = rhoinf*vx;
 	uinf(0,2) = rhoinf*vy;
@@ -147,12 +181,12 @@ void InviscidFlow::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_re
 			rc(ielem,idim) = 0;
 			for(inode = 0; inode < m->gnnode(ielem); inode++)
 				rc(ielem,idim) += m->gcoords(m->ginpoel(ielem, inode), idim);
-			rc(ielem,idim) = rc(ielem,idim) / (acfd_real)(m->gnnode(ielem));
+			rc(ielem,idim) = rc(ielem,idim) / (a_real)(m->gnnode(ielem));
 		}
 	}
 
 	int ied, ig, ielem;
-	acfd_real x1, y1, x2, y2, xs, ys, xi, yi;
+	a_real x1, y1, x2, y2, xs, ys, xi, yi;
 
 	compute_ghost_cell_coords_about_midpoint();
 	//compute_ghost_cell_coords_about_face();
@@ -167,8 +201,8 @@ void InviscidFlow::loaddata(acfd_real Minf, acfd_real vinf, acfd_real a, acfd_re
 		y2 = m->gcoords(m->gintfac(ied,3),1);
 		for(ig = 0; ig < ngaussf; ig++)
 		{
-			gr[ied](ig,0) = x1 + (acfd_real)(ig+1.0)/(acfd_real)(ngaussf+1.0) * (x2-x1);
-			gr[ied](ig,1) = y1 + (acfd_real)(ig+1.0)/(acfd_real)(ngaussf+1.0) * (y2-y1);
+			gr[ied](ig,0) = x1 + (a_real)(ig+1.0)/(a_real)(ngaussf+1.0) * (x2-x1);
+			gr[ied](ig,1) = y1 + (a_real)(ig+1.0)/(a_real)(ngaussf+1.0) * (y2-y1);
 		}
 	}
 
@@ -184,19 +218,19 @@ InviscidFlow::InviscidFlow(const Vector& freestream)
 	periodic_id = 6;
 }
 
-void InviscidFlow::compute_boundary_states(const amat::Array2d<acfd_real>& ins, amat::Array2d<acfd_real>& bs)
+void InviscidFlow::compute_boundary_states(const amat::Array2d<a_real>& ins, amat::Array2d<a_real>& bs)
 {
 #pragma omp parallel for default(shared)
 	for(int ied = 0; ied < m->gnbface(); ied++)
 	{
-		acfd_real nx = m->ggallfa(ied,0);
-		acfd_real ny = m->ggallfa(ied,1);
+		a_real nx = m->ggallfa(ied,0);
+		a_real ny = m->ggallfa(ied,1);
 
-		acfd_real vni = (ins.get(ied,1)*nx + ins.get(ied,2)*ny)/ins.get(ied,0);
-		acfd_real pi = (g-1.0)*(ins.get(ied,3) - 0.5*(pow(ins.get(ied,1),2)+pow(ins.get(ied,2),2))/ins.get(ied,0));
-		acfd_real pinf = (g-1.0)*(uinf.get(0,3) - 0.5*(pow(uinf.get(0,1),2)+pow(uinf.get(0,2),2))/uinf.get(0,0));
-		acfd_real ci = sqrt(g*pi/ins.get(ied,0));
-		acfd_real Mni = vni/ci;
+		a_real vni = (ins.get(ied,1)*nx + ins.get(ied,2)*ny)/ins.get(ied,0);
+		a_real pi = (g-1.0)*(ins.get(ied,3) - 0.5*(pow(ins.get(ied,1),2)+pow(ins.get(ied,2),2))/ins.get(ied,0));
+		a_real pinf = (g-1.0)*(uinf.get(0,3) - 0.5*(pow(uinf.get(0,1),2)+pow(uinf.get(0,2),2))/uinf.get(0,0));
+		a_real ci = sqrt(g*pi/ins.get(ied,0));
+		a_real Mni = vni/ci;
 
 		if(m->ggallfa(ied,3) == slip_wall_id)
 		{
@@ -253,9 +287,9 @@ void InviscidFlow::compute_RHS()
 
 		// first, set cell-centered values of boundary cells as left-side values of boundary faces
 #pragma omp for
-		for(acfd_int ied = 0; ied < m->gnbface(); ied++)
+		for(a_int ied = 0; ied < m->gnbface(); ied++)
 		{
-			acfd_int ielem = m->gintfac(ied,0);
+			a_int ielem = m->gintfac(ied,0);
 			for(int ivar = 0; ivar < NVARS; ivar++)
 				uleft(ied,ivar) = u.get(ielem,ivar);
 		}
@@ -275,10 +309,10 @@ void InviscidFlow::compute_RHS()
 
 		// set both left and right states for all interior faces
 #pragma omp parallel for
-		for(acfd_int ied = m->gnbface(); ied < m->gnaface(); ied++)
+		for(a_int ied = m->gnbface(); ied < m->gnaface(); ied++)
 		{
-			acfd_int ielem = m->gintfac(ied,0);
-			acfd_int jelem = m->gintfac(ied,1);
+			a_int ielem = m->gintfac(ied,0);
+			a_int jelem = m->gintfac(ied,1);
 			for(int ivar = 0; ivar < NVARS; ivar++)
 			{
 				uleft(ied,ivar) = u.get(ielem,ivar);
@@ -298,21 +332,21 @@ void InviscidFlow::compute_RHS()
 	 * so that time steps can be calculated for explicit time stepping.
 	 */
 
-	std::vector<acfd_real> ci(m->gnaface()), vni(m->gnaface()), cj(m->gnaface()), vnj(m->gnaface());
+	std::vector<a_real> ci(m->gnaface()), vni(m->gnaface()), cj(m->gnaface()), vnj(m->gnaface());
 
 #pragma omp parallel default(shared)
 	{
 #pragma omp for
-		for(acfd_int ied = 0; ied < m->gnaface(); ied++)
+		for(a_int ied = 0; ied < m->gnaface(); ied++)
 		{
-			acfd_real n[NDIM];
+			a_real n[NDIM];
 			n[0] = m->ggallfa(ied,0);
 			n[1] = m->ggallfa(ied,1);
-			acfd_real len = m->ggallfa(ied,2);
+			a_real len = m->ggallfa(ied,2);
 
-			const acfd_real* ulp = uleft.const_row_pointer(ied);
-			const acfd_real* urp = uright.const_row_pointer(ied);
-			acfd_real* fluxp = fluxes.row_pointer(ied);
+			const a_real* ulp = uleft.const_row_pointer(ied);
+			const a_real* urp = uright.const_row_pointer(ied);
+			a_real* fluxp = fluxes.row_pointer(ied);
 
 			// compute flux
 			inviflux->get_flux(ulp, urp, n, fluxp);
@@ -322,8 +356,8 @@ void InviscidFlow::compute_RHS()
 					fluxp[ivar] *= len;
 
 			//calculate presures from u
-			acfd_real pi = (g-1)*(uleft.get(ied,3) - 0.5*(pow(uleft.get(ied,1),2)+pow(uleft.get(ied,2),2))/uleft.get(ied,0));
-			acfd_real pj = (g-1)*(uright.get(ied,3) - 0.5*(pow(uright.get(ied,1),2)+pow(uright.get(ied,2),2))/uright.get(ied,0));
+			a_real pi = (g-1)*(uleft.get(ied,3) - 0.5*(pow(uleft.get(ied,1),2)+pow(uleft.get(ied,2),2))/uleft.get(ied,0));
+			a_real pj = (g-1)*(uright.get(ied,3) - 0.5*(pow(uright.get(ied,1),2)+pow(uright.get(ied,2),2))/uright.get(ied,0));
 			//calculate speeds of sound
 			ci[ied] = sqrt(g*pi/uleft.get(ied,0));
 			cj[ied] = sqrt(g*pj/uright.get(ied,0));
@@ -335,13 +369,13 @@ void InviscidFlow::compute_RHS()
 		// update residual and integ
 		//std::cout << "Beginning new loop --- \n";
 #pragma omp for
-		for(acfd_int iel = 0; iel < m->gnelem(); iel++)
+		for(a_int iel = 0; iel < m->gnelem(); iel++)
 		{
 			for(int ifael = 0; ifael < m->gnfael(iel); ifael++)
 			{
-				acfd_int ied = m->gelemface(iel,ifael);
-				acfd_real len = m->ggallfa(ied,2);
-				acfd_int nbdelem = m->gesuel(iel,ifael);
+				a_int ied = m->gelemface(iel,ifael);
+				a_real len = m->ggallfa(ied,2);
+				a_int nbdelem = m->gesuel(iel,ifael);
 
 				if(nbdelem > iel) {
 					for(int ivar = 0; ivar < NVARS; ivar++)
@@ -358,14 +392,14 @@ void InviscidFlow::compute_RHS()
 	} // end parallel region
 }
 
-acfd_real InviscidFlow::compute_entropy()
+a_real InviscidFlow::compute_entropy()
 {
 	postprocess_cell();
-	acfd_real vmaginf2 = uinf(0,1)/uinf(0,0)*uinf(0,1)/uinf(0,0) + uinf(0,2)/uinf(0,0)*uinf(0,2)/uinf(0,0);
-	acfd_real sinf = ( uinf(0,0)*(g-1) * (uinf(0,3)/uinf(0,0) - 0.5*vmaginf2) ) / pow(uinf(0,0),g);
+	a_real vmaginf2 = uinf(0,1)/uinf(0,0)*uinf(0,1)/uinf(0,0) + uinf(0,2)/uinf(0,0)*uinf(0,2)/uinf(0,0);
+	a_real sinf = ( uinf(0,0)*(g-1) * (uinf(0,3)/uinf(0,0) - 0.5*vmaginf2) ) / pow(uinf(0,0),g);
 
-	amat::Array2d<acfd_real> s_err(m->gnelem(),1);
-	acfd_real error = 0;
+	amat::Array2d<a_real> s_err(m->gnelem(),1);
+	a_real error = 0;
 	for(int iel = 0; iel < m->gnelem(); iel++)
 	{
 		s_err(iel) = (scalars(iel,2)/pow(scalars(iel,0),g) - sinf)/sinf;
@@ -373,8 +407,8 @@ acfd_real InviscidFlow::compute_entropy()
 	}
 	error = sqrt(error);
 
-	//acfd_real h = sqrt((m->jacobians).max());
-	acfd_real h = 1.0/sqrt(m->gnelem());
+	//a_real h = sqrt((m->jacobians).max());
+	a_real h = 1.0/sqrt(m->gnelem());
 
 	std::cout << "EulerFV:   " << log10(h) << "  " << std::setprecision(10) << log10(error) << std::endl;
 
@@ -386,15 +420,15 @@ void InviscidFlow::postprocess_point()
 	std::cout << "SpatialBase: postprocess_point(): Creating output arrays...\n";
 	scalars.setup(m->gnpoin(),3);
 	velocities.setup(m->gnpoin(),2);
-	amat::Array2d<acfd_real> c(m->gnpoin(),1);
+	amat::Array2d<a_real> c(m->gnpoin(),1);
 
-	amat::Array2d<acfd_real> areasum(m->gnpoin(),1);
-	amat::Array2d<acfd_real> up(m->gnpoin(), NVARS);
+	amat::Array2d<a_real> areasum(m->gnpoin(),1);
+	amat::Array2d<a_real> up(m->gnpoin(), NVARS);
 	up.zeros();
 	areasum.zeros();
 
 	int inode, ivar;
-	acfd_int ielem, iface, ip1, ip2, ipoin;
+	a_int ielem, iface, ip1, ip2, ipoin;
 
 	for(ielem = 0; ielem < m->gnelem(); ielem++)
 	{
@@ -430,7 +464,7 @@ void InviscidFlow::postprocess_point()
 		velocities(ipoin,1) = up.get(ipoin,2)/up.get(ipoin,0);
 		//velocities(ipoin,0) = dudx(ipoin,1);
 		//velocities(ipoin,1) = dudy(ipoin,1);
-		acfd_real vmag2 = pow(velocities(ipoin,0), 2) + pow(velocities(ipoin,1), 2);
+		a_real vmag2 = pow(velocities(ipoin,0), 2) + pow(velocities(ipoin,1), 2);
 		scalars(ipoin,2) = up.get(ipoin,0)*(g-1) * (up.get(ipoin,3)/up.get(ipoin,0) - 0.5*vmag2);		// pressure
 		c(ipoin) = sqrt(g*scalars(ipoin,2)/up.get(ipoin,0));
 		scalars(ipoin,1) = sqrt(vmag2)/c(ipoin);
@@ -438,7 +472,7 @@ void InviscidFlow::postprocess_point()
 	std::cout << "EulerFV: postprocess_point(): Done.\n";
 }
 
-amat::Array2d<acfd_real> InviscidFlow::getOutput() const
+amat::Array2d<a_real> InviscidFlow::getOutput() const
 {
 	return scalars;
 }

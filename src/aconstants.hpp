@@ -27,8 +27,8 @@
 
 namespace acfd
 {
-	typedef double acfd_real;
-	typedef int acfd_int;
+	typedef double a_real;
+	typedef int a_int;
 
 	/// A type encoding the shape of 2D elements
 	enum Shape2d {TRIANGLE, QUADRANGLE};
@@ -40,10 +40,10 @@ namespace acfd
 #include <Eigen/Core>
 
 /// Matrix type to be used for dense linear algebra
-typedef Eigen::Matrix<acfd::acfd_real, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Matrix;
+typedef Eigen::Matrix<acfd::a_real, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Matrix;
 
 /// Vector type to be used for dense linear algebra
-typedef Eigen::Matrix<acfd::acfd_real, Eigen::Dynamic, 1> Vector;
+typedef Eigen::Matrix<acfd::a_real, Eigen::Dynamic, 1> Vector;
 
 #endif
 

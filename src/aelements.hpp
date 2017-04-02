@@ -36,9 +36,9 @@ class GeomMapping1D
 {
 protected:
 	int degree;								///< Polynomial degree of the mapping
-	amat::Array2d<acfd_real> phyNodes;		///< Physical locations of the nodes
+	amat::Array2d<a_real> phyNodes;		///< Physical locations of the nodes
 	std::vector<Vector> normals;			///< Normals at quadrature points. Note that these are NOT unit vectors; they're the 1D analogue of "area" vectors
-	amat::Array2d<acfd_real> mapping;		///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
+	amat::Array2d<a_real> mapping;		///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
 	const Quadrature1D* quadrature;			///< Gauss points and weights for integrating quantities
 
 public:
@@ -48,14 +48,14 @@ public:
 	}
 
 	/// Sets the polynomial degree and coordinates of physical nodes of the element and the quadrature context
-	void setAll(const int deg, const amat::Array2d<acfd_real>& physicalnodes, const Quadrature1D* q) {
+	void setAll(const int deg, const amat::Array2d<a_real>& physicalnodes, const Quadrature1D* q) {
 		degree = deg;
 		phyNodes = physicalnodes;
 		quadrature = q;
 	}
 
 	/// Read-only access to physical node locations
-	const amat::Array2d<acfd_real>& getPhyNodes() const {
+	const amat::Array2d<a_real>& getPhyNodes() const {
 		return phyNodes;
 	}
 
@@ -65,7 +65,7 @@ public:
 	}
 
 	/// Read-only access to physical coords of the quadrature points
-	const amat::Array2d<acfd_real>& map() const {
+	const amat::Array2d<a_real>& map() const {
 		return mapping;
 	}
 
@@ -103,11 +103,11 @@ class GeomMapping2D
 protected:
 	Shape2d shape;								///< Shape of the element
 	int degree;									///< Polynomial degree of the map
-	amat::Array2d<acfd_real> phyNodes;			///< Physical coordinates of the nodes
+	amat::Array2d<a_real> phyNodes;			///< Physical coordinates of the nodes
 	std::vector<Matrix> jaco;					///< Jacobian matrix of the mapping
 	std::vector<Matrix> jacoinv;				///< Inverse of the Jacobian matrix
-	std::vector<acfd_real> jacodet;				///< Determinant of the Jacobian matrix
-	amat::Array2d<acfd_real> mapping;			///< Physical coords of the quadrature points
+	std::vector<a_real> jacodet;				///< Determinant of the Jacobian matrix
+	amat::Array2d<a_real> mapping;			///< Physical coords of the quadrature points
 	const Quadrature2D* quadrature;				///< Gauss points and weights for integrating quantities
 
 public:
@@ -121,7 +121,7 @@ public:
 	}
 
 	/// Sets the polynomial degree, coordinates of physical nodes of the element and the integration context
-	void setAll(const int deg, const amat::Array2d<acfd_real>& physicalnodes, const Quadrature2D* const quad) {
+	void setAll(const int deg, const amat::Array2d<a_real>& physicalnodes, const Quadrature2D* const quad) {
 		degree = deg;
 		phyNodes = physicalnodes;
 		quadrature = quad;
@@ -138,12 +138,12 @@ public:
 	virtual void computeMappingAndJacobianDet() = 0;
 
 	/// Read-only access to physical node locations
-	const amat::Array2d<acfd_real>& getPhyNodes() const {
+	const amat::Array2d<a_real>& getPhyNodes() const {
 		return phyNodes;
 	}
 
 	/// Read-only access to the mapping evaluated at quadrature points
-	const amat::Array2d<acfd_real>& map() const {
+	const amat::Array2d<a_real>& map() const {
 		return mapping;
 	}
 
@@ -158,7 +158,7 @@ public:
 	}
 
 	/// Jacobian determinant
-	acfd_real jacDet(const int ipoint) const {
+	a_real jacDet(const int ipoint) const {
 		return jacodet[ipoint];
 	}
 
@@ -185,7 +185,7 @@ class Element
 protected:
 	int degree;										///< Polynomial degree
 	int ndof;										///< Number of local DOFs
-	std::vector<amat::Array2d<acfd_real>> basis;	///< Values of basis functions at quadrature points
+	std::vector<amat::Array2d<a_real>> basis;	///< Values of basis functions at quadrature points
 	std::vector<Matrix> basisGrad;					///< Values of derivatives of the basis functions at the quadrature points
 	const GeomMapping2D* gmap;						///< The 2D geometric map which maps this element to the reference element
 
@@ -196,16 +196,16 @@ public:
 	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
 
 	/// Computes interpolated values at the quadrature point with index ig from given DOF values
-	acfd_real interpolate(const int ig, const acfd_real* const dofs)
+	a_real interpolate(const int ig, const a_real* const dofs)
 	{
-		acfd_real val = 0;
+		a_real val = 0;
 		for(int i = 0; i < ndof; i++)
 			val += dofs[i]*basis[ig](i);
 		return val;
 	}
 
 	/// Read-only access to basis at a given quadrature point
-	const amat::Array2d<acfd_real>& bFunc(const int ipoin) {
+	const amat::Array2d<a_real>& bFunc(const int ipoin) {
 		return basis[ipoin];
 	}
 
@@ -236,7 +236,7 @@ public:
 	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
 
 	/// Computes values of basis functions at a given point in physical space
-	virtual void computeBasis(const acfd_real* point, acfd_real* basisvalues) const = 0;
+	virtual void computeBasis(const a_real* point, a_real* basisvalues) const = 0;
 };
 
 /// Element described by Taylor basis functions
@@ -247,13 +247,13 @@ public:
  */
 class TaylorElement : public Element_PhysicalSpace
 {
-	acfd_real area;										///< Area of the element
-	acfd_real center[NDIM];								///< Physical location of element's geometric center
-	acfd_real delta[NDIM];								///< Maximum extent of the element in the coordinate directions
-	std::vector<std::vector<acfd_real>> basisOffset;	///< The quantities by which the basis functions are offset from actual Taylor polynomial basis
+	a_real area;										///< Area of the element
+	a_real center[NDIM];								///< Physical location of element's geometric center
+	a_real delta[NDIM];								///< Maximum extent of the element in the coordinate directions
+	std::vector<std::vector<a_real>> basisOffset;	///< The quantities by which the basis functions are offset from actual Taylor polynomial basis
 public:
 	void initialize(int degr, const GeomMapping2D* geommap);
-	void computeBasis(const acfd_real* point, acfd_real* basisvalues) const;
+	void computeBasis(const a_real* point, a_real* basisvalues) const;
 
 	void printDetails() const {
 		std::printf("  (%f,%f), %f, %f, %f\n", center[0], center[1], delta[0], delta[1], area);
@@ -268,8 +268,8 @@ class FaceElement_PhysicalSpace
 {
 	const Element_PhysicalSpace* leftel;				///< "Left" element
 	const Element_PhysicalSpace* rightel;				///< "Right" element
-	amat::Array2d<acfd_real> leftbasis;					///< Values of the left element's basis functions at the face quadrature points
-	amat::Array2d<acfd_real> rightbasis;				///< Values of the left element's basis functions at the face quadrature points
+	amat::Array2d<a_real> leftbasis;					///< Values of the left element's basis functions at the face quadrature points
+	amat::Array2d<a_real> rightbasis;				///< Values of the left element's basis functions at the face quadrature points
 	const GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
 
 public:
@@ -280,28 +280,28 @@ public:
 	void initialize(int degr, const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* geommap);
 
 	/// Read-only access to basis function values from left element
-	const amat::Array2d<acfd_real>& leftBasis() {
+	const amat::Array2d<a_real>& leftBasis() {
 		return leftbasis;
 	}
 
 	/// Read-only access to basis function values from right element
-	const amat::Array2d<acfd_real>& rightBasis() {
+	const amat::Array2d<a_real>& rightBasis() {
 		return rightbasis;
 	}
 
 	/// Interpolates values from left element at the face quadrature points
-	acfd_real interpolate_left(const int ig, const acfd_real *const dofs)
+	a_real interpolate_left(const int ig, const a_real *const dofs)
 	{
-		acfd_real val = 0;
+		a_real val = 0;
 		for(int i = 0; i < leftel->getNumDOFs(); i++)
 			val += dofs[i]*leftbasis(ig,i);
 		return val;
 	}
 
 	/// Interpolates values from right element at the face quadrature points
-	acfd_real interpolate_right(const int ig, const acfd_real *const dofs)
+	a_real interpolate_right(const int ig, const a_real *const dofs)
 	{
-		acfd_real val = 0;
+		a_real val = 0;
 		for(int i = 0; i < rightel->getNumDOFs(); i++)
 			val += dofs[i]*rightbasis(ig,i);
 		return val;

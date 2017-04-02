@@ -24,16 +24,16 @@ protected:
 	Shape shape;
 	int ngauss;										///< Number of quadrature points
 	int nPoly;										///< Degree of polynomial to integrate exactly
-	amat::Array2d<acfd_real> gweights;
-	amat::Array2d<acfd_real> gpoints;
+	amat::Array2d<a_real> gweights;
+	amat::Array2d<a_real> gpoints;
 public:
 	virtual void initialize(const int n_poly) = 0;
 	
-	const amat::Array2d<acfd_real>& weights() const {
+	const amat::Array2d<a_real>& weights() const {
 		return gweights;
 	}
 
-	const amat::Array2d<acfd_real>& points() const {
+	const amat::Array2d<a_real>& points() const {
 		return gpoints;
 	}
 

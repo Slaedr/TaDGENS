@@ -45,7 +45,7 @@ void UMesh2dh::readDomn(std::string mfile)
 	//std::cout << "\nUTriMesh: Allocating coords..";
 	coords.setup(npoin, ndim);
 	// temporary array to hold connectivity matrix
-	amat::Array2d<acfd_int > elms(nelem,nnode2);
+	amat::Array2d<a_int > elms(nelem,nnode2);
 	//std::cout << "UTriMesh: Allocating bface...\n";
 	bface.setup(nface, maxnnofa + nbtag);
 	
@@ -182,7 +182,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	/// elmtype is the standard element type in the Gmsh 2 mesh format - of either faces or elements
 	ndtag = 0; nbtag = 0;
 	infile >> nelm;
-	amat::Array2d<acfd_int> elms(nelm,width_elms);
+	amat::Array2d<a_int> elms(nelm,width_elms);
 	nface = 0; nelem = 0;
 	std::vector<int> nnodes(nelm,0);
 	std::vector<int> nnofas(nelm,0);

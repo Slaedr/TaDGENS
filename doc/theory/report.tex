@@ -79,20 +79,16 @@ where $\nabla\cdot$ is now the tensor divergence and $\bld{F} \in \mathbb{R}^{m\
 
 A weak formulation is derived in a `broken' Sobolev space and discretized by finite element method \cite{luo_taylor}. For $w \in W$, a suitable test function space, we can multiply \eqref{conservativetensorGE} by $w$ and integrate over an element $\Omega_e$. Taking $\mu$ as the domain measure and $s$ as the boundary measure,
 \begin{equation}
-\int_{\Omega_e} \frac{\partial\bld{u}}{\partial t}w\,d\mu + \int_{\Omega_e}\nabla\cdot\bld{F(\bld{u})}w \,d\mu = \bld{0}.
+\int_{\Omega} \frac{\partial\bld{u}}{\partial t}w\,d\mu + \int_{\Omega}\nabla\cdot\bld{F(\bld{u})}w \,d\mu = \bld{0}.
 \end{equation}
-Integrating the flux term by parts, we have
-\begin{equation}
-\int_{\Omega_e} \frac{\partial\bld{u}}{\partial t}w\,d\mu + \int_{\Gamma_e} \bld{F}(\bld{u})\hat{\bld{n}}w \,ds - \int_{\Omega_e}\bld{F}(\bld{u})\nabla w \,d\mu = \bld{0}
-\end{equation}
-where $\Gamma_e$ is the boundary of element $\Omega_e$, and $\hat{\bld{n}}$ is the unit normal vector to $\Gamma_e$.
+However, we cannot necessarily integrate by parts to obtain a weak form because the function space $W$ is not necessarily regular enough. We thus derive a discrete weak form on each element as described below.
 
 Let $\mathcal{T}_h$ be a set of subsets of $\Omega_h$ such that $\bigcup_{K\in \mathcal{T}_h}K = \Omega_h$ and $K_i \cap K_j = \phi \, \forall K_i, K_j \in \mathcal{T}_h, i \neq j$, and $\partial K$ is a Lipschitz boundary for all $K \in \mathcal{T}_h$. One choice of the discrete function space could be, for some positive integer $k$,
 \begin{equation}
-W_h := \{ v \in L^2(\Omega)\, |\, v|_{K} \in C^k(K) \,\forall K \in \mathcal{T} \}.
+W_{hK} := \{ v \in L^2(K)\, |\, v \in P_k(K) \} \,\forall K \in \mathcal{T}_h.
 \end{equation}
 
-We can then state the discrete weak formulation on each element as follows. Find $\bld{u}_h \in W_h^m$ such that
+We can then state the discrete weak formulation on each element as follows. Find $\bld{u}_h \in W_{hK}^m$ such that
 \begin{equation}
 \int_{K} \frac{\partial\bld{u}_h}{\partial t}w\,d\mu + \int_{\partial K} \bld{F}(\bld{u}_h)\hat{\bld{n}}w \,ds - \int_{K}\bld{F}(\bld{u}_h)\nabla w \,d\mu = \bld{0} \quad \forall w \in W_h,\, \forall \,K \in \mathcal{T_h}.
 \label{wf}
@@ -104,18 +100,18 @@ Consider basis $B_i(\bld{x})$ on an element $\Omega_e$ of the mesh $\mathcal{T}_
 \end{equation}
 This is necessary because $\bld{u}$ is, in general, discontinuous across element interfaces $f$ and the analytical flux $\bld{F}(\bld{u})|_f$ is not uniquely defined.
 
-The discrete form becomes: find the $n$ degrees of freedom (DOFs) $u_{lj}$ of each conserved variable $\bld{u}_l \in \mathbb{R}^n, l=1,...,m$ such that (note: $\bld{u}_L, \bld{u}_R$ and $\bld{u}_h$ still denote functions in the discrete space $W_h^m$)
+The discrete form becomes: find the $n$ degrees of freedom (DOFs) $u_{lj}$ of each conserved variable $\bld{u}_l \in \mathbb{R}^n, l=1,...,m$ such that (note: $\bld{u}_L, \bld{u}_R$ and $\bld{u}_h$ still denote functions in the discrete space $W_{hK}^m$)
 \begin{equation}
-\sum_{j=1}^n\int_{\Omega_e} B_iB_j\,d\mu\, \frac{d\bld{u}_{l}}{d t} + \int_{\Gamma_e}  \bld{h}(\bld{u}_L(\bld{x}), \bld{u}_R(\bld{x}), \hat{\bld{n}})B_i \,ds - \int_{\Omega_e}\bld{F}(\bld{u}_h(\bld{x}))\nabla B_i \,d\mu = \bld{0}, \quad i \in {1,...n},\, \forall \,\Omega_e \in \mathcal{T}.
+\sum_{j=1}^n\int_{K} B_iB_j\,d\mu\, \frac{d\bld{u}_{l}}{d t} + \int_{\partial K}  \bld{h}(\bld{u}_L(\bld{x}), \bld{u}_R(\bld{x}), \hat{\bld{n}})B_i \,ds - \int_{K}\bld{F}(\bld{u}_h(\bld{x}))\nabla B_i \,d\mu = \bld{0}, \quad i \in {1,...n},\, \forall \,K \in \mathcal{T}_h.
 \label{df}
 \end{equation}
 
 We denote by $\bld{U} := [\bld{u}_1\, \bld{u}_2\, ...\, \bld{u}_m]^T \in \mathbb{R}^{mn}$ the stacked vector of all degrees of freedom of all conserved variables on the element $\Omega_e$; note that all DOFs of any conserved variable are put consecutively together before starting the next conserved variable. We thus need to solve the following ODE on each element.
 \begin{equation}
-M \frac{d\bld{U}}{dt} = \bld{r}(\bld{U}(t)).
+M \frac{d\bld{U}}{dt} + \bld{r}(\bld{U}(t)) = \bld{0}
 \label{ode}
 \end{equation}
-where $M \in \mathbb{R}^{mn\times mn}$ is a block-diagonal matrix having the $m$ diagonal blocks $[M_D]_{ij} = \int_{\Omega_e} B_iB_j\,d\mu$ and $\bld{r}(\bld{U})$ is a stacked vector of the same form as $\bld{U}$, with the $i$th sub-vector having DOFs corresponding to the $i$th conserved variable: $\bld{r}_i(\bld{u}) :=  - \int_{\Gamma_e}  \bld{h}(\bld{u}_{hL}, \bld{u}_{hR}, \hat{\bld{n}})B_i \,ds + \int_{\Omega_e}\bld{F}(\bld{u}_h)\nabla B_i \,d\mu$.
+where $M \in \mathbb{R}^{mn\times mn}$ is a block-diagonal matrix having the $m$ diagonal blocks $[M_D]_{ij} = \int_{\Omega_e} B_iB_j\,d\mu$ and $\bld{r}(\bld{U})$ is a stacked vector of the same form as $\bld{U}$, with the $i$th sub-vector having DOFs corresponding to the $i$th conserved variable: $\bld{r}_i(\bld{u}) :=  \int_{\Gamma_e}  \bld{h}(\bld{u}_{hL}, \bld{u}_{hR}, \hat{\bld{n}})B_i \,ds - \int_{\Omega_e}\bld{F}(\bld{u}_h)\nabla B_i \,d\mu$.
 
 \section{Taylor basis functions}
 In a Taylor basis, a function is expressed as a Taylor expansion about the element center. In 2D, a quadratic or P2 expansion in an element e would be written as

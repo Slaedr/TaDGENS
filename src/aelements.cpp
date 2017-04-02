@@ -14,7 +14,7 @@ using namespace amat;
  */
 void LagrangeMapping1D::computeAll()
 {
-	const Array2d<acfd_real>& points = quadrature->points();
+	const Array2d<a_real>& points = quadrature->points();
 	int npoin = points.rows();
 	//speeds.resize(npoin);
 	normals.resize(npoin);
@@ -22,7 +22,7 @@ void LagrangeMapping1D::computeAll()
 		normals[i].resize(NDIM);
 	mapping.resize(npoin,NDIM);
 
-	acfd_real vel[NDIM];
+	a_real vel[NDIM];
 
 	if(degree == 1) {
 		for(int i = 0; i < npoin; i++)
@@ -63,7 +63,7 @@ void LagrangeMapping1D::computeAll()
  */
 void LagrangeMapping2D::computeAll()
 {
-	const Array2d<acfd_real>& points = quadrature->points();
+	const Array2d<a_real>& points = quadrature->points();
 	shape = quadrature->getShape();
 	int npoin = points.rows();
 	jaco.resize(npoin);
@@ -121,7 +121,7 @@ void LagrangeMapping2D::computeAll()
 
 void LagrangeMapping2D::computeMappingAndJacobianDet()
 {
-	const Array2d<acfd_real>& points = quadrature->points();
+	const Array2d<a_real>& points = quadrature->points();
 	shape = quadrature->getShape();
 	int npoin = points.rows();
 	jacodet.resize(npoin);
@@ -207,11 +207,11 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 
 	// Compute max extents of the physical element
 	
-	const Array2d<acfd_real>& phn = gmap->getPhyNodes();
+	const Array2d<a_real>& phn = gmap->getPhyNodes();
 	for(int i = 0; i < phn.rows(); i++) {
 		for(int j = i+1; j < phn.rows(); j++) 
 		{
-			acfd_real dist[NDIM];
+			a_real dist[NDIM];
 			for(int idim = 0; idim < NDIM; idim++) 
 			{
 				dist[idim] = fabs(phn(i,idim)-phn(j,idim));
@@ -223,8 +223,8 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	
 	// Compute element centers and basis offsets
 
-	const Array2d<acfd_real>& gp = gmap->getQuadrature()->points();
-	const Array2d<acfd_real>& gw = gmap->getQuadrature()->weights();
+	const Array2d<a_real>& gp = gmap->getQuadrature()->points();
+	const Array2d<a_real>& gw = gmap->getQuadrature()->weights();
 	int ng = gp.rows();
 #ifdef DEBUG
 	if(ng != ngauss)
@@ -256,7 +256,7 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	for(int ip = 0; ip < ngauss; ip++)
 	{
 		// get physical coords of quadrature point
-		const Array2d<acfd_real>& gp = gmap->map();
+		const Array2d<a_real>& gp = gmap->map();
 		
 		basis[ip](0) = 1.0;
 		basisGrad[ip](0,0) = basisGrad[ip](0,1) = 0.0;
@@ -281,7 +281,7 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	}
 }
 
-void TaylorElement::computeBasis(const acfd_real* gp, acfd_real* basis) const
+void TaylorElement::computeBasis(const a_real* gp, a_real* basis) const
 {
 	basis[0] = 1.0;
 
@@ -306,7 +306,7 @@ void FaceElement_PhysicalSpace::initialize(int degr, const Element_PhysicalSpace
 
 	for(int ig = 0; ig < ng; ig++)
 	{
-		const Array2d<acfd_real>& points = gmap->map();
+		const Array2d<a_real>& points = gmap->map();
 		lelem->computeBasis(points[ig], leftbasis[ig]);
 		relem->computeBasis(points[ig], rightbasis[ig]);
 	}
