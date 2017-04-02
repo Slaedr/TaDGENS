@@ -297,7 +297,7 @@ void TaylorElement::computeBasis(const a_real* gp, a_real* basis) const
 	}
 }
 
-void FaceElement_PhysicalSpace::initialize(int degr, const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* gmapping)
+void FaceElement_PhysicalSpace::initialize(const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* gmapping)
 {
 	gmap = gmapping; leftel = lelem; rightel = relem;
 	int ng = gmap->getQuadrature()->numGauss();
@@ -309,6 +309,20 @@ void FaceElement_PhysicalSpace::initialize(int degr, const Element_PhysicalSpace
 		const Array2d<a_real>& points = gmap->map();
 		lelem->computeBasis(points[ig], leftbasis[ig]);
 		relem->computeBasis(points[ig], rightbasis[ig]);
+	}
+}
+
+void BFaceElement_PhysicalSpace::initialize(const Element_PhysicalSpace* lelem, const GeomMapping1D* gmapping)
+{
+	gmap = gmapping; leftel = lelem;
+	int ng = gmap->getQuadrature()->numGauss();
+
+	leftbasis.resize(ng,lelem->getNumDOFs());
+
+	for(int ig = 0; ig < ng; ig++)
+	{
+		const Array2d<a_real>& points = gmap->map();
+		lelem->computeBasis(points[ig], leftbasis[ig]);
 	}
 }
 

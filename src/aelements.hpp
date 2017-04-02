@@ -260,6 +260,13 @@ public:
 	}
 };
 
+class DummyElement_Phy : public Element_PhysicalSpace
+{
+public:
+	void initialize(int degr, const GeomMapping2D* geommap) { }
+	void computeBasis(const a_real* point, a_real* basisvalues) const { }
+};
+
 /// An interface "element" between 2 adjacent finite elements with basis defined on physical elements
 /**
  * In future, perhaps intfac data could be stored in this class.
@@ -269,7 +276,7 @@ class FaceElement_PhysicalSpace
 	const Element_PhysicalSpace* leftel;				///< "Left" element
 	const Element_PhysicalSpace* rightel;				///< "Right" element
 	amat::Array2d<a_real> leftbasis;					///< Values of the left element's basis functions at the face quadrature points
-	amat::Array2d<a_real> rightbasis;				///< Values of the left element's basis functions at the face quadrature points
+	amat::Array2d<a_real> rightbasis;					///< Values of the left element's basis functions at the face quadrature points
 	const GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
 
 public:
@@ -277,7 +284,7 @@ public:
 	/** NOTE: Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
 	 * \param[in] geommap The geometric mapping must be initialized externally; we don't do it here
 	 */
-	void initialize(int degr, const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* geommap);
+	void initialize(const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* geommap);
 
 	/// Read-only access to basis function values from left element
 	const amat::Array2d<a_real>& leftBasis() {
@@ -304,6 +311,35 @@ public:
 		a_real val = 0;
 		for(int i = 0; i < rightel->getNumDOFs(); i++)
 			val += dofs[i]*rightbasis(ig,i);
+		return val;
+	}
+};
+
+/// Boundary face element
+class BFaceElement_PhysicalSpace
+{
+	const Element_PhysicalSpace* leftel;				///< "Left" element
+	amat::Array2d<a_real> leftbasis;					///< Values of the left element's basis functions at the face quadrature points
+	const GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
+
+public:
+	/// Sets data; computes basis function values of left element at each quadrature point
+	/** NOTE: Call only after element data has been precomputed, ie, by calling the compute function on the element, first!
+	 * \param[in] geommap The geometric mapping must be initialized externally; we don't do it here
+	 */
+	void initialize(const Element_PhysicalSpace* lelem, const GeomMapping1D* geommap);
+
+	/// Read-only access to basis function values from left element
+	const amat::Array2d<a_real>& leftBasis() {
+		return leftbasis;
+	}
+
+	/// Interpolates values from left element at the face quadrature points
+	a_real interpolate_left(const int ig, const a_real *const dofs)
+	{
+		a_real val = 0;
+		for(int i = 0; i < leftel->getNumDOFs(); i++)
+			val += dofs[i]*leftbasis(ig,i);
 		return val;
 	}
 };
