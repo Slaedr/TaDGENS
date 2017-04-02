@@ -51,6 +51,8 @@ protected:
 	Quadrature2DTriangle* dtquad;				///< Domain quadrature context
 	Quadrature2DSquare* dsquad;					///< Domain quadrature context
 	Quadrature1D* bquad;						///< Boundary quadrature context
+	LagrangeMapping2D* map2d;					///< Array containing geometric mapping data for each element
+	LagrangeMapping1D* map1d;					///< Array containing geometric mapping data for each face
 	Element_PhysicalElement* elems;				///< List of finite elements
 	FaceElement_PhysicalSpace* faces;			///< List of face elements
 
@@ -99,11 +101,8 @@ public:
 	/// Computes ghost states of the PDE variables at boundary quadrature points
 	virtual void compute_boundary_states(const std::vector<Vector>& instates, std::vector<Vector>& bounstates) = 0;
 
-	/// Calls functions to assemble the [right hand side](@ref residual)
-	virtual void compute_residual() = 0;
-
-	/// Computes the L2 norm of a cell-centered quantity
-	acfd_real l2norm(const amat::Array2d<acfd_real>* const v);
+	/// Calls functions to add contribution to the [right hand side](@ref residual)
+	virtual void update_residual() = 0;
 
 	/// Access to vector of unknowns
 	std::vector<Vector>& unk() {

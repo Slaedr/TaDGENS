@@ -13,33 +13,42 @@ void Quadrature1D::initialize(const int n_poly)
 	using std::sqrt;
 
 	nPoly = n_poly;
-		gweights.resize(ngauss,1);
-		gpoints.resize(ngauss,1);
+	shape = LINE;
 
 	if(nPoly == 1) {
 		ngauss = 1;
+		gweights.resize(ngauss,1);
+		gpoints.resize(ngauss,1);
 		gpoints(0) = 0.0;
 		gweights(0) = 2.0;
 	}
 	else if(nPoly == 2){
 		ngauss = 2;
+		gweights.resize(ngauss,1);
+		gpoints.resize(ngauss,1);
 		gpoints(0) = -1.0/sqrt(3); gpoints(1) = 1.0/sqrt(3);
 		gweights(0) = 1.0; gweights(1) = 1.0;
 	}
 	else if(nPoly == 3) {
 		ngauss = 3;
+		gweights.resize(ngauss,1);
+		gpoints.resize(ngauss,1);
 		gpoints(0) = -sqrt(3.0/5.0); gpoints(1) = 0.0; gpoints(2) = sqrt(3.0/5.0);
 		gweights(0) = 5.0/9.0;  gweights(1) = 8.0/9.0, gweights(2) = 5.0/9.0;
 	}
 	else if(nPoly == 4) {
 		ngauss = 4;
-		gpoints(0) = -sqrt(3.0/7 + 2.0/7*sqrt(6.0/5)); gpoints(1) = -sqrt(3.0/7 - 2.0/7*sqrt(6.0/5)); 
+		gweights.resize(ngauss,1);
+		gpoints.resize(ngauss,1);
+		gpoints(0) = -sqrt(3.0/7 + 2.0/7*sqrt(6.0/5)); gpoints(1) = -sqrt(3.0/7 - 2.0/7*sqrt(6.0/5));
 		gpoints(2) = sqrt(3.0/7 + 2.0/7*sqrt(6.0/5)); gpoints(3) = sqrt(3.0/7 + 2.0/7*sqrt(6.0/5));
-		gweights(0) = (18.0-sqrt(30))/36.0; gweights(1) = (18.0+sqrt(30))/36.0; 
+		gweights(0) = (18.0-sqrt(30))/36.0; gweights(1) = (18.0+sqrt(30))/36.0;
 		gweights(2) = (18.0+sqrt(30))/36.0; gweights(3) = (18.0-sqrt(30))/36.0;
 	}
 	else if(nPoly == 5) {
 		ngauss = 5;
+		gweights.resize(ngauss,1);
+		gpoints.resize(ngauss,1);
 		gpoints(0) = -1.0/3*sqrt(5.0 + 2.0*sqrt(10.0/7)); gpoints(1) = -1.0/3*sqrt(5.0 - 2.0*sqrt(10.0/7));
 		gpoints(2) = 0.0;
 		gpoints(3) = 1.0/3*sqrt(5.0 - 2.0*sqrt(10.0/7)); gpoints(4) = 1.0/3*sqrt(5.0 + 2.0*sqrt(10.0/7));
@@ -64,6 +73,7 @@ void Quadrature1D::initialize(const int n_poly)
 void Quadrature2DSquare::initialize(const int n_poly)
 {
 	nPoly = n_poly;
+	shape  = QUADRANGLE;
 	if(nPoly == 1) {
 		ngauss = 1;
 		acfd_real gp[][2] = {{0.0, 0.0}};
@@ -94,6 +104,7 @@ void Quadrature2DSquare::initialize(const int n_poly)
 void Quadrature2DTriangle::initialize(const int n_poly)
 {
 	nPoly = n_poly;
+	shape = TRIANGLE;
 	if(nPoly == 1) {
 		ngauss = 1;
 		acfd_real gp[][2] = {{1.0/3, 1.0/3}};

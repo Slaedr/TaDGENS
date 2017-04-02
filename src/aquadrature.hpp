@@ -21,6 +21,7 @@ namespace acfd {
 class QuadratureRule
 {
 protected:
+	Shape shape;
 	int ngauss;										///< Number of quadrature points
 	int nPoly;										///< Degree of polynomial to integrate exactly
 	amat::Array2d<acfd_real> gweights;
@@ -38,6 +39,10 @@ public:
 
 	int numGauss() const {
 		return ngauss;
+	}
+
+	Shape getShape() const {
+		return shape;
 	}
 };
 

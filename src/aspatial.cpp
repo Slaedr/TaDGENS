@@ -16,7 +16,7 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree) : m(mesh), p
 	// set quadrature strength
 	int dom_quaddegree = 2*p_degree;
 	if(m->degree() == 2) dom_quaddegree += 1;
-	int boun_quaddegree = p_degree;
+	int boun_quaddegree = 2*p_degree;
 	if(m->degree() == 2) boun_quaddegree += 1;
 
 	dtquad = new Quadrature2DTriangle();
@@ -25,6 +25,12 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree) : m(mesh), p
 	dsquad.initialize(dom_quaddegree);
 	bquad = new Quadrature1D();
 	bquad.initialize(boun_quaddegree);
+
+	map2d = new LagrangeMapping2D[m->gnelem()];
+	elems = new TaylorElement[m->gnelem()];
+
+	map1d = new LagrangeMapping1D[m->gnaface()];
+	faces = new FaceElement_PhysicalSpace[m->gnaface()];
 }
 
 SpatialBase::~SpatialBase()
@@ -32,6 +38,17 @@ SpatialBase::~SpatialBase()
 	delete dtquad;
 	delete dsquad;
 	delete bquad;
+	delete [] map2d;
+	delete [] map1d;
+	delete [] faces;
+	delete [] elems;
+}
+
+SpatialBase::computeFEData()
+{
+	// loop over elements to setup and compute maps and elements and compute mass matrices
+	
+	// loop over faces
 }
 
 /*void SpatialBase::compute_ghost_cell_coords_about_midpoint()

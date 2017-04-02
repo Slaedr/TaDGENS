@@ -61,110 +61,112 @@ void LagrangeMapping1D::computeAll()
 
 /** Mappings upto P2 are implemented.
  */
-void LagrangeMapping2DTriangle::computeAll()
+void LagrangeMapping2D::computeAll()
 {
 	const Array2d<acfd_real>& points = quadrature->points();
-	shape = TRIANGLE;
+	shape = quadrature->getShape();
 	int npoin = points.rows();
 	jaco.resize(npoin);
 	jacoinv.resize(npoin);
 	jacodet.resize(npoin);
 	mapping.resize(npoin,NDIM);
 
-	if(degree == 1) {
-		for(int ip = 0; ip < npoin; ip++)
-		{
-			jaco[ip].resize(NDIM,NDIM);
-			jacoinv[ip].resize(NDIM,NDIM);
-			for(int idim = 0; idim < NDIM; idim++) 
+	if (shape == TRIANGLE)
+	{
+		if(degree == 1) {
+			for(int ip = 0; ip < npoin; ip++)
 			{
-				mapping(ip,idim) = phyNodes(0,idim)*(1.0-points(ip,0)-points(ip,1)) + phyNodes(1,idim)*points(ip,0) + phyNodes(2,idim)*points(ip,1);
-				jaco[ip](idim,0) = phyNodes(1,idim)-phyNodes(0,idim);
-				jaco[ip](idim,1) = phyNodes(2,idim)-phyNodes(0,idim);
+				jaco[ip].resize(NDIM,NDIM);
+				jacoinv[ip].resize(NDIM,NDIM);
+				for(int idim = 0; idim < NDIM; idim++) 
+				{
+					mapping(ip,idim) = phyNodes(0,idim)*(1.0-points(ip,0)-points(ip,1)) + phyNodes(1,idim)*points(ip,0) + phyNodes(2,idim)*points(ip,1);
+					jaco[ip](idim,0) = phyNodes(1,idim)-phyNodes(0,idim);
+					jaco[ip](idim,1) = phyNodes(2,idim)-phyNodes(0,idim);
+				}
+				jacodet[ip] = jaco[ip](0,0)*jaco[ip](1,1) - jaco[ip](0,1)*jaco[ip](1,0);
+				jacoinv[ip](0,0) = jaco[ip](1,1)/jacodet[ip]; jacoinv[ip](0,1) = -jaco[ip](0,1)/jacodet[ip];
+				jacoinv[ip](1,0) = -jaco[ip](1,0)/jacodet[ip]; jacoinv[ip](1,1) = jaco[ip](0,0)/jacodet[ip];
 			}
-			jacodet[ip] = jaco[ip](0,0)*jaco[ip](1,1) - jaco[ip](0,1)*jaco[ip](1,0);
-			jacoinv[ip](0,0) = jaco[ip](1,1)/jacodet[ip]; jacoinv[ip](0,1) = -jaco[ip](0,1)/jacodet[ip];
-			jacoinv[ip](1,0) = -jaco[ip](1,0)/jacodet[ip]; jacoinv[ip](1,1) = jaco[ip](0,0)/jacodet[ip];
+		}
+		else if(degree == 2) {
+			for(int ip = 0; ip < npoin; ip++)
+			{
+				jaco[ip].resize(NDIM,NDIM);
+				jacoinv[ip].resize(NDIM,NDIM);
+				for(int idim = 0; idim < NDIM; idim++) 
+				{
+					mapping(ip,idim) = phyNodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
+						+ phyNodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
+						+ phyNodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
+						+ phyNodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
+						+ phyNodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
+						+ phyNodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
+					jaco[ip](idim,0) = phyNodes(0,idim)*(-3+4*points(ip,0)+4*points(ip,1)) +phyNodes(1,idim)*(4*points(ip,0)-1) +phyNodes(3,idim)*4*(1-2*points(ip,0)-points(ip,1)) 
+						+phyNodes(4,idim)*4*points(ip,1) -phyNodes(5,idim)*4.0*points(ip,1);
+					jaco[ip](idim,1) = phyNodes(0,idim)*(-3+4*points(ip,1)+4*points(ip,0)) +phyNodes(2,idim)*(4*points(ip,1)-1) -phyNodes(3,idim)*4*points(ip,0) 
+						+ phyNodes(4,idim)*4*points(ip,0) +phyNodes(5,idim)*4*(1-2*points(ip,1)-points(ip,0));
+				}
+				jacodet[ip] = jaco[ip](0,0)*jaco[ip](1,1) - jaco[ip](0,1)*jaco[ip](1,0);
+				jacoinv[ip](0,0) = jaco[ip](1,1)/jacodet[ip]; jacoinv[ip](0,1) = -jaco[ip](0,1)/jacodet[ip];
+				jacoinv[ip](1,0) = -jaco[ip](1,0)/jacodet[ip]; jacoinv[ip](1,1) = jaco[ip](0,0)/jacodet[ip];
+			}
 		}
 	}
-	else if(degree == 2) {
-		for(int ip = 0; ip < npoin; ip++)
-		{
-			jaco[ip].resize(NDIM,NDIM);
-			jacoinv[ip].resize(NDIM,NDIM);
-			for(int idim = 0; idim < NDIM; idim++) 
-			{
-				mapping(ip,idim) = phyNodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
-					+ phyNodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
-					+ phyNodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
-					+ phyNodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
-					+ phyNodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
-					+ phyNodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
-				jaco[ip](idim,0) = phyNodes(0,idim)*(-3+4*points(ip,0)+4*points(ip,1)) +phyNodes(1,idim)*(4*points(ip,0)-1) +phyNodes(3,idim)*4*(1-2*points(ip,0)-points(ip,1)) 
-					+phyNodes(4,idim)*4*points(ip,1) -phyNodes(5,idim)*4.0*points(ip,1);
-				jaco[ip](idim,1) = phyNodes(0,idim)*(-3+4*points(ip,1)+4*points(ip,0)) +phyNodes(2,idim)*(4*points(ip,1)-1) -phyNodes(3,idim)*4*points(ip,0) 
-					+ phyNodes(4,idim)*4*points(ip,0) +phyNodes(5,idim)*4*(1-2*points(ip,1)-points(ip,0));
-			}
-			jacodet[ip] = jaco[ip](0,0)*jaco[ip](1,1) - jaco[ip](0,1)*jaco[ip](1,0);
-			jacoinv[ip](0,0) = jaco[ip](1,1)/jacodet[ip]; jacoinv[ip](0,1) = -jaco[ip](0,1)/jacodet[ip];
-			jacoinv[ip](1,0) = -jaco[ip](1,0)/jacodet[ip]; jacoinv[ip](1,1) = jaco[ip](0,0)/jacodet[ip];
-		}
+	else if (shape == QUADRANGLE)
+	{
+		//TODO: Add bilinear and biquadratic shape functions
 	}
 }
 
-void LagrangeMapping2DTriangle::computeMappingAndJacobianDet()
+void LagrangeMapping2D::computeMappingAndJacobianDet()
 {
 	const Array2d<acfd_real>& points = quadrature->points();
-	shape = TRIANGLE;
+	shape = quadrature->getShape();
 	int npoin = points.rows();
 	jacodet.resize(npoin);
 	mapping.resize(npoin,NDIM);
 
 	Matrix jacol; jacol.resize(NDIM,NDIM);
 
-	if(degree == 1) {
-		for(int ip = 0; ip < npoin; ip++)
-		{
-			for(int idim = 0; idim < NDIM; idim++) 
+	if(shape == TRIANGLE)
+	{
+		if(degree == 1) {
+			for(int ip = 0; ip < npoin; ip++)
 			{
-				mapping(ip,idim) = phyNodes(0,idim)*(1.0-points(ip,0)-points(ip,1)) + phyNodes(1,idim)*points(ip,0) + phyNodes(2,idim)*points(ip,1);
-				jacol(idim,0) = phyNodes(1,idim)-phyNodes(0,idim);
-				jacol(idim,1) = phyNodes(2,idim)-phyNodes(0,idim);
+				for(int idim = 0; idim < NDIM; idim++) 
+				{
+					mapping(ip,idim) = phyNodes(0,idim)*(1.0-points(ip,0)-points(ip,1)) + phyNodes(1,idim)*points(ip,0) + phyNodes(2,idim)*points(ip,1);
+					jacol(idim,0) = phyNodes(1,idim)-phyNodes(0,idim);
+					jacol(idim,1) = phyNodes(2,idim)-phyNodes(0,idim);
+				}
+				jacodet[ip] = jacol(0,0)*jacol(1,1) - jacol(0,1)*jacol(1,0);
 			}
-			jacodet[ip] = jacol(0,0)*jacol(1,1) - jacol(0,1)*jacol(1,0);
+		}
+		else if(degree == 2) {
+			for(int ip = 0; ip < npoin; ip++)
+			{
+				for(int idim = 0; idim < NDIM; idim++) 
+				{
+					mapping(ip,idim) = phyNodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
+						+ phyNodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
+						+ phyNodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
+						+ phyNodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
+						+ phyNodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
+						+ phyNodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
+					jacol(idim,0) = phyNodes(0,idim)*(-3+4*points(ip,0)+4*points(ip,1)) +phyNodes(1,idim)*(4*points(ip,0)-1) +phyNodes(3,idim)*4*(1-2*points(ip,0)-points(ip,1)) 
+						+phyNodes(4,idim)*4*points(ip,1) -phyNodes(5,idim)*4.0*points(ip,1);
+					jacol(idim,1) = phyNodes(0,idim)*(-3+4*points(ip,1)+4*points(ip,0)) +phyNodes(2,idim)*(4*points(ip,1)-1) -phyNodes(3,idim)*4*points(ip,0) 
+						+ phyNodes(4,idim)*4*points(ip,0) +phyNodes(5,idim)*4*(1-2*points(ip,1)-points(ip,0));
+				}
+				jacodet[ip] = jacol(0,0)*jacol(1,1) - jacol(0,1)*jacol(1,0);
+			}
 		}
 	}
-	else if(degree == 2) {
-		for(int ip = 0; ip < npoin; ip++)
-		{
-			for(int idim = 0; idim < NDIM; idim++) 
-			{
-				mapping(ip,idim) = phyNodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
-					+ phyNodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
-					+ phyNodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
-					+ phyNodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
-					+ phyNodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
-					+ phyNodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
-				jacol(idim,0) = phyNodes(0,idim)*(-3+4*points(ip,0)+4*points(ip,1)) +phyNodes(1,idim)*(4*points(ip,0)-1) +phyNodes(3,idim)*4*(1-2*points(ip,0)-points(ip,1)) 
-					+phyNodes(4,idim)*4*points(ip,1) -phyNodes(5,idim)*4.0*points(ip,1);
-				jacol(idim,1) = phyNodes(0,idim)*(-3+4*points(ip,1)+4*points(ip,0)) +phyNodes(2,idim)*(4*points(ip,1)-1) -phyNodes(3,idim)*4*points(ip,0) 
-					+ phyNodes(4,idim)*4*points(ip,0) +phyNodes(5,idim)*4*(1-2*points(ip,1)-points(ip,0));
-			}
-			jacodet[ip] = jacol(0,0)*jacol(1,1) - jacol(0,1)*jacol(1,0);
-		}
+	else if (shape == QUADRANGLE)
+	{
+		//TODO: Add bilinear and biquadratic shape functions
 	}
-}
-
-void LagrangeMapping2DQuadrangle::computeAll()
-{
-	const Array2d<acfd_real>& qp = quadrature->points();
-	// TODO: Add geometric computations
-}
-
-void LagrangeMapping2DQuadrangle::computeMappingAndJacobianDet()
-{
-	const Array2d<acfd_real>& qp = quadrature->points();
-	// TODO: Add mapping and jaco det
 }
 
 /** We currently have upto P2 elements.

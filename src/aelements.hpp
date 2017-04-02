@@ -29,9 +29,6 @@
 
 namespace acfd {
 
-/// A type encoding the shape of 2D elements
-enum Shape2d {TRIANGLE, QUADRANGLE};
-
 /// Abstract class for a vector function of a single variable for parameterizing boundary curves
 /** The reference nodes are at equally-spaced points between (and including) -1 and 1.
  */
@@ -63,8 +60,8 @@ public:
 	}
 
 	/// Read-only access to the "area" vectors normal to the face at quadrature points
-	const Vector& normal(const int ipoin) const {
-		return normals[ipoin];
+	const std::vector<Vector>& normal() const {
+		return normals;
 	}
 
 	/// Read-only access to physical coords of the quadrature points
@@ -154,7 +151,7 @@ public:
 	const Matrix& jac(int ipoint) const {
 		return jaco[ipoint];
 	}
-	
+
 	/// Read-only access to inverse of jacobians
 	const Matrix& jacInv(const int ipoint) const {
 		return jacoinv[ipoint];
@@ -173,18 +170,9 @@ public:
 
 /// Lagrange geometric mapping on the reference triangle
 /** The ref triangle is the one having vertices (0,0), (1,0), (0,1) in that order.
+ * The reference square's vertices are (-1,-1), (1,-1), (1,1), (-1,1) in that order.
  */
-class LagrangeMapping2DTriangle : public GeomMapping2D
-{
-public:
-	void computeAll();
-	void computeMappingAndJacobianDet();
-};
-
-/// Lagrange geometric mapping on the reference square
-/** The reference square's vertices are (-1,-1), (1,-1), (1,1), (-1,1) in that order.
- */
-class LagrangeMapping2DQuadrangle : public GeomMapping2D
+class LagrangeMapping2D: public GeomMapping2D
 {
 public:
 	void computeAll();
@@ -273,7 +261,7 @@ public:
 };
 
 /// An interface "element" between 2 adjacent finite elements with basis defined on physical elements
-/** 
+/**
  * In future, perhaps intfac data could be stored in this class.
  */
 class FaceElement_PhysicalSpace
@@ -309,7 +297,7 @@ public:
 			val += dofs[i]*leftbasis(ig,i);
 		return val;
 	}
-	
+
 	/// Interpolates values from right element at the face quadrature points
 	acfd_real interpolate_right(const int ig, const acfd_real *const dofs)
 	{

@@ -17,11 +17,11 @@ int main()
 	UMesh2dh m;
 	m.readGmsh2("../../testcases/unittests/trimesh-skew_p2.msh",2);
 	m.compute_topological();
-	
+
 	int p = 1;
 	int geomdeg = 2;
 	int nintp = 3;
-	
+
 	Quadrature2DTriangle integ;
 	integ.initialize(nintp);
 
@@ -30,18 +30,22 @@ int main()
 	for(int i = 0; i < m.gnnode(elem); i++)
 		for(int j = 0; j < NDIM; j++)
 			elpoints(i,j) = m.gcoords(m.ginpoel(elem,i),j);
-	
+
 	LagrangeMapping2DTriangle map;
 	map.setAll(geomdeg, elpoints, &integ);
 	map.computeMappingAndJacobianDet();
-		
+
 	// check jacobian det and quad point coords
 	/* The coords should be
 	 * (2.0/3,1.4), (0.4,1.256), (0.8, 1.672), (0.8, 1.24)
 	 */
-	printf("Phy coords of quad points and Jacobian determinant of element %d:\n  ", elem);
+	amat::Array2d<acfd_real> qc(4,2);
+	qc(0,0) = 2/3.0; qc(0,1) = 1.4; qc(1,0) = 0.4; qc(1,1) = 1.256; qc(2,0) = 0.8; qc(2,1) = 1.672; qc(3,0) = 0.8; qc(3,1) = 1.24;
+	//cout << std::setprecision(15);
+	printf("Phy coords of quad points and Jacobian determinant of element %d:\n  ", elem+1+m.gnface());
 	for(int ig = 0; ig < map.getQuadrature()->numGauss(); ig++) {
-		cout << "(" << map.map()(ig,0) << ", " << map.map()(ig,1) << "), ";
+		//cout << "(" << map.map()(ig,0) << ", " << map.map()(ig,1) << "), ";
+		if(fabs(map.map()(ig,0)-qc(ig,0)) > 10*SMALL_NUMBER || fabs(map.map()(ig,1)-qc(ig,1)) > 10*SMALL_NUMBER) printf("! TEST FAILED at phy coords of domain quadrature points.\n");
 		cout << map.jacDet(ig) << ".  ";
 	}
 	cout << endl;
@@ -63,12 +67,31 @@ int main()
 		printf("\n");
 	}
 	printf("\n");
-	
+
 	// 1D
 	Quadrature1D i1d;
+	nintp = 2;
 	i1d.initialize(nintp);
 	LagrangeMapping1D map1;
 	int face = m.gelemface(elem, 2);
-	
+	amat::Array2d<acfd_real> fpoints(3,NDIM);
+	printf("Face %d (point 0: %d. point 1: %d, left element: %d, right element: %d):\n", face, m.gintfac(face,2)+1, m.gintfac(face,3)+1, m.gintfac(face,0)+1+m.gnface(), m.gintfac(face,1)+1+m.gnface());
+	for(int i = 0; i < m.gnnofa(face); i++) {
+		printf(" (");
+		for(int j = 0; j < NDIM; j++){
+			fpoints(i,j) = m.gcoords(m.gintfac(face,2+i),j);
+			printf("%f ", fpoints(i,j));
+		}
+		printf("), ");
+	}
+	printf("\n");
+
+	map1.setAll(geomdeg, fpoints, &i1d);
+	map1.computeAll();
+	printf("  Phy coords of quadrature points and normals at those points:\n");
+	for(int ig = 0; ig < map1.getQuadrature()->numGauss(); ig++) {
+		printf("  Coord (%f,%f), normal (%f,%f)\n", map1.map()(ig,0), map1.map()(ig,1), map1.normal()[ig][0], map1.normal()[ig][1]);
+	}
+
 	return 0;
 }
