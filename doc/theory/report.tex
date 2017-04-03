@@ -62,10 +62,12 @@ $\bld{u}(\bld{x},t) \in \mathbb{R}^m$ is the vector of the $m$ conserved variabl
 \begin{bmatrix}
 \rho u_2 \\ \rho u_1 u_2 \\ \rho u_2^2 \\ u_2 (\rho e + p)
 \end{bmatrix}.
+\label{conservedvectors}
 \end{equation}
 In the above, $\rho$ is the fluid density, $u_j$ are the velocity components, $e$ is the specific energy, and $p$ is the pressure. The governing equations are closed by the ideal gas equation of state
 \begin{equation}
 p = \rho (e - \frac12 \vert \bld{u} \vert^2).
+\label{constitutive}
 \end{equation}
 
 For a compact notation, we define a flux `matrix' $\bld{F}$ as the matrix with the x- and y- fluxes as the columns. We can then write \eqref{conservativeGE} as
@@ -74,6 +76,9 @@ For a compact notation, we define a flux `matrix' $\bld{F}$ as the matrix with t
 \label{conservativetensorGE}
 \end{equation}
 where $\nabla\cdot$ is now the tensor divergence and $\bld{F} \in \mathbb{R}^{m\times n_d}$. This means $\bld{F}:\mathbb{R}^{n_d}\rightarrow \mathbb{R}^m$ maps any vector (direction) in space to the flux in that direction. Note that the operator $\bld{F}$ is a function of the state $\bld{u}$.
+
+\subsection{Non-dimensionalization}
+We assume we know a reference density $\rho_{ref}$, a reference velocity magnitude $v_{ref}$ and a reference length $l_{ref}$. These could be, for example, the free-stream density, the speed of the object in the fluid and the characteristic dimension of the object (like the chord length of an airfoil). Then we define the reference time as $t_{ref} := l_{ref}/v_{ref}$, the reference pressure as $p_{ref} := \rho_{ref}u_{ref}^2$ and the reference specific energy as $e := u_{ref}^2$. With this specification of reference quantities, the non-dimensionalized governing equations look exactly the same as the governing equations \eqref{conservativeGE}, \eqref{conservedvectors} and \eqref{constitutive}.
 
 \section{Finite element formulation}
 
@@ -84,34 +89,37 @@ A weak formulation is derived in a `broken' Sobolev space and discretized by fin
 However, we cannot necessarily integrate by parts to obtain a weak form because the function space $W$ is not necessarily regular enough. We thus derive a discrete weak form on each element as described below.
 
 Let $\mathcal{T}_h$ be a set of subsets of $\Omega_h$ such that $\bigcup_{K\in \mathcal{T}_h}K = \Omega_h$ and $K_i \cap K_j = \phi \, \forall K_i, K_j \in \mathcal{T}_h, i \neq j$, and $\partial K$ is a Lipschitz boundary for all $K \in \mathcal{T}_h$. One choice of the discrete function space could be, for some positive integer $k$,
-\begin{equation}
-W_{hK} := \{ v \in L^2(K)\, |\, v \in P_k(K) \} \,\forall K \in \mathcal{T}_h.
-\end{equation}
+\begin{align}
+W_{K} &:= P_k(K), \quad K \in \mathcal{T}_h \\
+W_h &:= \bigoplus_{K \in \mathcal{T}_h} W_{K}
+\end{align}
+where $P_k(K)$ is the space of $k$th degree polynomials on set $K$ and $\bigoplus$ denotes a direct sum \cite{nodaldg}.
 
-We can then state the discrete weak formulation on each element as follows. Find $\bld{u}_h \in W_{hK}^m$ such that
+We can then state the discrete weak formulation on each element as follows. Find $\bld{u}_h \in W_{K}^m$ such that
 \begin{equation}
-\int_{K} \frac{\partial\bld{u}_h}{\partial t}w\,d\mu + \int_{\partial K} \bld{F}(\bld{u}_h)\hat{\bld{n}}w \,ds - \int_{K}\bld{F}(\bld{u}_h)\nabla w \,d\mu = \bld{0} \quad \forall w \in W_h,\, \forall \,K \in \mathcal{T_h}.
+\int_{K} \frac{\partial\bld{u}_h}{\partial t}w\,d\mu + \int_{\partial K} \bld{F}(\bld{u}_h)\hat{\bld{n}}w \,ds - \int_{K}\bld{F}(\bld{u}_h)\nabla w \,d\mu = \bld{0} \quad \forall w \in W_{K},\, K \in \mathcal{T}_h.
 \label{wf}
 \end{equation}
+In the above weak form, note that $\hat{\bld{n}}$ is the unit outward normal to $\partial K$.
 
-Consider basis $B_i(\bld{x})$ on an element $\Omega_e$ of the mesh $\mathcal{T}_h$. We can then write $\bld{u}_h = \sum_{j=1}^n \bld{u}_j B_j(\bld{x})$. Further, we introduce the numerical flux $\bld{h}$ defined such that for a face $f$ between two elements $\Omega_L$ and $\Omega_R$ with states (conserved variables) $\bld{u}_L$ and $ \bld{u}_R$,
+Consider basis $b_i(\bld{x})$ on an element $K$ of the mesh $\mathcal{T}_h$. We can then write $\bld{u}_h = \sum_{j=1}^n \bld{u}_j b_j(\bld{x})$. Further, we introduce the numerical flux $\bld{h}$ defined such that for a face $f$ between two elements $\Omega_L$ and $\Omega_R$ with states (conserved variables) $\bld{u}_L$ and $ \bld{u}_R$,
 \begin{equation}
-\bld{F}(\bld{u})|_f\hat{\bld{n}} \approx \bld{h}(\bld{u}_L, \bld{u}_R, \hat{\bld{n}}).
+\bld{F}(\bld{u})\hat{\bld{n}}_f \approx \bld{h}(\bld{u}_L, \bld{u}_R, \hat{\bld{n}}_f).
 \end{equation}
-This is necessary because $\bld{u}$ is, in general, discontinuous across element interfaces $f$ and the analytical flux $\bld{F}(\bld{u})|_f$ is not uniquely defined.
+This is necessary because $\bld{u}$ is, in general, discontinuous across element interfaces $f$ and the analytical flux $\bld{F}(\bld{u})\hat{\bld{n}}_f$ is not uniquely defined.
 
-The discrete form becomes: find the $n$ degrees of freedom (DOFs) $u_{lj}$ of each conserved variable $\bld{u}_l \in \mathbb{R}^n, l=1,...,m$ such that (note: $\bld{u}_L, \bld{u}_R$ and $\bld{u}_h$ still denote functions in the discrete space $W_{hK}^m$)
+The discrete form becomes: find the $n$ degrees of freedom (DOFs) $u_{lj}$ of each conserved variable $\bld{u}_l \in \mathbb{R}^n,\, l=1,...,m$, such that (note: $\bld{u}_L, \bld{u}_R$ and $\bld{u}_h$ still denote functions in the discrete space $W_{K}^m$)
 \begin{equation}
-\sum_{j=1}^n\int_{K} B_iB_j\,d\mu\, \frac{d\bld{u}_{l}}{d t} + \int_{\partial K}  \bld{h}(\bld{u}_L(\bld{x}), \bld{u}_R(\bld{x}), \hat{\bld{n}})B_i \,ds - \int_{K}\bld{F}(\bld{u}_h(\bld{x}))\nabla B_i \,d\mu = \bld{0}, \quad i \in {1,...n},\, \forall \,K \in \mathcal{T}_h.
+\sum_{j=1}^n\int_{K} b_ib_j\,d\mu\, \frac{d\bld{u}_{l}}{d t} + \int_{\partial K}  \bld{h}(\bld{u}_L(\bld{x}), \bld{u}_R(\bld{x}), \hat{\bld{n}})b_i \,ds - \int_{K}\bld{F}(\bld{u}_h(\bld{x}))\nabla b_i \,d\mu = \bld{0}, \quad i \in {1,...n},\, K \in \mathcal{T}_h.
 \label{df}
 \end{equation}
 
-We denote by $\bld{U} := [\bld{u}_1\, \bld{u}_2\, ...\, \bld{u}_m]^T \in \mathbb{R}^{mn}$ the stacked vector of all degrees of freedom of all conserved variables on the element $\Omega_e$; note that all DOFs of any conserved variable are put consecutively together before starting the next conserved variable. We thus need to solve the following ODE on each element.
+We denote by $\mathbf{u} := [\bld{u}_1\, \bld{u}_2\, ...\, \bld{u}_m]^T \in \mathbb{R}^{mn}$ the stacked vector of all degrees of freedom of all conserved variables on the element $K$; note that all DOFs of any conserved variable are put consecutively together before starting the next conserved variable. We thus need to solve the following ODE on each element.
 \begin{equation}
-M \frac{d\bld{U}}{dt} + \bld{r}(\bld{U}(t)) = \bld{0}
+M \frac{d\mathbf{u}}{dt} + \bld{r}(\mathbf{u}(t)) = \bld{0}
 \label{ode}
 \end{equation}
-where $M \in \mathbb{R}^{mn\times mn}$ is a block-diagonal matrix having the $m$ diagonal blocks $[M_D]_{ij} = \int_{\Omega_e} B_iB_j\,d\mu$ and $\bld{r}(\bld{U})$ is a stacked vector of the same form as $\bld{U}$, with the $i$th sub-vector having DOFs corresponding to the $i$th conserved variable: $\bld{r}_i(\bld{u}) :=  \int_{\Gamma_e}  \bld{h}(\bld{u}_{hL}, \bld{u}_{hR}, \hat{\bld{n}})B_i \,ds - \int_{\Omega_e}\bld{F}(\bld{u}_h)\nabla B_i \,d\mu$.
+where $M \in \mathbb{R}^{mn\times mn}$ is a block-diagonal matrix having the $m$ diagonal blocks $[M_D]_{ij} = \int_{K} B_iB_j\,d\mu$ and $\bld{r}(\mathbf{u})$ is a stacked vector of the same form as $\mathbf{u}$, with the $i$th sub-vector having DOFs corresponding to the $i$th conserved variable: $\bld{r}_i(\mathbf{u}) :=  \int_{\partial K}  \bld{h}(\bld{u}_{hL}, \bld{u}_{hR}, \hat{\bld{n}})b_i \,ds - \int_{\Omega_e}\bld{F}(\bld{u}_h)\nabla b_i \,d\mu$.
 
 \section{Taylor basis functions}
 In a Taylor basis, a function is expressed as a Taylor expansion about the element center. In 2D, a quadratic or P2 expansion in an element e would be written as

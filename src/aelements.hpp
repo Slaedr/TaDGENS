@@ -6,7 +6,7 @@
  * Rather, they compute and store values of these functions at the quadrature points.
  *
  * TODO: Verify P2 geometric map for triangles, P1 and P2 map for quads
- * TODO: Verify P2 Taylor basis for triangles, P1 and P2 for quads
+ * TODO: Verify P1 Taylor basis on P2 triangles, P2 Taylor basis for triangles, P1 and P2 for quads
  *
  * @author Aditya Kashi
  * @date 2017 March 1
@@ -36,9 +36,10 @@ class GeomMapping1D
 {
 protected:
 	int degree;								///< Polynomial degree of the mapping
-	amat::Array2d<a_real> phyNodes;		///< Physical locations of the nodes
-	std::vector<Vector> normals;			///< Normals at quadrature points. Note that these are NOT unit vectors; they're the 1D analogue of "area" vectors
-	amat::Array2d<a_real> mapping;		///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
+	amat::Array2d<a_real> phyNodes;			///< Physical locations of the nodes
+	std::vector<Vector> normals;			///< Unit normals at quadrature points
+	std::vector<Vector> speeds;				///< Magnitude of tangent vectors to the curve at quadrature points
+	amat::Array2d<a_real> mapping;			///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
 	const Quadrature1D* quadrature;			///< Gauss points and weights for integrating quantities
 
 public:
@@ -59,7 +60,12 @@ public:
 		return phyNodes;
 	}
 
-	/// Read-only access to the "area" vectors normal to the face at quadrature points
+	/// Read-only access to the curve "speed"
+	const std::vector<Vector>& speed() const {
+		return speeds;
+	}
+
+	/// Read-only access to unit vectors normal to the face at quadrature points
 	const std::vector<Vector>& normal() const {
 		return normals;
 	}

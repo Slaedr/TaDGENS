@@ -36,11 +36,10 @@ namespace acfd {
  * The template parameter nvars is the number of variables in the PDE system.
  * \note Make sure compute_topological() has been called on the mesh object prior to initialzing an object of any subclass.
  */
-template <int nvars>
 class SpatialBase
 {
 protected:
-	const UMesh2dh* m;								///< Mesh context
+	const UMesh2dh* m;								///< Mesh context; requires compute_topological() and compute_boundary_maps() to have been called
 	std::vector<Matrix> m_inv;						///< Inverse of mass matrix for each variable of each element
 	std::vector<Vector> residual;					///< Right hand side for boundary integrals and source terms
 	int p_degree;									///< Polynomial degree of trial/test functions
@@ -54,7 +53,8 @@ protected:
 	LagrangeMapping2D* map2d;					///< Array containing geometric mapping data for each element
 	LagrangeMapping1D* map1d;					///< Array containing geometric mapping data for each face
 	Element_PhysicalElement* elems;				///< List of finite elements
-	FaceElement_PhysicalSpace* faces;			///< List of face elements
+	FaceElement_PhysicalSpace* faces;			///< List of interior face elements
+	BFaceElement_PhysicalSpace* bfaces;			///< Boundary face elements
 
 	/// Integral of fluxes across each face for all dofs
 	/** The entries corresponding to different DOFs of a given flow variable are stored contiguously.
@@ -130,32 +130,51 @@ public:
 /** Most functions are virtual so that other solvers can be subclassed
  * and the functionality here can be selectively used.
  */
-class InviscidFlow : public SpatialBase<4>
+class EulerFlow : public SpatialBase
 {
 protected:
-	Vector uinf;										///< Free-stream/reference condition
-	int slip_wall_id;									///< Boundary marker corresponding to solid wall
-	int inflow_outflow_id;								///< Boundary marker corresponding to inflow/outflow
-	int periodic_id;									///< Boundary marker for periodic boundary
+	a_real g;										///< Adiabatic index
+	Vector uinf;									///< Free-stream/reference condition
+	Vector uin;										///< Inflow condition
+	Vector uout;									///< Outflow condition
+	int slipwall_id;								///< Boundary marker corresponding to solid wall
+	int inflow_id;									///< Boundary marker corresponding to inflow
+	int outflow_id;									///< Boundary marker corresponding to outflow
+	int farfield_id;								///< Boundary marker corresponding to far field
+	int periodic_id;								///< Boundary marker for "periodic" boundary
+	int symmetry_id;								///< Boundary marker for "symmetry" boundary
 
 	/// Add contribution of inviscid numerical flux to flux storage
 	void inviscidFluxContribution();
 
 	/// Computes flow variables at boundaries (either Gauss points or ghost cell centers) using the interior state provided
-	/** \param[in] instates provides the left (interior state) for each boundary face
-	 * \param[out] bounstates will contain the right state of boundary faces
+	/** \param[in] ins provides the left (interior state) for each boundary face
+	 * \param[in] n the unit normal vector to the face
+	 * \param[in] iface The face index in the [face structure](@ref UMesh2dh::intfac)
+	 * \param[out] bs will contain the right state of boundary faces
 	 *
 	 * Currently does not use characteristic BCs.
 	 * \todo Implement and test characteristic BCs
 	 */
-	virtual void compute_boundary_states(const std::vector<Vector>& instates, std::vector<Vector>& bounstates);
+	virtual void EulerFlow::compute_boundary_states(const a_real ins[NVARS], const Vector& n, int iface, a_real bs[NVARS]);
 
 public:
-	/// Calls functions to assemble the [right hand side](@ref residual)
-	virtual void compute_residual();
+	/// Constructor
+	/** \param[in] mesh is the mesh context
+	 * \param _p_degree is the polynomial degree for FE basis functions
+	 * \param u_inf Farfield conditions - density, velocity magnitude, angle of attack and Mach number
+	 * \param u_in Inlet conditions - total pressure, total temperature, angle of attack and Mach number
+	 * \param u_out Outflow conditions - static pressure
+	 * \param boun_ids Boundary flags for the following types of boundary conditions in that order:
+	 * 0: slip wall, 1: inflow, 2: outflow, 3: far field, 4: periodic boundary, 5: symmetry boundary.
+	 * Some simulations may not require one or more of these, in which case dummy unallocated Vectors should be passed.
+	 */
+	EulerFlow(const UMesh2dh* mesh, const int _p_degree, Vector& u_inf, Vector& u_in, Vector& u_out, int boun_ids[6]);
+
+	/// Calls functions to update the [right hand side](@ref residual)
+	virtual void update_residual();
 
 	/// Compute norm of entropy production
-	/// Call after computing pressure etc \sa postprocess_cell
 	a_real compute_entropy();
 
 	/// Compute nodal quantities to export, based on area-weighted averaging (which takes into account ghost cells as well)

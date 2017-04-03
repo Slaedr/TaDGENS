@@ -793,10 +793,9 @@ void UMesh2dh::compute_boundary_maps()
 	bifmap.setup(nbface,1);
 	ifbmap.setup(nbface,1);
 
-	std::vector<int> fpo(lonnofa);
-
 	for(int ibface = 0; ibface < nface; ibface++)
 	{
+		int fpo[2];
 		for(int i = 0; i < lonnofa; i++)
 			fpo[i] = bface(ibface,i);
 
@@ -820,12 +819,9 @@ void UMesh2dh::compute_boundary_maps()
 					}
 			}
 
-			/*for(int i = 0; i < lonnofa; i++)
-				std::cout << inter[i];
-			std::cout << std::endl;*/
-
+			// if any node of ibface failed to find a node of iface, ibface is not the same as iface
 			for(int b = 0; b < lonnofa; b++)
-				if(inter[b] == false) final1 = false;						// if any node of ibface failed to find a node of iface, ibface is not the same as iface
+				if(inter[b] == false) final1 = false;	
 
 			if(final1 == true) inface = iface;
 		}
@@ -835,11 +831,19 @@ void UMesh2dh::compute_boundary_maps()
 			ifbmap(ibface) = inface;
 		}
 		else {
-			std::cout << "UMesh2d: compute_boundary_maps(): ! intfac face corresponding to " << ibface << "th bface not found!!" << std::endl;
+			std::cout << "! UMesh2d: compute_boundary_maps(): ! intfac face corresponding to " << ibface << "th bface not found!!" << std::endl;
 			continue;
 		}
 	}
+
 	isBoundaryMaps = true;
+	
+	intfacbtags.setup(nbface,nbtag);
+	for(int ibface = 0; ibface < nface; ibface++)
+	{
+		for(int j = 0; j < nbtag; j++)
+			intfacbtags(ifbmap(ibface),j) = bface(ibface,nnobfa[ibface]+j);
+	}
 }
 
 void UMesh2dh::writeBoundaryMapsToFile(std::string mapfile)
@@ -878,25 +882,6 @@ void UMesh2dh::readBoundaryMapsFromFile(std::string mapfile)
 
 	ofile.close();
 	isBoundaryMaps = true;
-}
-
-void UMesh2dh::compute_intfacbtags()
-{
-	/// Populate intfacbtags with boundary markers of corresponding bfaces
-
-	intfacbtags.setup(nbpoin,nbtag);
-
-	if(isBoundaryMaps == false)
-	{
-		std::cout << "UMesh2d: compute_intfacbtags(): ! Boundary maps are not available!" << std::endl;
-		return;
-	}
-
-	for(int ibface = 0; ibface < nface; ibface++)
-	{
-		for(int j = 0; j < nbtag; j++)
-			intfacbtags(ifbmap(ibface),j) = bface(ibface,nnobfa[ibface]+j);
-	}
 }
 
 

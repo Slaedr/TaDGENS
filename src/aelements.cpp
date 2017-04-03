@@ -16,7 +16,7 @@ void LagrangeMapping1D::computeAll()
 {
 	const Array2d<a_real>& points = quadrature->points();
 	int npoin = points.rows();
-	//speeds.resize(npoin);
+	speeds.resize(npoin);
 	normals.resize(npoin);
 	for(int i = 0; i < npoin; i++)
 		normals[i].resize(NDIM);
@@ -34,11 +34,11 @@ void LagrangeMapping1D::computeAll()
 				vel[idim] = (phyNodes[1][idim] - phyNodes[0][idim])/2.0;
 			}
 			
-			//speeds[i] = std::sqrt(vel[0]*vel[0] + vel[1]*vel[1]);
-			// (no need to) normalize velocity to get unit tangent
-			/*for(int idim = 0; idim < NDIM; idim++)
-				vel[idim] /= speeds[i];*/
-
+			speeds[i] = std::sqrt(vel[0]*vel[0] + vel[1]*vel[1]);
+			
+			// normalize tangent to get unit tangent and thus unit normal
+			for(int idim = 0; idim < NDIM; idim++)
+				vel[idim] /= speeds[i];
 			normals[i][0] = vel[1]; normals[i][1] = -vel[0];
 		}
 	}
@@ -49,7 +49,12 @@ void LagrangeMapping1D::computeAll()
 				mapping[i][idim] = phyNodes(0,idim)*points(i)*(points(i)-1.0)/2 + phyNodes(1,idim)*points(i)*(points(i)+1.0)/2 + phyNodes(2,idim)*(1.0-points(i)*points(i));
 				vel[idim] = phyNodes[0][idim]*(points(i)-0.5) + phyNodes[1][idim]*(points(i)+0.5) + phyNodes[2][idim]*(-2.0*points(i));
 			}
+			
+			speeds[i] = std::sqrt(vel[0]*vel[0] + vel[1]*vel[1]);
 
+			// normalize tangent to get unit tangent and thus unit normal
+			for(int idim = 0; idim < NDIM; idim++)
+				vel[idim] /= speeds[i];
 			normals[i][0] = vel[1]; normals[i][1] = -vel[0];
 		}
 	}

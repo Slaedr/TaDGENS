@@ -33,14 +33,14 @@ private:
 	int maxnfael;							///< Maximum number of faces per element for any element
 	std::vector<int> nnofa;					///< number of nodes in a face
 	std::vector<int> nnobfa;				///< number of nodes in boundary faces
-	a_int naface;						///< total number of (internal and boundary) faces
-	a_int nbface;						///< number of boundary faces as calculated by compute_face_data(), as opposed to nface which is read from file
-	a_int nbpoin;						///< number of boundary points
+	a_int naface;							///< total number of (internal and boundary) faces
+	a_int nbface;							///< number of boundary faces as calculated, as opposed to nface which is read from file
+	a_int nbpoin;							///< number of boundary points
 	int nbtag;								///< number of tags for each boundary face
 	int ndtag;								///< number of tags for each element
-	amat::Array2d<a_real> coords;		///< Specifies coordinates of each node
+	amat::Array2d<a_real> coords;			///< Specifies coordinates of each node
 	amat::Array2d<a_int> inpoel;			///< Interconnectivity matrix: lists node numbers of nodes in each element
-	amat::Array2d<a_int> bface;			///< Boundary face data: lists nodes belonging to a boundary face and contains boudnary markers
+	amat::Array2d<a_int> bface;				///< Boundary face data: lists nodes belonging to a boundary face and contains boudnary markers
 	amat::Array2d<int> vol_regions;			///< to hold volume region markers, if any
 	amat::Array2d<int> flag_bpoin;			///< Holds 1 or 0 for each point depending on whether or not that point is a boundary point
 
@@ -59,16 +59,22 @@ private:
 	
 	/// Elements surrounding elements
 	amat::Array2d<a_int> esuel;
+	
 	/// Face data structure - contains info about elements and nodes associated with a face
+	/** For each this contains: left element index, right element index, 
+	 * "starting" node index, "ending" node index and inner node indices, in that order.
+	 */
 	amat::Array2d<a_int> intfac;
+
 	/// Holds boundary tags (markers) corresponding to intfac
 	amat::Array2d<int> intfacbtags;
+
 	/// Holds face numbers of faces making up an element
 	amat::Array2d<a_int> elemface;
 
 	amat::Array2d<a_int> bifmap;				///< relates boundary faces in intfac with bface, ie, bifmap(intfac no.) = bface no.
 	amat::Array2d<a_int> ifbmap;				///< relates boundary faces in bface with intfac, ie, ifbmap(bface no.) = intfac no.
-	bool isBoundaryMaps;			///< Specifies whether bface-intfac maps have been created
+	bool isBoundaryMaps;						///< Specifies whether bface-intfac maps have been created
 
 public:
 		
@@ -166,6 +172,7 @@ public:
 
 	/// Iterates over bfaces and finds the corresponding intfac face for each bface
 	/** Stores this data in the boundary label maps [ifbmap](@ref ifbmap) and [bifmap](@ref bifmap).
+	 * Also stores boundary markers in [intfacbtags](@ref intfacbtags).
 	 */
 	void compute_boundary_maps();
 	
@@ -173,9 +180,6 @@ public:
 	void writeBoundaryMapsToFile(std::string mapfile);
 	/// Reads the boundary point maps [ifbmap](@ref ifbmap) and [bifmap](@ref bifmap) from a file
 	void readBoundaryMapsFromFile(std::string mapfile);
-	
-	/// Populate [intfacbtags](@ref intfacbtags) with boundary markers of corresponding bfaces
-	void compute_intfacbtags();
 };
 
 
