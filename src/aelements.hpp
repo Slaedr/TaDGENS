@@ -109,11 +109,11 @@ class GeomMapping2D
 protected:
 	Shape2d shape;								///< Shape of the element
 	int degree;									///< Polynomial degree of the map
-	amat::Array2d<a_real> phyNodes;			///< Physical coordinates of the nodes
+	amat::Array2d<a_real> phyNodes;				///< Physical coordinates of the nodes
 	std::vector<Matrix> jaco;					///< Jacobian matrix of the mapping
 	std::vector<Matrix> jacoinv;				///< Inverse of the Jacobian matrix
 	std::vector<a_real> jacodet;				///< Determinant of the Jacobian matrix
-	amat::Array2d<a_real> mapping;			///< Physical coords of the quadrature points
+	amat::Array2d<a_real> mapping;				///< Physical coords of the quadrature points
 	const Quadrature2D* quadrature;				///< Gauss points and weights for integrating quantities
 
 public:
@@ -148,7 +148,7 @@ public:
 		return phyNodes;
 	}
 
-	/// Read-only access to the mapping evaluated at quadrature points
+	/// Read-only access to the mapping evaluated at quadrature points \sa mapping
 	const amat::Array2d<a_real>& map() const {
 		return mapping;
 	}
@@ -185,13 +185,22 @@ public:
 	void computeMappingAndJacobianDet();
 };
 
+/** \brief A type defining whether basis functions are defined in reference space or physical space
+ * or whether it's a dummy.
+ *
+ * For example, Lagrange basis is generally defined as a function of reference coordinates
+ * while Taylor basis is defined as a function of physical coordinates.
+ */
+enum BasisType {REFERENCE, PHYSICAL, NONEXISTENT};
+
 /// Abstract finite element
 class Element
 {
 protected:
+	BasisType type;									///< Where are the basis functions defined? \sa BasisType
 	int degree;										///< Polynomial degree
 	int ndof;										///< Number of local DOFs
-	std::vector<amat::Array2d<a_real>> basis;	///< Values of basis functions at quadrature points
+	std::vector<amat::Array2d<a_real>> basis;		///< Values of basis functions at quadrature points
 	std::vector<Matrix> basisGrad;					///< Values of derivatives of the basis functions at the quadrature points
 	const GeomMapping2D* gmap;						///< The 2D geometric map which maps this element to the reference element
 
@@ -200,6 +209,9 @@ public:
 	/** \param[in] geommap The geometric mapping should be initialized and all values computed beforehand; we'll not do that here
 	 */
 	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
+
+	/// Computes values of basis functions at a given point in either reference space or physical space
+	virtual void computeBasis(const a_real *const point, a_real *const basisvalues) const = 0;
 
 	/// Computes interpolated values at the quadrature point with index ig from given DOF values
 	a_real interpolate(const int ig, const a_real* const dofs)
@@ -228,21 +240,13 @@ public:
 		return ndof;
 	}
 
+	BasisType getType() const {
+		return type;
+	}
+
 	const GeomMapping2D* getGeometricMapping() const {
 		return gmap;
 	}
-};
-
-/// Abstract element defined on the physical element
-/** Taylor basis element is an implementation of this, while Lagrange element is generally not.
- */
-class Element_PhysicalSpace : public Element
-{
-public:
-	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
-
-	/// Computes values of basis functions at a given point in physical space
-	virtual void computeBasis(const a_real* point, a_real* basisvalues) const = 0;
 };
 
 /// Element described by Taylor basis functions
@@ -251,46 +255,64 @@ public:
  * Note that the first (p0) DOF is not the value at the element center, but the average value over the element.
  * We thus need to compute offsets from Taylor polynomials for terms associated with P2 and higher.
  */
-class TaylorElement : public Element_PhysicalSpace
+class TaylorElement : public Element
 {
 	a_real area;										///< Area of the element
 	a_real center[NDIM];								///< Physical location of element's geometric center
-	a_real delta[NDIM];								///< Maximum extent of the element in the coordinate directions
-	std::vector<std::vector<a_real>> basisOffset;	///< The quantities by which the basis functions are offset from actual Taylor polynomial basis
+	a_real delta[NDIM];									///< Maximum extent of the element in the coordinate directions
+	std::vector<std::vector<a_real>> basisOffset;		///< The quantities by which the basis functions are offset from actual Taylor polynomial basis
 public:
+	/// Sets data and computes basis functions and their gradients
 	void initialize(int degr, const GeomMapping2D* geommap);
-	void computeBasis(const a_real* point, a_real* basisvalues) const;
+	
+	/// Computes values of basis functions at a given point in physical space
+	void computeBasis(const a_real *const point, a_real *const basisvalues) const;
 
 	void printDetails() const {
 		std::printf("  (%f,%f), %f, %f, %f\n", center[0], center[1], delta[0], delta[1], area);
 	}
 };
 
-class DummyElement_Phy : public Element_PhysicalSpace
+/// Lagrange finite element with equi-spaced nodes. 'Nuff said.
+class LagrangeElement : public Element
 {
 public:
-	void initialize(int degr, const GeomMapping2D* geommap) { }
-	void computeBasis(const a_real* point, a_real* basisvalues) const { }
+	/// Sets data and computes basis functions and their gradients
+	void initialize(int degr, const GeomMapping2D* geommap);
+	
+	/// Computes values of basis functions at a given point in reference space
+	void computeBasis(const a_real *const point, a_real *const basisvalues) const;
 };
 
-/// An interface "element" between 2 adjacent finite elements with basis defined on physical elements
-/**
- * In future, perhaps intfac data could be stored in this class.
+/// Just that - a dummy element
+/** Used for `ghost' elements on boundary faces.
  */
-class FaceElement_PhysicalSpace
+class DummyElement : public Element
 {
-	const Element_PhysicalSpace* leftel;				///< "Left" element
-	const Element_PhysicalSpace* rightel;				///< "Right" element
+public:
+	void initialize(int degr, const GeomMapping2D* geommap) { type = NONEXISTENT; }
+	void computeBasis(const a_real *const point, a_real *const basisvalues) const { }
+};
+
+/// An interface "element" between 2 adjacent finite elements
+/** In future, perhaps intfac data could be stored in this class.
+ */
+class FaceElement
+{
+	const Element* leftel;								///< "Left" element
+	const Element* rightel;								///< "Right" element
 	amat::Array2d<a_real> leftbasis;					///< Values of the left element's basis functions at the face quadrature points
 	amat::Array2d<a_real> rightbasis;					///< Values of the left element's basis functions at the face quadrature points
 	const GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
 
 public:
 	/// Sets data; computes basis function values of left and right element at each quadrature point
-	/** NOTE: Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
+	/** \note Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
 	 * \param[in] geommap The geometric mapping must be initialized externally; we don't do it here
+	 * \param[in] l_localface The local face number of this face as seen from the left element
+	 * \param[in] r_localface The local face number of this face as seen from the right element
 	 */
-	void initialize(const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* geommap);
+	void initialize(const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* geommap, const int l_localface, const int r_localface);
 
 	/// Read-only access to basis function values from left element
 	const amat::Array2d<a_real>& leftBasis() {
@@ -317,35 +339,6 @@ public:
 		a_real val = 0;
 		for(int i = 0; i < rightel->getNumDOFs(); i++)
 			val += dofs[i]*rightbasis(ig,i);
-		return val;
-	}
-};
-
-/// Boundary face element
-class BFaceElement_PhysicalSpace
-{
-	const Element_PhysicalSpace* leftel;				///< "Left" element
-	amat::Array2d<a_real> leftbasis;					///< Values of the left element's basis functions at the face quadrature points
-	const GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
-
-public:
-	/// Sets data; computes basis function values of left element at each quadrature point
-	/** NOTE: Call only after element data has been precomputed, ie, by calling the compute function on the element, first!
-	 * \param[in] geommap The geometric mapping must be initialized externally; we don't do it here
-	 */
-	void initialize(const Element_PhysicalSpace* lelem, const GeomMapping1D* geommap);
-
-	/// Read-only access to basis function values from left element
-	const amat::Array2d<a_real>& leftBasis() {
-		return leftbasis;
-	}
-
-	/// Interpolates values from left element at the face quadrature points
-	a_real interpolate_left(const int ig, const a_real *const dofs)
-	{
-		a_real val = 0;
-		for(int i = 0; i < leftel->getNumDOFs(); i++)
-			val += dofs[i]*leftbasis(ig,i);
 		return val;
 	}
 };

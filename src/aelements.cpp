@@ -182,6 +182,7 @@ void LagrangeMapping2D::computeMappingAndJacobianDet()
  */
 void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 {
+	type = PHYSICAL;
 	degree = degr; gmap = geommap;
 	ndof = 0;
 	for(int i = 1; i <= degree+1; i++)
@@ -286,7 +287,7 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	}
 }
 
-void TaylorElement::computeBasis(const a_real* gp, a_real* basis) const
+void TaylorElement::computeBasis(const a_real *const gp, a_real *const basis) const
 {
 	basis[0] = 1.0;
 
@@ -302,18 +303,194 @@ void TaylorElement::computeBasis(const a_real* gp, a_real* basis) const
 	}
 }
 
-void FaceElement_PhysicalSpace::initialize(const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* gmapping)
+void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
+{
+	type = REFERENCE;
+	degree = degr; gmap = geommap;
+
+	if(gmap->getShape() == QUADRANGLE)
+		ndof = (degree+1)*(degree+1);
+	else {
+		ndof = 0;
+		for(int i = 1; i <= degree+1; i++)
+			ndof += i;
+	}	
+
+	int ngauss = gmap->getQuadrature()->numGauss();
+	basis.resize(ngauss);
+	basisGrad.resize(ngauss);
+	for(int i = 0; i < ngauss; i++) {
+		basis[i].setup(ndof,1);
+		basisGrad[i].resize(ndof,NDIM);
+	}
+	
+	// Compute basis functions and gradients
+	if(gmap->getShape() == TRIANGLE) {
+		for(int ip = 0; ip < ngauss; ip++)
+		{
+			// get ref coords of quadrature point
+			const Array2d<a_real>& gp = gmap->getQuadrature()->points();
+
+			if(degree == 1) {
+				basis[ip](0) = (1.0-gp(ip,0)-gp(ip,1));
+				basis[ip](1) = gp(ip,0);
+				basis[ip](2) = gp(ip,1);
+
+				basisGrad[ip](0,0) = -1.0; basisGrad[ip](0,1) = -1.0;
+				basisGrad[ip](1,0) = 1.0; basisGrad[ip](1,1) = 0.0;
+				basisGrad[ip](2,0) = 0.0; basisGrad[ip](2,1) = 1.0;
+			}
+
+			if(degree == 2) {
+				basis[ip](0) = 1.0-3*gp(ip,0)-3*gp(ip,1)+2*gp(ip,0)*gp(ip,0)+2*gp(ip,1)*gp(ip,1)+4*gp(ip,0)*gp(ip,1);
+				basis[ip](1) = 2.0*gp(ip,0)*gp(ip,0)-gp(ip,0);
+				basis[ip](2) = 2.0*gp(ip,1)*gp(ip,1)-gp(ip,1);
+				basis[ip](3) = 4.0*(gp(ip,0)-gp(ip,0)*gp(ip,0)-gp(ip,0)*gp(ip,1));
+				basis[ip](4) = 4.0*gp(ip,0)*gp(ip,1);
+				basis[ip](5) = 4.0*(gp(ip,1)-gp(ip,1)*gp(ip,1)-gp(ip,0)*gp(ip,1));
+
+				basisGrad[ip](0,0) = -3.0+4*gp(ip,0)+4*gp(ip,1);    basisGrad[ip](0,1) = -3.0+4*gp(ip,0)+4*gp(ip,1);
+				basisGrad[ip](1,0) = 4.0*gp(ip,0)-1.0;              basisGrad[ip](1,1) = 0;
+				basisGrad[ip](2,0) = 0;                             basisGrad[ip](2,1) = 4.0*gp(ip,1)-1.0;
+				basisGrad[ip](3,0) = 4.0*(1.0-2*gp(ip,0)-gp(ip,1)); basisGrad[ip](3,1) = -4.0*gp(ip,0);
+				basisGrad[ip](4,0) = 4.0*gp(ip,1);                  basisGrad[ip](4,1) = 4.0*gp(ip,0);
+				basisGrad[ip](5,0) = -4.0*gp(ip,1);                 basisGrad[ip](5,1) = 4.0*(1.0-2*gp(ip,1)-gp(ip,0));
+			}
+		}
+	}
+	else {
+		//TODO: Add quad lagrange basis
+	}
+}
+
+/** If the elements' basis functions are defined in physical space, we just compute the physical coordinates of the face quadrature points,
+ * and use the physical coordinates to compute basis function values.
+ * However, if the elements' basis functions are defined in reference space, we need to compute reference coordinates of the face quadrature points
+ * with respect to the elements. This is done as described below.
+ *
+ * Triangles
+ * ---------
+ *   |\\         The labels indicate the local face numbers used (plus 1, as a zero-base is actually used). 
+ *   | \\        Suppose \f$ \zeta \in [-1,1] \f$ is the face reference coordinate.
+ *  3|   \\ 2    Face 1: \f[ \xi = \frac12 (1+\zeta), \, \eta = 0 \f]
+ *   |    \\     Face 2: \f[ \xi = \frac12 (1-zeta), \, \eta = \frac12 (1+\zeta) \f]
+ *   |_____\\    Face 3: \f[ \xi = 0, \, \eta = \frac12 (1-\zeta)
+ *      1
+ * 
+ * Squares
+ * -------
+ *      3       Face 1: \f[ \xi = \zeta, \, \eta = -1 \f]
+ *   |-----|    Face 2: \f[ \xi = 1, \, \eta = \zeta \f]
+ * 4 |     |2   Face 3: \f[ \xi = -\zeta, \, \eta = 1 \f]
+ *   |_____|    Face 4: \f[ \xi = -1, \, \eta = -\zeta \f]
+ *      1
+ */
+void FaceElement::initialize(const Element* lelem, const Element* relem, const GeomMapping1D* gmapping, const int llfn, const int rlfn)
 {
 	gmap = gmapping; leftel = lelem; rightel = relem;
 	int ng = gmap->getQuadrature()->numGauss();
 
 	leftbasis.resize(ng,lelem->getNumDOFs()); rightbasis.resize(ng,relem->getNumDOFs());
 
-	for(int ig = 0; ig < ng; ig++)
+	if(lelem->getType() == PHYSICAL)
+		for(int ig = 0; ig < ng; ig++)
+		{
+			const Array2d<a_real>& points = gmap->map();
+			lelem->computeBasis(points[ig], leftbasis[ig]);
+			relem->computeBasis(points[ig], rightbasis[ig]);
+		}
+	else 
 	{
-		const Array2d<a_real>& points = gmap->map();
-		lelem->computeBasis(points[ig], leftbasis[ig]);
-		relem->computeBasis(points[ig], rightbasis[ig]);
+		// compute element reference coordinates of quadrature points from their face reference coordinates
+		Array2d<a_real> lpoints(ng,NDIM), rpoints(ng,NDIM);
+		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
+		
+		if(lelem->getGeometricMapping()->getShape() == TRIANGLE) {
+			if(llfn == 0)
+				for(int ig = 0; ig < ng; ig++) {
+					lpoints(ig,0) = 0.5*(1.0 + facepoints(ig));
+					lpoints(ig,1) = 0;
+				}
+			else if(llfn == 1)
+				for(int ig = 0; ig < ng; ig++) {
+					lpoints(ig,0) = 0.5*(1.0 - facepoints(ig));
+					lpoints(ig,1) = 0.5*(1.0 + facepoints(ig));
+				}
+			else
+				for(int ig = 0; ig < ng; ig++) {
+					lpoints(ig,0) = 0;
+					lpoints(ig,1) = 0.5*(1.0 - facepoints(ig));
+				}
+		}
+		else if(lelem->getGeometricMapping()->getShape() == QUADRANGLE) {
+			if(llfn == 0)
+				for(int ig = 0; ig < ng; ig++) {
+					lpoints(ig,0) = facepoints(ig);
+					lpoints(ig,1) = -1.0;
+				}
+			else if(llfn == 1)
+				for(int ig = 0; ig < ng; ig++) {
+					lpoints(ig,0) = 1.0;
+					lpoints(ig,1) = facepoints(ig);
+				}
+			else if(llfn == 2)
+				for(int ig = 0; ig < ng; ig++) {
+					lpoints(ig,0) = -facepoints(ig);
+					lpoints(ig,1) = 1.0;
+				}
+			else
+				for(int ig = 0; ig < ng; ig++) {
+					lpoints(ig,0) = -1.0;
+					lpoints(ig,1) = -facepoints(ig);
+				}
+		}
+		
+		if(relem->getGeometricMapping()->getShape() == TRIANGLE) {
+			if(rlfn == 0)
+				for(int ig = 0; ig < ng; ig++) {
+					rpoints(ig,0) = 0.5*(1.0 + facepoints(ig));
+					rpoints(ig,1) = 0;
+				}
+			else if(rlfn == 1)
+				for(int ig = 0; ig < ng; ig++) {
+					rpoints(ig,0) = 0.5*(1.0 - facepoints(ig));
+					rpoints(ig,1) = 0.5*(1.0 + facepoints(ig));
+				}
+			else
+				for(int ig = 0; ig < ng; ig++) {
+					rpoints(ig,0) = 0;
+					rpoints(ig,1) = 0.5*(1.0 - facepoints(ig));
+				}
+		}
+		else if(relem->getGeometricMapping()->getShape() == QUADRANGLE) {
+			if(rlfn == 0)
+				for(int ig = 0; ig < ng; ig++) {
+					rpoints(ig,0) = facepoints(ig);
+					rpoints(ig,1) = -1.0;
+				}
+			else if(rlfn == 1)
+				for(int ig = 0; ig < ng; ig++) {
+					rpoints(ig,0) = 1.0;
+					rpoints(ig,1) = facepoints(ig);
+				}
+			else if(rlfn == 2)
+				for(int ig = 0; ig < ng; ig++) {
+					rpoints(ig,0) = -facepoints(ig);
+					rpoints(ig,1) = 1.0;
+				}
+			else
+				for(int ig = 0; ig < ng; ig++) {
+					rpoints(ig,0) = -1.0;
+					rpoints(ig,1) = -facepoints(ig);
+				}
+		}
+	
+		// now compute basis function values
+		for(int ig = 0; ig < ng; ig++)
+		{
+			lelem->computeBasis(lpoints[ig], leftbasis[ig]);
+			relem->computeBasis(rpoints[ig], rightbasis[ig]);
+		}
 	}
 }
 
