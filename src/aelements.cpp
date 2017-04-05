@@ -370,11 +370,11 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
  *
  * Triangles
  * ---------
- *   |\\         The labels indicate the local face numbers used (plus 1, as a zero-base is actually used). 
- *   | \\        Suppose \f$ \zeta \in [-1,1] \f$ is the face reference coordinate.
- *  3|   \\ 2    Face 1: \f[ \xi = \frac12 (1+\zeta), \, \eta = 0 \f]
- *   |    \\     Face 2: \f[ \xi = \frac12 (1-zeta), \, \eta = \frac12 (1+\zeta) \f]
- *   |_____\\    Face 3: \f[ \xi = 0, \, \eta = \frac12 (1-\zeta)
+ *   |\         The labels indicate the local face numbers used (plus 1, as a zero-base is actually used). 
+ *   | \        Suppose \f$ \zeta \in [-1,1] \f$ is the face reference coordinate.
+ *  3|   \ 2    Face 1: \f[ \xi = \frac12 (1+\zeta), \, \eta = 0 \f]
+ *   |    \     Face 2: \f[ \xi = \frac12 (1-\zeta), \, \eta = \frac12 (1+\zeta) \f]
+ *   |_____\    Face 3: \f[ \xi = 0, \, \eta = \frac12 (1-\zeta) \f]
  *      1
  * 
  * Squares
