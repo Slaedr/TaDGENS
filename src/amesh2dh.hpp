@@ -69,6 +69,12 @@ private:
 	/// Holds boundary tags (markers) corresponding to intfac
 	amat::Array2d<int> intfacbtags;
 
+	/// Local face numbers, in the left element and right element, for each intfac face
+	/** facelocalnum(iface,0) holds local face number of face iface as seen by the left element,
+	 * facelocalnum(iface,1) hoilds the local face number of iface as seen by the right element.
+	 */
+	amat::Array2d<a_int> facelocalnum;
+
 	/// Holds face numbers of faces making up an element
 	amat::Array2d<a_int> elemface;
 
@@ -161,9 +167,10 @@ public:
 	 * elements surrounding point (esup), 
 	 * points surrounding point (psup), 
 	 * elements surrounding elements (esuel), 
-	 * elements surrounding faces along with points in faces (intfac),
+	 * elements surrounding faces along with points in faces, [see](@ref intfac),
 	 * element-face connectivity array elemface (for each facet of each element, it stores the intfac face number)
-	 * a list of boundary points with correspong global point numbers and containing boundary faces (according to intfac) (bpoints).
+	 * local face numbers in left and right elements for each face, ie, the [face local number](@ref facelocalnum)
+	 * a list of boundary points with correspong global point numbers and containing boundary faces (according to intfac) [see](@ref bpoints).
 	 * \note
 	 * - Use only after setup()
 	 * - Currently only works for linear mesh

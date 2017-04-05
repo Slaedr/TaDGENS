@@ -698,6 +698,7 @@ void UMesh2dh::compute_topological()
 
 	//allocate intfac and elemface
 	intfac.setup(naface,maxnnofa+2);
+	facelocalnum.setup(naface,2);
 	elemface.setup(nelem,maxnfael);
 
 	//reset face totals
@@ -730,6 +731,8 @@ void UMesh2dh::compute_topological()
 				nnofa[nbface] = nhighperface + 2;
 
 				elemface(ie,in) = nbface;
+				facelocalnum(nbface,0) = in;
+				facelocalnum(nbface,1) = 0;
 
 				nbface++;
 			}
@@ -758,9 +761,12 @@ void UMesh2dh::compute_topological()
 				nnofa[naface] = nhighperface + 2;
 				
 				elemface(ie,in) = naface;
+				facelocalnum(naface,0) = in;
 				for(jnode = 0; jnode < nfael[je]; jnode++)
-					if(inpoel(ie,in1) == inpoel(je,jnode))
+					if(inpoel(ie,in1) == inpoel(je,jnode)) {
 						elemface(je,jnode) = naface;
+						facelocalnum(naface,1) = jnode;
+					}
 
 				naface++;
 			}
