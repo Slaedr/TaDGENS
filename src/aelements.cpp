@@ -379,22 +379,29 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
  * However, if the elements' basis functions are defined in reference space, we need to compute reference coordinates of the face quadrature points
  * with respect to the elements. This is done as described below.
  *
- * Triangles
- * ---------
- *   |\         The labels indicate the local face numbers used (plus 1, as a zero-base is actually used). 
- *   | \        Suppose \f$ \zeta \in [-1,1] \f$ is the face reference coordinate.
- *  3|   \ 2    Face 1: \f[ \xi = \frac12 (1+\zeta), \, \eta = 0 \f]
- *   |    \     Face 2: \f[ \xi = \frac12 (1-\zeta), \, \eta = \frac12 (1+\zeta) \f]
- *   |_____\    Face 3: \f[ \xi = 0, \, \eta = \frac12 (1-\zeta) \f]
- *      1
- * 
- * Squares
- * -------
- *      3       Face 1: \f[ \xi = \zeta, \, \eta = -1 \f]
- *   |-----|    Face 2: \f[ \xi = 1, \, \eta = \zeta \f]
- * 4 |     |2   Face 3: \f[ \xi = -\zeta, \, \eta = 1 \f]
- *   |_____|    Face 4: \f[ \xi = -1, \, \eta = -\zeta \f]
- *      1
+ * \verbatim
+ *   |\              3
+ *   | \           |------|
+ *  3|   \ 2       |      |
+ *   |    \      4 |      |2
+ *   |_____\       |______|
+ *      1             1                                            
+ * \endverbatim
+ *
+ * Triangle
+ * --------
+ * The labels indicate local face numbers used (plus 1, as a zero-base is actually used).
+ * Suppose \f$ \zeta \in [-1,1] \f$ is the face reference coordinate.
+ * Face 1: \f[ \xi = \frac12 (1+\zeta), \, \eta = 0 \f]
+ * Face 2: \f[ \xi = \frac12 (1-\zeta), \, \eta = \frac12 (1+\zeta) \f]
+ * Face 3: \f[ \xi = 0, \, \eta = \frac12 (1-\zeta) \f]
+ *
+ * Square
+ * ------
+ * Face 1: \f[ \xi = \zeta, \, \eta = -1 \f]
+ * Face 2: \f[ \xi = 1, \, \eta = \zeta \f]
+ * Face 3: \f[ \xi = -\zeta, \, \eta = 1 \f]
+ * Face 4: \f[ \xi = -1, \, \eta = -\zeta \f]
  */
 void FaceElement::initialize(const Element* lelem, const Element* relem, const GeomMapping1D* gmapping, const int llfn, const int rlfn)
 {

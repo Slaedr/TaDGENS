@@ -27,10 +27,10 @@
 namespace amat {
 	
 /// Real type
-using acfd::acfd_real;
+using acfd::a_real;
 
 /// Integer type
-using acfd::acfd_int;
+using acfd::a_int;
 
 const int WIDTH = 10;		// width of field for printing matrices
 
@@ -44,10 +44,10 @@ inline T gabs(T x)
 	else return x;
 }
 
-inline acfd_real minmod(acfd_real a, acfd_real b)
+inline a_real minmod(a_real a, a_real b)
 {
-	if(a*b>0 && gabs<acfd_real>(a) <= gabs<acfd_real>(b)) return a;
-	else if (a*b>0 && gabs<acfd_real>(b) < gabs<acfd_real>(a)) return b;
+	if(a*b>0 && gabs<a_real>(a) <= gabs<a_real>(b)) return a;
+	else if (a*b>0 && gabs<a_real>(b) < gabs<a_real>(a)) return b;
 	else return 0.0;
 }
 
@@ -62,14 +62,14 @@ template <class T>
 class Array2d
 {
 private:
-	acfd_int nrows;
-	acfd_int ncols;
-	acfd_int size;
+	a_int nrows;
+	a_int ncols;
+	a_int size;
 	T* elems;
 	bool isalloc;
 
 public:
-	///No-arg constructor. Note: no memory allocation! Make sure Array2d::setup(acfd_int,acfd_int,MStype) is used.
+	///No-arg constructor. Note: no memory allocation! Make sure Array2d::setup(a_int,a_int,MStype) is used.
 	Array2d()
 	{
 		nrows = 0; ncols = 0; size = 0;
@@ -77,7 +77,7 @@ public:
 	}
 
 	// Full-arg constructor
-	Array2d(acfd_int nr, acfd_int nc)
+	Array2d(a_int nr, a_int nc)
 	{
 		if(nc==0)
 		{
@@ -102,7 +102,7 @@ public:
 		size = nrows*ncols;
 		elems = new T[nrows*ncols];
 		isalloc = true;
-		for(acfd_int i = 0; i < nrows*ncols; i++)
+		for(a_int i = 0; i < nrows*ncols; i++)
 		{
 			elems[i] = other.elems[i];
 		}
@@ -127,7 +127,7 @@ public:
 			delete [] elems;
 		elems = new T[nrows*ncols];
 		isalloc = true;
-		for(acfd_int i = 0; i < nrows*ncols; i++)
+		for(a_int i = 0; i < nrows*ncols; i++)
 		{
 			elems[i] = rhs.elems[i];
 		}
@@ -135,7 +135,7 @@ public:
 	}
 
 	/// Separate setup function in case no-arg constructor has to be used
-	void setup(acfd_int nr, acfd_int nc)
+	void setup(a_int nr, a_int nc)
 	{
 		if(nc==0)
 		{
@@ -156,7 +156,7 @@ public:
 	}
 	
 	/// Alternative to setup function
-	void resize(acfd_int nr, acfd_int nc=1)
+	void resize(a_int nr, a_int nc=1)
 	{
 		if(nc==0)
 		{
@@ -177,7 +177,7 @@ public:
 	}
 	
 	/// Allocate and set an array using a raw C array
-	void initialize(acfd_int nr, acfd_int nc, const T *const array)
+	void initialize(a_int nr, a_int nc, const T *const array)
 	{
 		if(nc==0)
 		{
@@ -203,7 +203,7 @@ public:
 	}
 
 	/// Setup without deleting earlier allocation: use in case of Array2d<t>* (pointer to Array2d<t>)
-	void setupraw(acfd_int nr, acfd_int nc)
+	void setupraw(a_int nr, a_int nc)
 	{
 		//std::cout << "\nEntered setupraw";
 		if(nc==0)
@@ -225,13 +225,13 @@ public:
 	/// Fill the matrix with zeros.
 	void zeros()
 	{
-		for(acfd_int i = 0; i < size; i++)
+		for(a_int i = 0; i < size; i++)
 			elems[i] = (T)(0.0);
 	}
 
 	void ones()
 	{
-		for(acfd_int i = 0; i < size; i++)
+		for(a_int i = 0; i < size; i++)
 			elems[i] = 1;
 	}
 
@@ -239,14 +239,14 @@ public:
 	{
 		T one = (T)(1);
 		T zero = (T)(0);
-		for(acfd_int i = 0; i < nrows; i++)
-			for(acfd_int j = 0; j < ncols; j++)
+		for(a_int i = 0; i < nrows; i++)
+			for(a_int j = 0; j < ncols; j++)
 				if(i==j) operator()(i,j) = one;
 				else operator()(i,j) = zero;
 	}
 
 	/// function to set matrix elements from a ROW-MAJOR array
-	void setdata(const T* A, acfd_int sz)
+	void setdata(const T* A, a_int sz)
 	{
 #ifdef DEBUG
 		if(sz != size)
@@ -255,12 +255,12 @@ public:
 			return;
 		}
 #endif
-		for(acfd_int i = 0; i < nrows; i++)
-			for(acfd_int j = 0; j < ncols; j++)
+		for(a_int i = 0; i < nrows; i++)
+			for(a_int j = 0; j < ncols; j++)
 				elems[i*ncols+j] = A[i*ncols+j];
 	}
 
-	T get(const acfd_int i, const acfd_int j=0) const
+	T get(const a_int i, const a_int j=0) const
 	{
 #ifdef DEBUG
 		if(i>=nrows || j>=ncols) { std::cout << "Array2d: get(): Index beyond array size(s)\n"; return 0; }
@@ -269,7 +269,7 @@ public:
 		return elems[i*ncols + j];
 	}
 
-	void set(acfd_int i, acfd_int j, T data)
+	void set(a_int i, a_int j, T data)
 	{
 #ifdef DEBUG
 		if(i>=nrows || j>=ncols) { std::cout << "Array2d: set(): Index beyond array size(s)\n"; return; }
@@ -278,17 +278,17 @@ public:
 		elems[i*ncols + j] = data;
 	}
 
-	acfd_int rows() const { return nrows; }
-	acfd_int cols() const { return ncols; }
-	acfd_int msize() const { return size; }
+	a_int rows() const { return nrows; }
+	a_int cols() const { return ncols; }
+	a_int msize() const { return size; }
 
 	/// Prints the matrix to standard output.
 	void mprint() const
 	{
 		std::cout << "\n";
-		for(acfd_int i = 0; i < nrows; i++)
+		for(a_int i = 0; i < nrows; i++)
 		{
-			for(acfd_int j = 0; j < ncols; j++)
+			for(a_int j = 0; j < ncols; j++)
 				std::cout << std::setw(WIDTH) << std::setprecision(WIDTH/2+1) << elems[i*ncols+j];
 			std::cout << std::endl;
 		}
@@ -299,9 +299,9 @@ public:
 	{
 		//outfile << '\n';
 		outfile << std::setprecision(MATRIX_DOUBLE_PRECISION);
-		for(acfd_int i = 0; i < nrows; i++)
+		for(a_int i = 0; i < nrows; i++)
 		{
-			for(acfd_int j = 0; j < ncols; j++)
+			for(a_int j = 0; j < ncols; j++)
 				outfile << " " << elems[i*ncols+j];
 			outfile << '\n';
 		}
@@ -314,13 +314,13 @@ public:
 		size = nrows*ncols;
 		delete [] elems;
 		elems = new T[nrows*ncols];
-		for(acfd_int i = 0; i < nrows; i++)
-			for(acfd_int j = 0; j < ncols; j++)
+		for(a_int i = 0; i < nrows; i++)
+			for(a_int j = 0; j < ncols; j++)
 				infile >> elems[i*ncols + j];
 	}
 
 	/// Getter/setter function for expressions like A(1,2) = 141 to set the element at 1st row and 2nd column to 141
-	T& operator()(const acfd_int x, const acfd_int y=0)
+	T& operator()(const a_int x, const a_int y=0)
 	{
 #ifdef DEBUG
 		if(x>=nrows || y>=ncols) { std::cout << "! Array2d (): Index beyond array size(s)\n"; return elems[0]; }
@@ -330,7 +330,7 @@ public:
 	}
 	
 	/// Const Getter/setter function for expressions like x = A(1,2) to get the element at 1st row and 2nd column
-	T operator()(const acfd_int x, const acfd_int y=0) const
+	T operator()(const a_int x, const a_int y=0) const
 	{
 #ifdef DEBUG
 		if(x>=nrows || y>=ncols) { std::cout << "Array2d (): Index beyond array size(s)\n"; return elems[0]; }
@@ -340,7 +340,7 @@ public:
 	}
 
 	/// Returns a pointer-to-const to the beginning of a row
-	const T* const_row_pointer(const acfd_int r) const
+	const T* const_row_pointer(const a_int r) const
 	{
 #ifdef DEBUG
 		if(r >= nrows) { std::cout << "! Array2d: const_row_pointer(): Row index beyond array size!\n"; return nullptr;}
@@ -349,7 +349,7 @@ public:
 	}
 	
 	/// Returns a pointer-to-const to the beginning of a row
-	const T* operator[](const acfd_int r) const
+	const T* operator[](const a_int r) const
 	{
 #ifdef DEBUG
 		if(r >= nrows) { std::cout << "! Array2d: const []: Row index beyond array size!\n"; return nullptr;}
@@ -358,7 +358,7 @@ public:
 	}
 	
 	/// Returns a pointer to the beginning of a row
-	T* row_pointer(const acfd_int r)
+	T* row_pointer(const a_int r)
 	{
 #ifdef DEBUG
 		if(r >= nrows) { std::cout << "! Array2d: row_pointer(): Row index beyond array size!\n"; return nullptr;}
@@ -367,7 +367,7 @@ public:
 	}
 	
 	/// Returns a pointer to the beginning of a row
-	T* operator[](const acfd_int r)
+	T* operator[](const a_int r)
 	{
 #ifdef DEBUG
 		if(r >= nrows) { std::cout << "! Array2d: []: Row index beyond array size!\n"; return nullptr;}
@@ -375,18 +375,18 @@ public:
 		return &elems[r*ncols];
 	}
 
-	T maxincol(acfd_int j) const
+	T maxincol(a_int j) const
 	{
 		T max = get(0,j);
-		for(acfd_int i = 0; i < nrows; i++)
+		for(a_int i = 0; i < nrows; i++)
 			if(max < get(i,j)) max = get(i,j);
 		return max;
 	}
 
-	T maxinrow(acfd_int i) const
+	T maxinrow(a_int i) const
 	{
 		T max = get(i,0);
-		for(acfd_int j = 0; j < nrows; j++)
+		for(a_int j = 0; j < nrows; j++)
 			if(max < get(i,j)) max = get(i,j);
 		return max;
 	}
@@ -394,7 +394,7 @@ public:
 	T max() const
 	{
 		T max = elems[0];
-		for(acfd_int i = 0; i < size; i++)
+		for(a_int i = 0; i < size; i++)
 			if(elems[i] > max) max = elems[i];
 		return max;
 	}
@@ -402,24 +402,24 @@ public:
 	/// Returns the magnitude of the element with largest magnitude
 	T gabsmax() const
 	{
-		T max = gabs<T>((acfd_real)elems[0]);
-		for(acfd_int i = 0; i < size; i++)
+		T max = gabs<T>((a_real)elems[0]);
+		for(a_int i = 0; i < size; i++)
 			if(gabs<T>(elems[i]) > max) max = gabs<T>(elems[i]);
 		return max;
 	}
 
-	T minincol(acfd_int j) const
+	T minincol(a_int j) const
 	{
 		T min = get(0,j);
-		for(acfd_int i = 0; i < nrows; i++)
+		for(a_int i = 0; i < nrows; i++)
 			if(min > get(i,j)) min = get(i,j);
 		return min;
 	}
 
-	T mininrow(acfd_int i) const
+	T mininrow(a_int i) const
 	{
 		T max = get(i,0);
-		for(acfd_int j = 0; j < nrows; j++)
+		for(a_int j = 0; j < nrows; j++)
 			if(max > get(i,j)) max = get(i,j);
 		return max;
 	}
@@ -427,7 +427,7 @@ public:
 	T min() const
 	{
 		T max = elems[0];
-		for(acfd_int i = 0; i < size; i++)
+		for(a_int i = 0; i < size; i++)
 			if(elems[i] < max) max = elems[i];
 		return max;
 	}
@@ -435,7 +435,7 @@ public:
 	T average() const
 	{
 		T avg = 0;
-		for(acfd_int i = 0; i < size; i++)
+		for(a_int i = 0; i < size; i++)
 			avg += elems[i];
 		avg = avg/size;
 		return avg;
@@ -445,7 +445,7 @@ public:
 	T l2norm() const		
 	{
 		T tot = 0;
-		for(acfd_int i = 0; i < size; i++)
+		for(a_int i = 0; i < size; i++)
 		{
 			tot += elems[i]*elems[i];
 		}
@@ -454,59 +454,59 @@ public:
 	}
 
 	/// function to return a sub-matrix of this matrix
-	Array2d<T> sub(acfd_int startr, acfd_int startc, acfd_int offr, acfd_int offc) const
+	Array2d<T> sub(a_int startr, a_int startc, a_int offr, a_int offc) const
 	{
 		Array2d<T> B(offr, offc);
-		for(acfd_int i = 0; i < offr; i++)
-			for(acfd_int j = 0; j < offc; j++)
+		for(a_int i = 0; i < offr; i++)
+			for(a_int j = 0; j < offc; j++)
 				B(i,j) = elems[(startr+i)*ncols + startc + j];
 		return B;
 	}
 
 	/// Function that returns a given column of the matrix as a row-major matrix
-	Array2d<T> col(acfd_int j) const
+	Array2d<T> col(a_int j) const
 	{
 		Array2d<T> b(nrows, 1);
-		for(acfd_int i = 0; i < nrows; i++)
+		for(a_int i = 0; i < nrows; i++)
 			b(i,0) = elems[i*ncols + j];
 		return b;
 	}
 
-	Array2d<T> row(acfd_int i) const
+	Array2d<T> row(a_int i) const
 	{
 		Array2d<T> b(1, ncols);
-		for(acfd_int j = 0; j < ncols; j++)
+		for(a_int j = 0; j < ncols; j++)
 			b(0,j) = elems[i*ncols + j];
 		return b;
 	}
 
 	/*//Function to return a reference to a given column of the matrix
-	Array2d<T>& colr(acfd_int j)
+	Array2d<T>& colr(a_int j)
 	{
 		//Array2d<T>* b(nrows, 1);
 		Array2d<T>* b; b->elems.reserve(nrows);
-		for(acfd_int i = 0; i < nrows; i++)
+		for(a_int i = 0; i < nrows; i++)
 			b.elems[i] = &elems[i*ncols + j];
 		return *b;
 	} */
 
 	/// Function for replacing a column of the matrix with a vector. NOTE: No check for whether b is really a vector - which it must be.
-	void replacecol(acfd_int j, Array2d<T> b)
+	void replacecol(a_int j, Array2d<T> b)
 	{
 #ifdef DEBUG
 		if(b.cols() != 1 || b.rows() != nrows) { std::cout << "\nSize error in replacecol"; return; }
 #endif
-		for(acfd_int i = 0; i < nrows; i++)
+		for(a_int i = 0; i < nrows; i++)
 			elems[i*ncols + j] = b.elems[i];
 	}
 
 	/// Function for replacing a row
-	void replacerow(acfd_int i, Array2d<T> b)
+	void replacerow(a_int i, Array2d<T> b)
 	{
 #ifdef DEBUG
 		if(b.cols() != ncols || b.rows() != 1) { std::cout << "\nSize error in replacerow"; return; }
 #endif
-		for(acfd_int j = 0; j < ncols; j++)
+		for(a_int j = 0; j < ncols; j++)
 			elems[i*ncols + j] = b.elems[j];
 	}
 
@@ -514,8 +514,8 @@ public:
 	Array2d<T> trans() const
 	{
 		Array2d<T> t(ncols, nrows);
-		for(acfd_int i = 0; i < ncols; i++)
-			for(acfd_int j = 0; j < nrows; j++)
+		for(a_int i = 0; i < ncols; i++)
+			for(a_int j = 0; j < nrows; j++)
 				t(i,j) = get(j,i);
 		return t;
 	}
@@ -524,7 +524,7 @@ public:
 	Array2d<T> operator*(T num)
 	{
 		Array2d<T> A(nrows,ncols);
-		acfd_int i;
+		a_int i;
 
 		for(i = 0; i < A.size; i++)
 			A.elems[i] = elems[i] * num;
@@ -543,7 +543,7 @@ public:
 		}
 #endif
 		Array2d<T> C(nrows, ncols);
-		acfd_int i;
+		a_int i;
 
 		for(i = 0; i < C.size; i++)
 			C.elems[i] = elems[i] + B.elems[i];
@@ -562,14 +562,14 @@ public:
 #endif
 		Array2d<T> C(nrows, ncols);
 
-		for(acfd_int i = 0; i < C.size; i++)
+		for(a_int i = 0; i < C.size; i++)
 			C.elems[i] = elems[i] - B.elems[i];
 		return C;
 	}
 
 	Array2d<T> operator*(Array2d<T> B)
 	{
-		Array2d<acfd_real> C(nrows, B.cols());
+		Array2d<T> C(nrows, B.cols());
 		C.zeros();
 #ifdef DEBUG
 		if(ncols != B.rows())
@@ -578,9 +578,9 @@ public:
 			return C;
 		}
 #endif
-		for(acfd_int i = 0; i < nrows; i++)
-			for(acfd_int j = 0; j < B.cols(); j++)
-				for(acfd_int k = 0; k < ncols; k++)
+		for(a_int i = 0; i < nrows; i++)
+			for(a_int j = 0; j < B.cols(); j++)
+				for(a_int k = 0; k < ncols; k++)
 					C(i,j) += get(i,k) * B.get(k,j);
 					//C.set( C.get(i,j) + get(i,k)*B.get(k,j), i,j );
 
@@ -593,9 +593,9 @@ public:
 		T* elemsA = A.elems;
 		#ifdef _OPENMP
 		T* elems = this->elems;
-		acfd_int size = this->size;
+		a_int size = this->size;
 		#endif
-		acfd_int i;
+		a_int i;
 		T ans = 0;
 		//#pragma omp parallel for if(size >= 64) default(none) private(i) shared(elems,elemsA,size) reduction(+: ans) num_threads(nthreads_m)
 		for(i = 0; i < size; i++)
@@ -610,7 +610,7 @@ public:
 	T matrixNorm_1() const
 	{
 		T max = 0, sum;
-		acfd_int i,j;
+		a_int i,j;
 		for(j = 0; j < ncols; j++)
 		{
 			sum = 0;
