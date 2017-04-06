@@ -62,7 +62,6 @@ SpatialBase::computeFEData()
 			map2d[iel].setAll(m->degree(), phynodes, dsquad);
 		else
 			map2d[iel].setAll(m->degree(), phynodes, dtquad);
-		map2d[iel].computeMappingAndJacobianDet();
 
 		elems[iel].initialize(p_degree, &map2d[iel]);
 
@@ -90,7 +89,6 @@ SpatialBase::computeFEData()
 				phynodes(i,j) = m->gcoords(m->gintfac(iface,2+i),j);
 
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
-		map1d[iface].computeAll();
 
 		bfaces[iface].initialize(&elems[lelem], &map1d[iface]);
 	}

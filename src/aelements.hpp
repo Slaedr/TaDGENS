@@ -206,7 +206,8 @@ protected:
 
 public:
 	/// Set the data, compute geom map, and compute basis and basis grad
-	/** \param[in] geommap The geometric mapping should be initialized and all values computed beforehand; we'll not do that here
+	/** \param[in] geommap The geometric mapping should be initialized beforehand;
+	 * however, the computation of required geometric quantities such as the Jacobian is done here.
 	 */
 	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
 
@@ -254,6 +255,9 @@ public:
  *
  * Note that the first (p0) DOF is not the value at the element center, but the average value over the element.
  * We thus need to compute offsets from Taylor polynomials for terms associated with P2 and higher.
+ *
+ * Computation of basis gradients does not need the Jacobian of the geometric mapping. They are simply computed as
+ * \f[ \nabla B(x) = \nabla B(F(\xi)) \f]
  */
 class TaylorElement : public Element
 {
@@ -262,7 +266,7 @@ class TaylorElement : public Element
 	a_real delta[NDIM];									///< Maximum extent of the element in the coordinate directions
 	std::vector<std::vector<a_real>> basisOffset;		///< The quantities by which the basis functions are offset from actual Taylor polynomial basis
 public:
-	/// Sets data and computes basis functions and their gradients
+	/// Sets data, computes geometric map data and computes basis functions and their gradients
 	void initialize(int degr, const GeomMapping2D* geommap);
 	
 	/// Computes values of basis functions at a given point in physical space
@@ -273,7 +277,13 @@ public:
 	}
 };
 
-/// Lagrange finite element with equi-spaced nodes. 'Nuff said.
+/// Lagrange finite element with equi-spaced nodes
+/** Computation of basis function gradients requires geometric Jacobian.
+ * \f[ 
+ * \nabla B(x) = \nabla \hat{B}(F^{-1}(x)) = J^{-T} \nabla_\xi \hat{B}(F^{-1}(F(\xi)))
+ * = \nabla_\xi \hat{B}(\xi)
+ * \f]
+ */
 class LagrangeElement : public Element
 {
 public:
@@ -308,7 +318,7 @@ class FaceElement
 public:
 	/// Sets data; computes basis function values of left and right element at each quadrature point
 	/** \note Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
-	 * \param[in] geommap The geometric mapping must be initialized externally; we don't do it here
+	 * \param[in] geommap The geometric mapping must be initialized externally, but we compute the map and normals here.
 	 * \param[in] l_localface The local face number of this face as seen from the left element
 	 * \param[in] r_localface The local face number of this face as seen from the right element
 	 */

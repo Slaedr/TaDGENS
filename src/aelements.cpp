@@ -184,6 +184,8 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 {
 	type = PHYSICAL;
 	degree = degr; gmap = geommap;
+	gmap->computeMappingAndJacobianDet();
+
 	ndof = 0;
 	for(int i = 1; i <= degree+1; i++)
 		ndof += i;
@@ -307,6 +309,7 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
 {
 	type = REFERENCE;
 	degree = degr; gmap = geommap;
+	gmap->computeAll();
 
 	if(gmap->getShape() == QUADRANGLE)
 		ndof = (degree+1)*(degree+1);
@@ -328,8 +331,9 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
 	if(gmap->getShape() == TRIANGLE) {
 		for(int ip = 0; ip < ngauss; ip++)
 		{
-			// get ref coords of quadrature point
+			// get ref coords of quadrature point and Jacobian at that point
 			const Array2d<a_real>& gp = gmap->getQuadrature()->points();
+			const Matrix& jinv = gmap->jacInv(ip);
 
 			if(degree == 1) {
 				basis[ip](0) = (1.0-gp(ip,0)-gp(ip,1));
@@ -356,6 +360,13 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
 				basisGrad[ip](4,0) = 4.0*gp(ip,1);                  basisGrad[ip](4,1) = 4.0*gp(ip,0);
 				basisGrad[ip](5,0) = -4.0*gp(ip,1);                 basisGrad[ip](5,1) = 4.0*(1.0-2*gp(ip,1)-gp(ip,0));
 			}
+
+			/** To compute gradients in physical space, we use the following.
+			 * Let \f$ a := \nabla_x B(x(\xi)) \f$ and \f$ b = \nabla_\xi B(x(\xi)) \f$. Then,
+			 * we need \f$ a = J^{-T} b \f$. Instead, we can compute \f$ a^T = b^T J^{-1} \f$,
+			 * for efficiency reasons since we have a row-major storage. This latter equation is used.
+			 */
+			basisGrad[ip] = basisGrad[ip]*jinv;
 		}
 	}
 	else {
@@ -388,6 +399,8 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
 void FaceElement::initialize(const Element* lelem, const Element* relem, const GeomMapping1D* gmapping, const int llfn, const int rlfn)
 {
 	gmap = gmapping; leftel = lelem; rightel = relem;
+	gmap->computeAll();
+
 	int ng = gmap->getQuadrature()->numGauss();
 
 	leftbasis.resize(ng,lelem->getNumDOFs()); rightbasis.resize(ng,relem->getNumDOFs());
