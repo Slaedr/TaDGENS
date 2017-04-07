@@ -200,7 +200,7 @@ protected:
 	BasisType type;									///< Where are the basis functions defined? \sa BasisType
 	int degree;										///< Polynomial degree
 	int ndof;										///< Number of local DOFs
-	std::vector<amat::Array2d<a_real>> basis;		///< Values of basis functions at quadrature points
+	amat::Array2d<a_real> basis;					///< Values of basis functions at quadrature points
 	std::vector<Matrix> basisGrad;					///< Values of derivatives of the basis functions at the quadrature points
 	const GeomMapping2D* gmap;						///< The 2D geometric map which maps this element to the reference element
 
@@ -212,10 +212,10 @@ public:
 	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
 
 	/// Computes values of basis functions at a given point in either reference space or physical space
-	virtual void computeBasis(const a_real *const point, a_real *const basisvalues) const = 0;
+	virtual void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const = 0;
 
 	/// Computes interpolated values at the quadrature point with index ig from given DOF values
-	a_real interpolate(const int ig, const a_real* const dofs)
+	a_real interpolate(const int ig, const a_real* const dofs) const
 	{
 		a_real val = 0;
 		for(int i = 0; i < ndof; i++)
@@ -224,13 +224,13 @@ public:
 	}
 
 	/// Read-only access to basis at a given quadrature point
-	const amat::Array2d<a_real>& bFunc(const int ipoin) {
-		return basis[ipoin];
+	const amat::Array2d<a_real>& bFunc() const {
+		return basis;
 	}
 
-	/// Read-only access to basis gradients at a given quadrature point
-	const Matrix& bGrad(const int ipoin) {
-		return basisGrad[ipoin];
+	/// Read-only access to basis gradients at the element's domain quadrature point
+	const std::vector<Matrix>& bGrad() const {
+		return basisGrad;
 	}
 
 	int getDegree() const {

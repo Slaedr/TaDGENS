@@ -27,6 +27,7 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree) : m(mesh), p
 
 	map2d = new LagrangeMapping2D[m->gnelem()];
 	elems = new TaylorElement[m->gnelem()];
+	dummyelem = new DummyElement();
 
 	map1d = new LagrangeMapping1D[m->gnaface()];
 	faces = new FaceElement_PhysicalSpace[m->gnaface()-m->gnbface()];
@@ -43,6 +44,7 @@ SpatialBase::~SpatialBase()
 	delete [] faces;
 	delete [] bfaces;
 	delete [] elems;
+	delete dummyelem;
 }
 
 SpatialBase::computeFEData()
@@ -50,7 +52,7 @@ SpatialBase::computeFEData()
 	std::cout << "SpatialBase: computeFEData(): Computing basis functions, basis gradients and mass matrices for each element" << std::endl;
 	minv.resize(m.gnelem());
 
-	// loop over elements to setup and compute maps and elements and compute mass matrices
+	// loop over elements to setup maps and elements and compute mass matrices
 	for(int iel = 0; iel < m->gnelem(); iel++)
 	{
 		amat::Array2d<a_real> phynodes(m->gnnode(iel),NDIM);
@@ -78,7 +80,9 @@ SpatialBase::computeFEData()
 					minv[iel](idof,jdof) += elems[iel].bFunc(ig)(idof)*elems[iel].bFunc(ig)(jdof)*map2d[iel].jacDet(ig);
 		}
 	}
-	
+
+	dummyelem->initialize(p_degree, &map2d[0]);
+
 	// loop over faces
 	for(int iface = 0; iface < m->gnbface(); iface++)
 	{
@@ -90,7 +94,7 @@ SpatialBase::computeFEData()
 
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
 
-		bfaces[iface].initialize(&elems[lelem], &map1d[iface]);
+		bfaces[iface].initialize(&elems[lelem], dummyelem, &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
 	}
 
 	for(int iface = m->gnbface(); iface < m->gnaface(); iface++)
@@ -105,7 +109,7 @@ SpatialBase::computeFEData()
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
 		map1d[iface].computeAll();
 
-		faces[iface-m->gnbface()].initialize(&elems[lelem], &map1d[iface]);
+		faces[iface - m->gnbface()].initialize(&elems[lelem], &elems[relem], &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
 	}
 	
 	std::cout << "SpatialBase: computeFEData(): Done." << std::endl;

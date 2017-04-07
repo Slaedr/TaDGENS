@@ -289,6 +289,7 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	}
 }
 
+/// TODO: Correct this according to prototype
 void TaylorElement::computeBasis(const a_real *const gp, a_real *const basis) const
 {
 	basis[0] = 1.0;
@@ -320,10 +321,9 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
 	}	
 
 	int ngauss = gmap->getQuadrature()->numGauss();
-	basis.resize(ngauss);
+	basis.setup(ngauss,ndof);
 	basisGrad.resize(ngauss);
 	for(int i = 0; i < ngauss; i++) {
-		basis[i].setup(ndof,1);
 		basisGrad[i].resize(ndof,NDIM);
 	}
 	
@@ -336,9 +336,9 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
 			const Matrix& jinv = gmap->jacInv(ip);
 
 			if(degree == 1) {
-				basis[ip](0) = (1.0-gp(ip,0)-gp(ip,1));
-				basis[ip](1) = gp(ip,0);
-				basis[ip](2) = gp(ip,1);
+				basis(ip,0) = (1.0-gp(ip,0)-gp(ip,1));
+				basis(ip,1) = gp(ip,0);
+				basis(ip,2) = gp(ip,1);
 
 				basisGrad[ip](0,0) = -1.0; basisGrad[ip](0,1) = -1.0;
 				basisGrad[ip](1,0) = 1.0; basisGrad[ip](1,1) = 0.0;
@@ -346,12 +346,12 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
 			}
 
 			if(degree == 2) {
-				basis[ip](0) = 1.0-3*gp(ip,0)-3*gp(ip,1)+2*gp(ip,0)*gp(ip,0)+2*gp(ip,1)*gp(ip,1)+4*gp(ip,0)*gp(ip,1);
-				basis[ip](1) = 2.0*gp(ip,0)*gp(ip,0)-gp(ip,0);
-				basis[ip](2) = 2.0*gp(ip,1)*gp(ip,1)-gp(ip,1);
-				basis[ip](3) = 4.0*(gp(ip,0)-gp(ip,0)*gp(ip,0)-gp(ip,0)*gp(ip,1));
-				basis[ip](4) = 4.0*gp(ip,0)*gp(ip,1);
-				basis[ip](5) = 4.0*(gp(ip,1)-gp(ip,1)*gp(ip,1)-gp(ip,0)*gp(ip,1));
+				basis(ip,0) = 1.0-3*gp(ip,0)-3*gp(ip,1)+2*gp(ip,0)*gp(ip,0)+2*gp(ip,1)*gp(ip,1)+4*gp(ip,0)*gp(ip,1);
+				basis(ip,1) = 2.0*gp(ip,0)*gp(ip,0)-gp(ip,0);
+				basis(ip,2) = 2.0*gp(ip,1)*gp(ip,1)-gp(ip,1);
+				basis(ip,3) = 4.0*(gp(ip,0)-gp(ip,0)*gp(ip,0)-gp(ip,0)*gp(ip,1));
+				basis(ip,4) = 4.0*gp(ip,0)*gp(ip,1);
+				basis(ip,5) = 4.0*(gp(ip,1)-gp(ip,1)*gp(ip,1)-gp(ip,0)*gp(ip,1));
 
 				basisGrad[ip](0,0) = -3.0+4*gp(ip,0)+4*gp(ip,1);    basisGrad[ip](0,1) = -3.0+4*gp(ip,0)+4*gp(ip,1);
 				basisGrad[ip](1,0) = 4.0*gp(ip,0)-1.0;              basisGrad[ip](1,1) = 0;
@@ -367,6 +367,32 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
 			 * for efficiency reasons since we have a row-major storage. This latter equation is used.
 			 */
 			basisGrad[ip] = basisGrad[ip]*jinv;
+		}
+	}
+	else {
+		//TODO: Add quad lagrange basis
+	}
+}
+
+void LagrangeElement::computeBasis(const Array2d<a_real>& gp, Array2d<a_real>& basis) const
+{
+	if(gmap->getShape() == TRIANGLE) {
+		for(int ip = 0; ip < gp.rows(); ip++)
+		{
+			if(degree == 1) {
+				basis(ip,0) = (1.0-gp(ip,0)-gp(ip,1));
+				basis(ip,1) = gp(ip,0);
+				basis(ip,2) = gp(ip,1);
+			}
+
+			if(degree == 2) {
+				basis(ip,0) = 1.0-3*gp(ip,0)-3*gp(ip,1)+2*gp(ip,0)*gp(ip,0)+2*gp(ip,1)*gp(ip,1)+4*gp(ip,0)*gp(ip,1);
+				basis(ip,1) = 2.0*gp(ip,0)*gp(ip,0)-gp(ip,0);
+				basis(ip,2) = 2.0*gp(ip,1)*gp(ip,1)-gp(ip,1);
+				basis(ip,3) = 4.0*(gp(ip,0)-gp(ip,0)*gp(ip,0)-gp(ip,0)*gp(ip,1));
+				basis(ip,4) = 4.0*gp(ip,0)*gp(ip,1);
+				basis(ip,5) = 4.0*(gp(ip,1)-gp(ip,1)*gp(ip,1)-gp(ip,0)*gp(ip,1));
+			}
 		}
 	}
 	else {
@@ -506,25 +532,8 @@ void FaceElement::initialize(const Element* lelem, const Element* relem, const G
 		}
 	
 		// now compute basis function values
-		for(int ig = 0; ig < ng; ig++)
-		{
-			lelem->computeBasis(lpoints[ig], leftbasis[ig]);
-			relem->computeBasis(rpoints[ig], rightbasis[ig]);
-		}
-	}
-}
-
-void BFaceElement_PhysicalSpace::initialize(const Element_PhysicalSpace* lelem, const GeomMapping1D* gmapping)
-{
-	gmap = gmapping; leftel = lelem;
-	int ng = gmap->getQuadrature()->numGauss();
-
-	leftbasis.resize(ng,lelem->getNumDOFs());
-
-	for(int ig = 0; ig < ng; ig++)
-	{
-		const Array2d<a_real>& points = gmap->map();
-		lelem->computeBasis(points[ig], leftbasis[ig]);
+		lelem->computeBasis(lpoints, leftbasis);
+		relem->computeBasis(rpoints, rightbasis);
 	}
 }
 

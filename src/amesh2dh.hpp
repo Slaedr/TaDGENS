@@ -110,6 +110,7 @@ public:
 	a_int gelemface(a_int ielem, int inode) const { return elemface(ielem,inode); }
 	a_int gintfac(a_int face, int i) const { return intfac(face,i); }
 	int gintfacbtags(a_int face, int i) const { return intfacbtags(face,i); }
+	int gfacelocalnum(a_int face, int leftright) const { return facelocalnum(face, leftright); }
 	a_int gbifmap(a_int intfacno) const { return bifmap(intfacno); }
 	a_int gifbmap(a_int bfaceno) const { return ifbmap(bfaceno); }
 	int gflag_bpoin(const a_int pointno) const { return flag_bpoin(pointno); }

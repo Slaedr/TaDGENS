@@ -52,9 +52,9 @@ protected:
 	Quadrature1D* bquad;						///< Boundary quadrature context
 	LagrangeMapping2D* map2d;					///< Array containing geometric mapping data for each element
 	LagrangeMapping1D* map1d;					///< Array containing geometric mapping data for each face
-	Element_PhysicalElement* elems;				///< List of finite elements
-	FaceElement_PhysicalSpace* faces;			///< List of interior face elements
-	BFaceElement_PhysicalSpace* bfaces;			///< Boundary face elements
+	Element* elems;								///< List of finite elements
+	Element* dummyelem;							///< Empty element used for ghost elements
+	FaceElement* faces;							///< List of interior face elements
 
 	/// Integral of fluxes across each face for all dofs
 	/** The entries corresponding to different DOFs of a given flow variable are stored contiguously.
