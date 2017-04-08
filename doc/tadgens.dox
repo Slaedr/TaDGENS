@@ -33,5 +33,18 @@ Current policy regarding Eigen's Matrix and Array2d
 Storage for the purpose of only entry-wise access is done using Array2d. Eg. a list of coordinates of some points.
 Storage of matrices and vectors in the linear algebra sense, when matrix and vector operations would be needed, is done using Eigen's Matrix class. Eg. sorage of Jacobian inverses and gradients of test basis functions.
 
+Sparse matrix storage and solvers
+---------------------------------
+One option is to store as a block sparse matrix, either "block LU" or block CSR. This would enable usage of block solvers, like block Jacobi (BJ), block SGS (BSGS), block ILU (BILU) etc. The other option is to store as regular CSR and use point-solvers.
+
+If we want to fit the block in L1 cache of 32 KB, we can have a max of 64 doubles in the block. The maximum we can go for Euler or laminar Navier-Stokes are as follows. 
+2D: Triangular no. of DOFS: P4, Rectagular number of DOFs: P3 (but only just)
+3D: Tet no. of DOFs: P2, Prism no. of DOFs: P1, Pyramid number of DOFs: P1, Hex number of DOFs: P1
+
+For L2 cache, assuming 128 KB, for 1-equation RANS (5 variables in 2D, 6 in 3D) 
+2D: Triangular no. of DOFs: P5, Rectangular no. of DOFs: P4
+3D: Hex no. of DOFs: P1
+
+However, even for high-order in 3D, it might be useful to store in a block format and use BLAS/Lapack calls for dense block operations, because BLAS/Lapack would hopefully split the operations into smaller sub-blocks.
 */
 

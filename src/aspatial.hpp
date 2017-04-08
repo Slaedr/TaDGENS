@@ -126,6 +126,15 @@ public:
 	virtual const amat::Array2d<a_real>& getoutput() const = 0;
 };
 
+/// SIP scheme for Laplace operator
+class LaplaceSIP : public SpatialBase
+{
+protected:
+	a_real nu;										///< Diffusivity
+	double (*rhs)(double, double);					///< forcing function
+	double (*exact)(double, double);				///< Exact solution
+};
+
 /// Spatial discretization for 2D Euler equations
 /** Most functions are virtual so that other solvers can be subclassed
  * and the functionality here can be selectively used.
