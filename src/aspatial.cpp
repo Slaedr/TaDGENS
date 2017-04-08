@@ -177,6 +177,24 @@ void SpatialBase::compute_ghost_cell_coords_about_face()
 	}
 }*/
 
+LaplaceSIP::LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), int boundary_ids[2], a_real dir_value)
+	: SpatialBase(mesh, _p_degree), rhs(f), exact(exact_sol), dirichlet_id(boundary_ids[0]), neumann_id(boundary_ids[1]), dirichlet_value(dir_value)
+{
+	bstates.resize(m->gnbface());
+	for(int i = 0; i < m->gnbface(); i++)
+		bstates[i].resize(2);
+}
+
+void LaplaceSIP::compute_boundary_states(const std::vector<Vector>& instates, std::vector<Vector>& bounstates)
+{
+	for(a_int iface = 0; iface < m->gnbface(); iface++)
+	{
+		if(m->gintfacbtags(iface,0) == dirichlet_id) {
+			//
+		}
+	}
+}
+
 EulerFlow::EulerFlow(const UMesh2dh* mesh, const int _p_degree, a_real gamma, Vector& u_inf, Vector& u_in, Vector& u_out, int boun_ids[6])
 	: SpatialBase(mesh, _p_degree), uinf(u_inf), uin(u_in), uout(u_out), g(gamma),
 	  slipwall_id(boun_ids[0]), inflow_id(boun_ids[1]), outflow_id(boun_ids[2]), farfield_id(boun_ids[3]), periodic_id(boun_id[4]), symmetry_id(boun_ids[5])

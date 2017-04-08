@@ -98,9 +98,6 @@ public:
 	/// Compute all finite element data, including mass matrix, needed for the spatial discretization
 	void computeFEData();
 
-	/// Computes ghost states of the PDE variables at boundary quadrature points
-	virtual void compute_boundary_states(const std::vector<Vector>& instates, std::vector<Vector>& bounstates) = 0;
-
 	/// Calls functions to add contribution to the [right hand side](@ref residual)
 	virtual void update_residual() = 0;
 
@@ -126,13 +123,23 @@ public:
 	virtual const amat::Array2d<a_real>& getoutput() const = 0;
 };
 
-/// SIP scheme for Laplace operator
+/// Symmetric interior penalty scheme for Laplace operator
 class LaplaceSIP : public SpatialBase
 {
 protected:
 	a_real nu;										///< Diffusivity
-	double (*rhs)(double, double);					///< forcing function
-	double (*exact)(double, double);				///< Exact solution
+	a_real eta;										///< Penalty
+	a_real (*const rhs)(a_real, a_real);			///< forcing function
+	a_real (*const exact)(a_real, a_real);			///< Exact solution
+	int dirichlet_id;								///< Boundary marker for Dirichlet boundary
+	int neumann_id;									///< Boundary marker for homogeneous Neumann boundary
+	a_real dirichlet_value;							///< Dirichlet boundary value
+	
+	void compute_boundary_states(a_int face, const Vector& instates, Vector& bounstates);
+
+public:
+	LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), int boundary_ids[2], a_real dir_value);
+	void update_residual();
 };
 
 /// Spatial discretization for 2D Euler equations
