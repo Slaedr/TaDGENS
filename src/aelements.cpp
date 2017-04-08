@@ -176,7 +176,7 @@ void LagrangeMapping2D::computeMappingAndJacobianDet()
 
 /** We currently have upto P2 elements.
  * The number of DOFs is computed as \f$ \sum_{i=1}^{p+1} i \f$ for p = 0,1,2...
- * For computing the element centers and area, we use enough quadrature points to exactly get the element centers.
+ * For computing the element centers and area, we use the all quadrature points of the quadrature object in the gmap.
  * Note that for a quad element of degree bi p (p=1 is bi linear etc), the jacodet is of degree bi 2p-1.
  * For a tri element of degree p, the jacodet is of degree 2p-2.
  */
@@ -191,10 +191,9 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 		ndof += i;
 
 	int ngauss = gmap->getQuadrature()->numGauss();
-	basis.resize(ngauss);
+	basis.resize(ngauss,ndof);
 	basisGrad.resize(ngauss);
 	for(int i = 0; i < ngauss; i++) {
-		basis[i].setup(ndof,1);
 		basisGrad[i].resize(ndof,NDIM);
 	}
 	
@@ -266,43 +265,45 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 		// get physical coords of quadrature point
 		const Array2d<a_real>& gp = gmap->map();
 		
-		basis[ip](0) = 1.0;
+		basis(ip,0) = 1.0;
 		basisGrad[ip](0,0) = basisGrad[ip](0,1) = 0.0;
 
 		if(degree >= 1) {
-			basis[ip](1) = (gp(ip,0)-center[0])/delta[0];
-			basis[ip](2) = (gp(ip,1)-center[1])/delta[1];
+			basis(ip,1) = (gp(ip,0)-center[0])/delta[0];
+			basis(ip,2) = (gp(ip,1)-center[1])/delta[1];
 
 			basisGrad[ip](1,0) = 1.0/delta[0]; basisGrad[ip](1,1) = 0.0;
-			basisGrad[ip](2,0) = 0.0; basisGrad[ip](2,1) = 1.0/delta[1];
+			basisGrad[ip](2,0) = 0.0;          basisGrad[ip](2,1) = 1.0/delta[1];
 		}
 
 		if(degree >= 2) {
-			basis[ip](3) = (gp(ip,0)-center[0])*(gp(ip,0)-center[0])/(2.0*delta[0]*delta[0]) - basisOffset[0][0];
-			basis[ip](4) = (gp(ip,1)-center[1])*(gp(ip,1)-center[1])/(2.0*delta[1]*delta[1]) - basisOffset[0][1];
-			basis[ip](5) = (gp(ip,0)-center[0])*(gp(ip,1)-center[1])/(delta[0]*delta[1]) - basisOffset[0][2];
+			basis(ip,3) = (gp(ip,0)-center[0])*(gp(ip,0)-center[0])/(2.0*delta[0]*delta[0]) - basisOffset[0][0];
+			basis(ip,4) = (gp(ip,1)-center[1])*(gp(ip,1)-center[1])/(2.0*delta[1]*delta[1]) - basisOffset[0][1];
+			basis(ip,5) = (gp(ip,0)-center[0])*(gp(ip,1)-center[1])/(delta[0]*delta[1]) - basisOffset[0][2];
 
 			basisGrad[ip](3,0) = (gp(ip,0)-center[0])/(delta[0]*delta[0]); basisGrad[ip](3,1) = 0.0;
-			basisGrad[ip](4,0) = 0.0; basisGrad[ip](4,1) = (gp(ip,1)-center[1])/(delta[1]*delta[1]);
+			basisGrad[ip](4,0) = 0.0;                                      basisGrad[ip](4,1) = (gp(ip,1)-center[1])/(delta[1]*delta[1]);
 			basisGrad[ip](5,0) = (gp(ip,1)-center[1])/(delta[0]*delta[1]); basisGrad[ip](5,1) = (gp(ip,0)-center[0])/(delta[0]*delta[1]);
 		}
 	}
 }
 
-/// TODO: Correct this according to prototype
-void TaylorElement::computeBasis(const a_real *const gp, a_real *const basis) const
+void TaylorElement::computeBasis(const amat::Array2d<a_real>& gp, amat::Array2d<a_real>& basiss)
 {
-	basis[0] = 1.0;
+	for(int ip = 0; ip < gp.rows(); ip++) 
+	{
+		basis(ip,0) = 1.0;
 
-	if(degree >= 1) {
-		basis[1] = (gp[0]-center[0])/delta[0];
-		basis[2] = (gp[1]-center[1])/delta[1];
-	}
+		if(degree >= 1) {
+			basiss(ip,1) = (gp(ip,0)-center[0])/delta[0];
+			basiss(ip,2) = (gp(ip,1)-center[1])/delta[1];
+		}
 
-	if(degree >= 2) {
-		basis[3] = (gp[0]-center[0])*(gp[0]-center[0])/(2.0*delta[0]*delta[0]) - basisOffset[0][0];
-		basis[4] = (gp[1]-center[1])*(gp[1]-center[1])/(2.0*delta[1]*delta[1]) - basisOffset[0][1];
-		basis[5] = (gp[0]-center[0])*(gp[1]-center[1])/(delta[0]*delta[1]) - basisOffset[0][2];
+		if(degree >= 2) {
+			basiss(ip,3) = (gp(ip,0)-center[0])*(gp(ip,0)-center[0])/(2.0*delta[0]*delta[0]) - basisOffset[0][0];
+			basiss(ip,4) = (gp(ip,1)-center[1])*(gp(ip,1)-center[1])/(2.0*delta[1]*delta[1]) - basisOffset[0][1];
+			basiss(ip,5) = (gp(ip,0)-center[0])*(gp(ip,1)-center[1])/(delta[0]*delta[1]) - basisOffset[0][2];
+		}
 	}
 }
 
@@ -374,24 +375,24 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
 	}
 }
 
-void LagrangeElement::computeBasis(const Array2d<a_real>& gp, Array2d<a_real>& basis) const
+void LagrangeElement::computeBasis(const Array2d<a_real>& gp, Array2d<a_real>& basisv) const
 {
 	if(gmap->getShape() == TRIANGLE) {
 		for(int ip = 0; ip < gp.rows(); ip++)
 		{
 			if(degree == 1) {
-				basis(ip,0) = (1.0-gp(ip,0)-gp(ip,1));
-				basis(ip,1) = gp(ip,0);
-				basis(ip,2) = gp(ip,1);
+				basisv(ip,0) = (1.0-gp(ip,0)-gp(ip,1));
+				basisv(ip,1) = gp(ip,0);
+				basisv(ip,2) = gp(ip,1);
 			}
 
 			if(degree == 2) {
-				basis(ip,0) = 1.0-3*gp(ip,0)-3*gp(ip,1)+2*gp(ip,0)*gp(ip,0)+2*gp(ip,1)*gp(ip,1)+4*gp(ip,0)*gp(ip,1);
-				basis(ip,1) = 2.0*gp(ip,0)*gp(ip,0)-gp(ip,0);
-				basis(ip,2) = 2.0*gp(ip,1)*gp(ip,1)-gp(ip,1);
-				basis(ip,3) = 4.0*(gp(ip,0)-gp(ip,0)*gp(ip,0)-gp(ip,0)*gp(ip,1));
-				basis(ip,4) = 4.0*gp(ip,0)*gp(ip,1);
-				basis(ip,5) = 4.0*(gp(ip,1)-gp(ip,1)*gp(ip,1)-gp(ip,0)*gp(ip,1));
+				basisv(ip,0) = 1.0-3*gp(ip,0)-3*gp(ip,1)+2*gp(ip,0)*gp(ip,0)+2*gp(ip,1)*gp(ip,1)+4*gp(ip,0)*gp(ip,1);
+				basisv(ip,1) = 2.0*gp(ip,0)*gp(ip,0)-gp(ip,0);
+				basisv(ip,2) = 2.0*gp(ip,1)*gp(ip,1)-gp(ip,1);
+				basisv(ip,3) = 4.0*(gp(ip,0)-gp(ip,0)*gp(ip,0)-gp(ip,0)*gp(ip,1));
+				basisv(ip,4) = 4.0*gp(ip,0)*gp(ip,1);
+				basisv(ip,5) = 4.0*(gp(ip,1)-gp(ip,1)*gp(ip,1)-gp(ip,0)*gp(ip,1));
 			}
 		}
 	}
@@ -438,13 +439,11 @@ void FaceElement::initialize(const Element* lelem, const Element* relem, const G
 
 	leftbasis.resize(ng,lelem->getNumDOFs()); rightbasis.resize(ng,relem->getNumDOFs());
 
-	if(lelem->getType() == PHYSICAL)
-		for(int ig = 0; ig < ng; ig++)
-		{
-			const Array2d<a_real>& points = gmap->map();
-			lelem->computeBasis(points[ig], leftbasis[ig]);
-			relem->computeBasis(points[ig], rightbasis[ig]);
-		}
+	if(lelem->getType() == PHYSICAL) {
+		const Array2d<a_real>& points = gmap->map();
+		lelem->computeBasis(points, leftbasis);
+		relem->computeBasis(points, rightbasis);
+	}
 	else 
 	{
 		// compute element reference coordinates of quadrature points from their face reference coordinates
