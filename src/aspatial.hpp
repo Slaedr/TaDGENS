@@ -55,6 +55,7 @@ protected:
 	Element* elems;								///< List of finite elements
 	Element* dummyelem;							///< Empty element used for ghost elements
 	FaceElement* faces;							///< List of interior face elements
+	FaceElement* bfaces;						///< List of boundary face elements
 
 	/// Integral of fluxes across each face for all dofs
 	/** The entries corresponding to different DOFs of a given flow variable are stored contiguously.
@@ -124,21 +125,27 @@ public:
 };
 
 /// Symmetric interior penalty scheme for Laplace operator
+/** Completely steady-state formulation with strong boundary conditions
+ */
 class LaplaceSIP : public SpatialBase
 {
 protected:
-	a_real nu;										///< Diffusivity
-	a_real eta;										///< Penalty
-	a_real (*const rhs)(a_real, a_real);			///< forcing function
-	a_real (*const exact)(a_real, a_real);			///< Exact solution
-	int dirichlet_id;								///< Boundary marker for Dirichlet boundary
-	int neumann_id;									///< Boundary marker for homogeneous Neumann boundary
-	a_real dirichlet_value;							///< Dirichlet boundary value
+	a_real nu;											///< Diffusivity
+	a_real eta;											///< Penalty
+	a_real (*const rhs)(a_real, a_real);				///< forcing function
+	a_real (*const exact)(a_real, a_real);				///< Exact solution
+	int dirichlet_id;									///< Boundary marker for Dirichlet boundary
+	int neumann_id;										///< Boundary marker for homogeneous Neumann boundary
+	a_real dirichlet_value;								///< Dirichlet boundary value
+
+	Eigen::SparseMatrix<a_real, Eigen::RowMajor> Ag;	///< Global left hand side matrix
+	Vector fg;											///< Global load vector
 	
-	void compute_boundary_states(a_int face, const Vector& instates, Vector& bounstates);
+	//void compute_boundary_states(a_int face, const Vector& instates, Vector& bounstates);
 
 public:
 	LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), int boundary_ids[2], a_real dir_value);
+	void computeLHS();
 	void update_residual();
 };
 

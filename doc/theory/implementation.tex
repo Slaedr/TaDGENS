@@ -1,0 +1,38 @@
+\documentclass[11pt]{article}
+
+\usepackage[letterpaper, margin=2.5cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{placeins}
+
+\graphicspath{{../images/}}
+
+\let\bld\boldsymbol
+
+\bibliographystyle{plain}
+
+\title{Tadgens - a DGFEM code}
+\author{Aditya Kashi}
+%\date{March 5, 2017}
+
+\begin{document}
+
+\maketitle
+\begin{abstract}
+	This document describes mathematical details of the implementation of the code.
+\end{abstract}
+
+\section*{List of symbols}
+
+\begin{description}
+\item $\bld{x}$ Position vector in physical space
+\item $\bld{\xi}$ Position vector in reference element
+\item $\zeta$ Coordinate along reference interval for faces
+\end{description}
+
+\bibliography{refs}
+\end{document}

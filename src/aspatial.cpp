@@ -30,8 +30,8 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree) : m(mesh), p
 	dummyelem = new DummyElement();
 
 	map1d = new LagrangeMapping1D[m->gnaface()];
-	faces = new FaceElement_PhysicalSpace[m->gnaface()-m->gnbface()];
-	bfaces = new BFaceElement_PhysicalSpace[m->gnbface()];
+	faces = new FaceElement[m->gnaface()-m->gnbface()];
+	bfaces = new BFaceElement[m->gnbface()];
 }
 
 SpatialBase::~SpatialBase()
@@ -107,7 +107,6 @@ SpatialBase::computeFEData()
 				phynodes(i,j) = m->gcoords(m->gintfac(iface,2+i),j);
 
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
-		map1d[iface].computeAll();
 
 		faces[iface - m->gnbface()].initialize(&elems[lelem], &elems[relem], &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
 	}
@@ -183,6 +182,14 @@ LaplaceSIP::LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real(*const 
 	bstates.resize(m->gnbface());
 	for(int i = 0; i < m->gnbface(); i++)
 		bstates[i].resize(2);
+
+	computeFEData();
+
+	for(int iface = 0; iface < m->gnbface(); iface++)
+		bfaces[iface].computeBasisGrads();
+
+	for(int iface = m->gnbface(); iface < m->gnaface(); iface++)
+		bfaces[iface-m->gnbface()].computeBasisGrads();
 }
 
 void LaplaceSIP::compute_boundary_states(const std::vector<Vector>& instates, std::vector<Vector>& bounstates)
@@ -192,6 +199,41 @@ void LaplaceSIP::compute_boundary_states(const std::vector<Vector>& instates, st
 		if(m->gintfacbtags(iface,0) == dirichlet_id) {
 			//
 		}
+	}
+}
+
+void LaplaceSIP::computeLHS()
+{
+	// declare LHS in coordinate (triplet) form for assembly
+	typedef Eigen::Triplet<a_real> COO;
+	std::vector<COO> coo; 
+	int ndofs = elems[0].getNumDOFs();
+	
+	// domain integral
+	for(int ielem = 0; ielem < m->gnelem(); ielem++)
+	{
+		const std::vector<Matrix>& bgrad = elems[ielem].bGrad();
+		const GeomMapping2D* gmap = elems[ielem].getGeometricMapping();
+		int ng = gmap->getQuadrature()->numGauss();
+		const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
+
+		Matrix A = Matrix::Zero(ndofs,ndofs);
+		for(int ig = 0; ig < ng; ig++)
+		{
+			for(int i = 0; i < ndofs; i++)
+				for(int j = 0; j < ndofs; j++) {
+					A(i,j) += nu * bgrad[ig].row(i).dot(bgrad[ig].row(j)) * wts(ig) * gmap->jacDet(ig);
+				}
+		}
+
+		for(int i = 0; i < ndofs; i++)
+			for(int j = 0; j < ndofs; j++)
+				coo.push_back(COO(ielem*ndofs+i, ielem*ndofs+j, A(i,j)));
+	}
+
+	for(int iface = 0; iface < m->gnbface(); iface++)
+	{
+		Matrix Bkk = Matrix::Zero(ndofs,ndofs), Bkkp = Matrix::Zero(ndofs,ndofs), Bkpk = Matrix::Zero(ndofs,ndofs);
 	}
 }
 

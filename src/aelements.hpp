@@ -75,9 +75,7 @@ public:
 		return mapping;
 	}
 
-	/// Computes the curve normals at a list of points in the reference space
-	/** \param[in] points is an npoin x ndim array, ie, whose each row contains the coordinates of one of the quadrature points
-	 */
+	/// Computes the curve normals at quadrature points in the reference space
 	virtual void computeAll() = 0;
 
 	/// Access to quadrature context
@@ -133,15 +131,15 @@ public:
 		quadrature = quad;
 	}
 
-	/// Sets the basis function values, jacobians, jacobian inverses and jacobian determinants corresponding to the quadrature points
-	/** This function also allocates storage for all member data except phyNodes, which must be set beforehand.
+	/// Sets the Jacobians, Jacobian inverses and Jacobian determinants corresponding to the quadrature points
+	/** Call this function only after [setting up](@ref setAll).
 	 */
-	virtual void computeAll() = 0;
+	virtual void computeForReferenceElement() = 0;
 
-	/// Computes basis function values at quadrature points
+	/// Computes basis function values and Jacobian determinants at quadrature points
 	/** Note that storage is allocated only for mapping and jacodet.
 	 */
-	virtual void computeMappingAndJacobianDet() = 0;
+	virtual void computeForPhysicalElement() = 0;
 
 	/// Read-only access to physical node locations
 	const amat::Array2d<a_real>& getPhyNodes() const {
@@ -154,18 +152,18 @@ public:
 	}
 
 	/// Read-only access to jacobians
-	const Matrix& jac(int ipoint) const {
-		return jaco[ipoint];
+	const std::vector<Matrix>& jac() const {
+		return jaco;
 	}
 
 	/// Read-only access to inverse of jacobians
-	const Matrix& jacInv(const int ipoint) const {
-		return jacoinv[ipoint];
+	const std::vector<Matrix>& jacInv() const {
+		return jacoinv;
 	}
 
 	/// Jacobian determinant
-	a_real jacDet(const int ipoint) const {
-		return jacodet[ipoint];
+	const std::vector<a_real>& jacDet() const {
+		return jacodet;
 	}
 
 	/// Access to quadrature context
@@ -181,8 +179,8 @@ public:
 class LagrangeMapping2D: public GeomMapping2D
 {
 public:
-	void computeAll();
-	void computeMappingAndJacobianDet();
+	void computeForReferenceElement();
+	void computeForPhysicalElement();
 };
 
 /** \brief A type defining whether basis functions are defined in reference space or physical space
@@ -211,8 +209,11 @@ public:
 	 */
 	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
 
-	/// Computes values of basis functions at a given point in either reference space or physical space
+	/// Computes values of basis functions at given points in either reference space or physical space
 	virtual void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const = 0;
+
+	/// Computes basis functions' gradients at given points in either reference space or physical space
+	virtual void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const = 0;
 
 	/// Computes interpolated values at the quadrature point with index ig from given DOF values
 	a_real interpolate(const int ig, const a_real* const dofs) const
@@ -271,6 +272,9 @@ public:
 	
 	/// Computes values of basis functions at a given point in physical space
 	void computeBasis(const a_real *const point, a_real *const basisvalues) const;
+	
+	/// Computes basis functions' gradients at given points in physical space
+	void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const;
 
 	void printDetails() const {
 		std::printf("  (%f,%f), %f, %f, %f\n", center[0], center[1], delta[0], delta[1], area);
@@ -292,6 +296,9 @@ public:
 	
 	/// Computes values of basis functions at a given point in reference space
 	void computeBasis(const a_real *const point, a_real *const basisvalues) const;
+	
+	/// Computes basis functions' gradients at given points in reference space
+	void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const;
 };
 
 /// Just that - a dummy element
@@ -311,18 +318,26 @@ class FaceElement
 {
 	const Element* leftel;								///< "Left" element
 	const Element* rightel;								///< "Right" element
+	int llfn, rlfn;										///< Local face number of this face w.r.t the left and right elements
 	amat::Array2d<a_real> leftbasis;					///< Values of the left element's basis functions at the face quadrature points
 	amat::Array2d<a_real> rightbasis;					///< Values of the left element's basis functions at the face quadrature points
+	std::vector<Matrix> leftbgrad;						///< left element's basis gradients at face quadrature points
+	std::vector<Matrix> rightgrad;						///< right element's basis gradients at face quadrature points
 	const GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
 
 public:
 	/// Sets data; computes basis function values of left and right element at each quadrature point
 	/** \note Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
-	 * \param[in] geommap The geometric mapping must be initialized externally, but we compute the map and normals here.
+	 * \param[in] geommap The geometric mapping must be [initialized](@ref GeomMapping1D::setAll) externally, but we compute the map and normals here.
 	 * \param[in] l_localface The local face number of this face as seen from the left element
 	 * \param[in] r_localface The local face number of this face as seen from the right element
 	 */
-	void initialize(const Element_PhysicalSpace* lelem, const Element_PhysicalSpace* relem, const GeomMapping1D* geommap, const int l_localface, const int r_localface);
+	void initialize(const Element* lelem, const Element* relem, const GeomMapping1D* geommap, const int l_localface, const int r_localface);
+	
+	/// (TODO: implement) Computes gradients of the left- and right-elements' basis functions at face quadrature points
+	/** To be called only after [initializing](@ref initialize) the face element.
+	 */
+	void computeBasisGrads();
 
 	/// Read-only access to basis function values from left element
 	const amat::Array2d<a_real>& leftBasis() {
@@ -332,6 +347,16 @@ public:
 	/// Read-only access to basis function values from right element
 	const amat::Array2d<a_real>& rightBasis() {
 		return rightbasis;
+	}
+
+	/// Read access to left basis gradients
+	const std::vector<Matrix>& leftBasisGrad() {
+		return leftbgrad;
+	}
+
+	/// Read access to right basis gradients
+	const std::vector<Matrix>& rightBasisGrad() {
+		return rightbgrad;
 	}
 
 	/// Interpolates values from left element at the face quadrature points
