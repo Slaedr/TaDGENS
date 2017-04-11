@@ -208,6 +208,9 @@ protected:
 	std::vector<Matrix> basisGrad;					///< Values of derivatives of the basis functions at the quadrature points
 	const GeomMapping2D* gmap;						///< The 2D geometric map which maps this element to the reference element
 
+	/// Computes 2D reference coordinates on elements' faces corresponding to face reference points
+	void FaceElement::getElementRefCoords(const Array2d<a_real>& facepoints, const Element *const lelem, const Element *const relem,
+		Array2d<a_real>& lpoints, Array2d<a_real>& rpoints);
 public:
 	/// Set the data, compute geom map, and compute basis and basis grad
 	/** \param[in] geommap The geometric mapping should be initialized beforehand;
@@ -334,7 +337,7 @@ class FaceElement
 public:
 	/// Sets data; computes basis function values of left and right element at each quadrature point
 	/** \note Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
-	 * \param[in] geommap The geometric mapping must be [initialized](@ref GeomMapping1D::setAll) externally, but we compute the map and normals here.
+	 * \param[in] geommap The geometric mapping must be [initialized](@ref GeomMapping1D::setAll) and map and normals computed externally
 	 * \param[in] l_localface The local face number of this face as seen from the left element
 	 * \param[in] r_localface The local face number of this face as seen from the right element
 	 */
