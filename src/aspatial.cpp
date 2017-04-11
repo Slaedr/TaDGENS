@@ -30,8 +30,7 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree) : m(mesh), p
 	dummyelem = new DummyElement();
 
 	map1d = new LagrangeMapping1D[m->gnaface()];
-	faces = new FaceElement[m->gnaface()-m->gnbface()];
-	bfaces = new BFaceElement[m->gnbface()];
+	faces = new FaceElement[m->gnaface()];
 }
 
 SpatialBase::~SpatialBase()
@@ -42,7 +41,6 @@ SpatialBase::~SpatialBase()
 	delete [] map2d;
 	delete [] map1d;
 	delete [] faces;
-	delete [] bfaces;
 	delete [] elems;
 	delete dummyelem;
 }
@@ -94,7 +92,7 @@ SpatialBase::computeFEData()
 
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
 
-		bfaces[iface].initialize(&elems[lelem], dummyelem, &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
+		faces[iface].initialize(&elems[lelem], dummyelem, &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
 	}
 
 	for(int iface = m->gnbface(); iface < m->gnaface(); iface++)
@@ -108,7 +106,7 @@ SpatialBase::computeFEData()
 
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
 
-		faces[iface - m->gnbface()].initialize(&elems[lelem], &elems[relem], &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
+		faces[iface].initialize(&elems[lelem], &elems[relem], &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
 	}
 	
 	std::cout << "SpatialBase: computeFEData(): Done." << std::endl;
@@ -176,8 +174,12 @@ void SpatialBase::compute_ghost_cell_coords_about_face()
 	}
 }*/
 
-LaplaceSIP::LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), int boundary_ids[2], a_real dir_value)
-	: SpatialBase(mesh, _p_degree), rhs(f), exact(exact_sol), dirichlet_id(boundary_ids[0]), neumann_id(boundary_ids[1]), dirichlet_value(dir_value)
+LaplaceSIPLaplaceSIP(const UMesh2dh* mesh, const int _p_degree, 
+			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
+			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_gradx)(a_real,a_real),
+			int boundary_ids[2], a_real dir_value)
+	: SpatialBase(mesh, _p_degree), rhs(f), exact(exact_sol), exactgradx(exact_gradx), exactgrady(exact_grady),
+	dirichlet_id(boundary_ids[0]), neumann_id(boundary_ids[1]), dirichlet_value(dir_value)
 {
 	bstates.resize(m->gnbface());
 	for(int i = 0; i < m->gnbface(); i++)
@@ -185,11 +187,11 @@ LaplaceSIP::LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real(*const 
 
 	computeFEData();
 
-	for(int iface = 0; iface < m->gnbface(); iface++)
+	for(int iface = 0; iface < m->gnaface(); iface++)
 		bfaces[iface].computeBasisGrads();
 
-	for(int iface = m->gnbface(); iface < m->gnaface(); iface++)
-		bfaces[iface-m->gnbface()].computeBasisGrads();
+	Ag.resize(m->gnelem()*elems[0].getNumDOFs(), m->gnelem()*elems[0].getNumDOFs());
+	bg = Vector::Zero(m->gnelem()*elems[0].getNumDOFs());
 }
 
 void LaplaceSIP::compute_boundary_states(const std::vector<Vector>& instates, std::vector<Vector>& bounstates)
@@ -222,7 +224,7 @@ void LaplaceSIP::computeLHS()
 		{
 			for(int i = 0; i < ndofs; i++)
 				for(int j = 0; j < ndofs; j++) {
-					A(i,j) += nu * bgrad[ig].row(i).dot(bgrad[ig].row(j)) * wts(ig) * gmap->jacDet(ig);
+					A(i,j) += nu * bgrad[ig].row(i).dot(bgrad[ig].row(j)) * wts(ig) * gmap->jacDet()[ig];
 				}
 		}
 
@@ -231,26 +233,199 @@ void LaplaceSIP::computeLHS()
 				coo.push_back(COO(ielem*ndofs+i, ielem*ndofs+j, A(i,j)));
 	}
 
-	for(int iface = 0; iface < m->gnbface(); iface++)
+	// face integrals
+	a_int nbf = m->gnbface();
+	for(int iface = nbf; iface < m->gnaface(); iface++)
 	{
-		Matrix Bkk = Matrix::Zero(ndofs,ndofs), Bkkp = Matrix::Zero(ndofs,ndofs), Bkpk = Matrix::Zero(ndofs,ndofs);
+		a_int lelem = m->gintfac(iface,0);
+		a_int relem = m->gintfac(iface,1);
+
+		Matrix Bkk = Matrix::Zero(ndofs,ndofs), Bkkp = Matrix::Zero(ndofs,ndofs), Bkpk = Matrix::Zero(ndofs,ndofs), Bkpkp = Matrix::Zero(ndofs,ndofs);
+		Matrix Skk = Matrix::Zero(ndofs,ndofs), Skkp = Matrix::Zero(ndofs,ndofs), Skpk = Matrix::Zero(ndofs,ndofs), Skpkp = Matrix::Zero(ndofs,ndofs);
+
+		// inverse of (approx) measure of face
+		a_real hinv = 1.0/std::sqrt( std::pow(m->gcoords(m->gintfac(iface,2),0) - m->gcoords(m->gintfac(iface,3),0),2) + 
+				std::pow(m->gcoords(m->gintfac(iface,2),1) - m->gcoords(m->gintfac(iface,3),1),2) );
+
 		int ng = map1d[iface].getQuadrature()->numGauss();
 		const amat::Array2d<a_real>& wts = bquad.weights();
 		const std::vector<Vector>& n = map1d[iface].normal();
-		const std::vector<Matrix>& lgrad = bfaces[iface].leftBasisGrad();
-		const std::vector<Matrix>& rgrad = bfaces[iface].rightBasisGrad();
-		const amat::Array2d<a_real>& lbas = bfaces[iface].leftBasis();
-		const amat::Array2d<a_real>& rbas = bfaces[iface].rightBasis();
+		const std::vector<Matrix>& lgrad = faces[iface].leftBasisGrad();
+		const std::vector<Matrix>& rgrad = faces[iface].rightBasisGrad();
+		const amat::Array2d<a_real>& lbas = faces[iface].leftBasis();
+		const amat::Array2d<a_real>& rbas = faces[iface].rightBasis();
 
 		for(int ig = 0; ig < ng; ig++)
-		{	
+		{
+			a_real weightandspeed = wts(ig) * map1d[iface].speed()[ig];
 			for(int i = 0; i < ndofs; i++)
 				for(int j = 0; j < ndofs; j++) {
-					Bkk(i,j) += 0.5 * lgrad[ig].row(j).dot(n) * lbas(ig,i);
-					// TODO
+					Bkk(i,j) +=   nu*0.5 * lgrad[ig].row(j).dot(n) * lbas(ig,i) * weightandspeed;
+					Bkkp(i,j) +=  nu*0.5 * rgrad[ig].row(j).dot(n) * lbas(ig,i) * weightandspeed;
+					Bkpk(i,j) +=  nu*0.5 * lgrad[ig].row(j).dot(n) * rbas(ig,i) * weightandspeed;
+					Bkpkp(i,j) += nu*0.5 * rgrad[ig].row(j).dot(n) * rbas(ig,i) * weightandspeed;
+
+					Skk(i,j) +=   nu*hinv * lbas(ig,i)*lbas(ig,j) * weightandspeed;
+					Skkp(i,j) +=  nu*hinv * lbas(ig,i)*rbas(ig,j) * weightandspeed;
+					Skpk(i,j) +=  nu*hinv * rbas(ig,i)*lbas(ig,j) * weightandspeed;
+					Skpkp(i,j) += nu*hinv * rbas(ig,i)*rbas(ig,j) * weightandspeed;
 				}
 		}
+
+		// add to global stiffness matrix
+		for(int i = 0; i < ndofs; i++)
+			for(int j = 0; j < ndofs; j++)
+			{
+				coo.push_back(COO( lelem*ndofs+i, lelem*ndofs+j, -Bkk(i,j)  +Bkpk(i,j) -Bkk(j,i)  -Bkkp(j,i) +Skk(i,j)  -Skpk(i,j) ));
+				coo.push_back(COO( lelem*ndofs+i, relem*ndofs+j, -Bkkp(i,j) +Bkpkp(i,j)+Bkpk(j,i) +Bkpkp(j,i)+Skpkp(i,j)-Skkp(i,j) ));
+				coo.push_back(COO( relem*ndofs+i, lelem*ndofs+j,  Bkpk(i,j) -Bkk(i,j)  -Bkkp(j,i) -Bkk(j,i)  +Skk(i,j)  -Skpk(i,j) ));
+				coo.push_back(COO( relem*ndofs+i, relem*ndofs+j,  Bkpkp(i,j)-Bkkp(i,j) +Bkpkp(j,i)+Bkpk(j,i) +Skpkp(i,j)-Skkp(i,j) ));
+			}
 	}
+	
+	for(int iface = 0; iface < m->gnbface(); iface++)
+	{
+		a_int lelem = m->gintfac(iface,0);
+
+		Matrix Bkk = Matrix::Zero(ndofs,ndofs), Skk = Matrix::Zero(ndofs,ndofs);
+
+		// inverse of (approx) measure of face
+		a_real hinv = 1.0/std::sqrt( std::pow(m->gcoords(m->gintfac(iface,2),0) - m->gcoords(m->gintfac(iface,3),0),2) + 
+				std::pow(m->gcoords(m->gintfac(iface,2),1) - m->gcoords(m->gintfac(iface,3),1),2) );
+
+		int ng = map1d[iface].getQuadrature()->numGauss();
+		const amat::Array2d<a_real>& wts = bquad.weights();
+		const std::vector<Vector>& n = map1d[iface].normal();
+		const std::vector<Matrix>& lgrad = faces[iface].leftBasisGrad();
+		const amat::Array2d<a_real>& lbas = faces[iface].leftBasis();
+
+		for(int ig = 0; ig < ng; ig++)
+		{
+			a_real weightandspeed = wts(ig) * map1d[iface].speed()[ig];
+			for(int i = 0; i < ndofs; i++)
+				for(int j = 0; j < ndofs; j++) {
+					Bkk(i,j) +=   nu*0.5 * lgrad[ig].row(j).dot(n) * lbas(ig,i) * weightandspeed;
+
+					Skk(i,j) +=   nu*hinv * lbas(ig,i)*lbas(ig,j) * weightandspeed;
+				}
+		}
+
+		// add to global stiffness matrix
+		for(int i = 0; i < ndofs; i++)
+			for(int j = 0; j < ndofs; j++)
+				coo.push_back(COO( lelem*ndofs+i, lelem*ndofs+j, -Bkk(i,j)-Bkk(j,i) +Skk(i,j) ));
+	}
+
+	// assemble
+	lhs.setFromTriplets(coo.begin(), coo.end());
+}
+
+void LaplaceSIP::computeRHS()
+{
+	int ndofs = elems[0].getNumDOFs();
+	for(int iel = 0; iel < m->gnelem(); iel++)
+	{
+		Vector bl(ndofs);
+		int ng = map2d[iel].getQuadrature()->numGauss();
+		const amat::Array2d<a_real>& wts = map2d[iel].getQuadrature()->weights();
+		const amat::Array2d<a_real>& quadp = map2d[iel].map();
+		const amat::Array2d<a_real>& basis = elems[iel].bFunc();
+
+		for(int ig = 0; ig < ng; ig++) {
+			a_real weightAndJDet = wts(ig)*map2d[iel].jacDet()[ig];
+			for(int i = 0; i < ndofs; i++)
+				bl(i) += rhs(quadp(ig,0),quadp(ig,1)) * basis(ig,i) * weightAndJDet;
+		}
+
+		for(int i = 0; i < ndofs; i++)
+			bg(iel*ndofs+i) = bl(i);
+	}
+}
+
+void computeErrors(a_real& __restrict__ l2error, a_real& __restrict__ siperror)
+{
+	int ndofs = elems[0].getNumDOFs();
+	l2error = 0; siperror = 0;
+	
+	// domain integral
+	for(int ielem = 0; ielem < m->gnelem(); ielem++)
+	{
+		const std::vector<Matrix>& bgrad = elems[ielem].bGrad();
+		const amat::Array2d<a_real>& bfunc = elems[ielem].bFunc();
+		const GeomMapping2D* gmap = elems[ielem].getGeometricMapping();
+		int ng = gmap->getQuadrature()->numGauss();
+		const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
+		const amat::Array2d<a_real>& qp = gmap->map();
+
+		for(int ig = 0; ig < ng; ig++)
+		{
+			a_real lu = 0, lux = 0, luy = 0;
+			for(int j = 0; j < ndofs; j++) {
+				lu += ug(ielem*ndofs+j)*bfunc(ig,j);
+				lux += ug(ielem*ndofs+j)*bgrad[ig](j,0);
+				luy += ug(ielem*ndofs+j)*bgrad[ig](j,1);
+			}
+			l2error += std::pow(lu-exact(qp(ig,0),qp(ig,1)),2) * wts(ig) * gmap->jacDet()[ig];
+			siperror += ( std::pow(lux-exactgradx(qp(ig,0),qp(ig,1)),2) + std::pow(luy-exactgrady(qp(ig,0),qp(ig,1)),2) ) * wts(ig) * gmap->jacDet()[ig];
+		}
+	}
+
+	// face integrals
+	a_int nbf = m->gnbface();
+	for(int iface = nbf; iface < m->gnaface(); iface++)
+	{
+		a_int lelem = m->gintfac(iface,0);
+		a_int relem = m->gintfac(iface,1);
+		
+		// inverse of (approx) measure of face
+		a_real hinv = 1.0/std::sqrt( std::pow(m->gcoords(m->gintfac(iface,2),0) - m->gcoords(m->gintfac(iface,3),0),2) + 
+				std::pow(m->gcoords(m->gintfac(iface,2),1) - m->gcoords(m->gintfac(iface,3),1),2) );
+
+		int ng = map1d[iface].getQuadrature()->numGauss();
+		const amat::Array2d<a_real>& wts = bquad.weights();
+		const std::vector<Vector>& n = map1d[iface].normal();
+		const amat::Array2d<a_real>& lbas = faces[iface].leftBasis();
+		const amat::Array2d<a_real>& rbas = faces[iface].rightBasis();
+
+		for(int ig = 0; ig < ng; ig++)
+		{
+			a_real weightandspeed = wts(ig) * map1d[iface].speed()[ig];
+			a_real lu = 0;
+			for(int j = 0; j < ndofs; j++) {
+				lu += ug(lelem*ndofs+j)*lbas(ig,j) - ug(relem+j*ndofs)*rbas(ig,j);
+			}
+			siperror += hinv * lu*lu * weightandspeed;
+		}
+	}
+	
+	for(int iface = 0; iface < m->gnbface(); iface++)
+	{
+		a_int lelem = m->gintfac(iface,0);
+
+		Matrix Bkk = Matrix::Zero(ndofs,ndofs), Skk = Matrix::Zero(ndofs,ndofs);
+
+		// inverse of (approx) measure of face
+		a_real hinv = 1.0/std::sqrt( std::pow(m->gcoords(m->gintfac(iface,2),0) - m->gcoords(m->gintfac(iface,3),0),2) + 
+				std::pow(m->gcoords(m->gintfac(iface,2),1) - m->gcoords(m->gintfac(iface,3),1),2) );
+
+		int ng = map1d[iface].getQuadrature()->numGauss();
+		const amat::Array2d<a_real>& wts = bquad.weights();
+		const std::vector<Vector>& n = map1d[iface].normal();
+		const std::Array2d<a_real>& qp = map1d[iface].map();
+		const amat::Array2d<a_real>& lbas = faces[iface].leftBasis();
+
+		for(int ig = 0; ig < ng; ig++)
+		{
+			a_real weightandspeed = wts(ig) * map1d[iface].speed()[ig];
+			a_real lu = 0;
+			for(int j = 0; j < ndofs; j++) {
+				lu += ug(lelem*ndofs+j)*lbas(ig,j);
+			}
+			siperror += hinv * pow(lu-exact(qp(ig,0),qp(ig,1)),2) * weightandspeed;
+		}
+	}
+
+	l2error = std::sqrt(l2error); siperror = std::sqrt(siperror);
 }
 
 EulerFlow::EulerFlow(const UMesh2dh* mesh, const int _p_degree, a_real gamma, Vector& u_inf, Vector& u_in, Vector& u_out, int boun_ids[6])

@@ -307,7 +307,7 @@ void TaylorElement::computeBasisGrads(const amat::Array2d<a_real>& __restrict__ 
 
 void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
 {
-	type = REFERENCE;
+	type = REFERENTIAL;
 	degree = degr; gmap = geommap;
 	gmap->computeForReferenceElement();
 
@@ -438,22 +438,39 @@ void FaceElement::initialize(const Element* lelem, const Element* relem, const G
 	gmap = gmapping; leftel = lelem; rightel = relem; llfn = l_lfn; rlfn = r_lfn;
 
 	int ng = gmap->getQuadrature()->numGauss();
-	leftbasis.resize(ng,lelem->getNumDOFs()); rightbasis.resize(ng,relem->getNumDOFs());
 
 	if(lelem->getType() == PHYSICAL) {
+		leftbasis.resize(ng,lelem->getNumDOFs());
 		const Array2d<a_real>& points = gmap->map();
 		lelem->computeBasis(points, leftbasis);
 		relem->computeBasis(points, rightbasis);
 	}
-	else 
+	else if(lelem->getType() == REFERENTIAL) {
+	{
+		// compute element reference coordinates of face quadrature points from their face reference coordinates
+		Array2d<a_real> lpoints(ng,NDIM);
+		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
+		getElementRefCoords(facepoints, leftel, llfn, lpoints);
+	
+		// now compute basis function values
+		leftbasis.resize(ng,lelem->getNumDOFs());
+		lelem->computeBasis(lpoints, leftbasis);
+	}
+
+	if(relem->getType() == PHYSICAL) {
+		rightbasis.resize(ng,relem->getNumDOFs());
+		const Array2d<a_real>& points = gmap->map();
+		relem->computeBasis(points, rightbasis);
+	}
+	else if(relem->getType() == REFERENTIAL) { 
 	{
 		// compute element reference coordinates of face quadrature points from their face reference coordinates
 		Array2d<a_real> lpoints(ng,NDIM), rpoints(ng,NDIM);
 		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
-		getElementRefCoords(facepoints, leftel, rightel, lpoints, rpoints);
+		getElementRefCoords(facepoints, rightel, rlfn, rpoints);
 	
 		// now compute basis function values
-		lelem->computeBasis(lpoints, leftbasis);
+		rightbasis.resize(ng,relem->getNumDOFs());
 		relem->computeBasis(rpoints, rightbasis);
 	}
 }
@@ -461,28 +478,50 @@ void FaceElement::initialize(const Element* lelem, const Element* relem, const G
 void FaceElement::computeBasisGrads()
 {
 	int ng = gmap->getQuadrature()->numGauss();
-	leftbgrad.resize(ng); rightbgrad.resize(ng);
-	for(int ip = 0; ip < ng; ip++) {
-		leftbgrad.resize(leftel->getNumDOFs(), NDIM);
-		rightbgrad.resize(rightel->getNumDOFs(), NDIM);
-	}
 
 	if(leftel->getType() == PHYSICAL) {
+		leftbgrad.resize(ng);
+		for(int ip = 0; ip < ng; ip++)
+			leftbgrad.resize(leftel->getNumDOFs(), NDIM);
+
 		const amat::Array2d<a_real>& gp = gmap->map();
 		leftel->computeBasisGrads(gp, leftbgrad);
 	}
-	else
+	else if(leftel->getType() == REFERENTIAL)
 	{
-		Array2d<a_real> lpoints(ng,NDIM), rpoints(ng,NDIM);
+		leftbgrad.resize(ng);
+		for(int ip = 0; ip < ng; ip++)
+			leftbgrad.resize(leftel->getNumDOFs(), NDIM);
+
+		Array2d<a_real> lpoints(ng,NDIM);
 		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
-		getElementRefCoords(facepoints, leftel, rightel, lpoints, rpoints);
+		getElementRefCoords(facepoints, leftel, llfn, lpoints);
 		leftel->computeBasisGrads(lpoints, leftbgrad);
+	}
+
+	if(rightel->getType() == PHYSICAL) {
+		rightbgrad.resize(ng);
+		for(int ip = 0; ip < ng; ip++)
+			rightbgrad.resize(rightel->getNumDOFs(), NDIM);
+
+		const amat::Array2d<a_real>& gp = gmap->map();
+		leftel->computeBasisGrads(gp, leftbgrad);
+	}
+	else if(rightel->getType() == REFERENTIAL)
+	{
+		rightbgrad.resize(ng);
+		for(int ip = 0; ip < ng; ip++)
+			rightbgrad.resize(rightel->getNumDOFs(), NDIM);
+
+		Array2d<a_real> rpoints(ng,NDIM);
+		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
+		getElementRefCoords(facepoints, rightel, rlfn, rpoints);
 		rightel->computeBasisGrads(rpoints, rightbgrad);
 	}
 }
 
-void FaceElement::getElementRefCoords(const Array2d<a_real>& __restrict__ facepoints, const Element *const __restrict__ lelem, const Element *const __restrict__ relem,
-		Array2d<a_real>& __restrict__ lpoints, Array2d<a_real>& __restrict__ rpoints)
+void FaceElement::getElementRefCoords(const Array2d<a_real>& __restrict__ facepoints, const Element *const __restrict__ lelem, 
+		const int llfn, Array2d<a_real>& __restrict__ lpoints)
 {
 	if(lelem->getGeometricMapping()->getShape() == TRIANGLE) {
 		if(llfn == 0)
@@ -536,52 +575,6 @@ void FaceElement::getElementRefCoords(const Array2d<a_real>& __restrict__ facepo
 				lpoints(ig,1) = -facepoints(ig);
 			}
 		}
-	}
-	
-	if(relem->getGeometricMapping()->getShape() == TRIANGLE) {
-		if(rlfn == 0)
-		{
-			for(int ig = 0; ig < ng; ig++) {
-				rpoints(ig,0) = 0.5*(1.0 + facepoints(ig));
-				rpoints(ig,1) = 0;
-			}
-		}
-		else if(rlfn == 1)
-		{
-			for(int ig = 0; ig < ng; ig++) {
-				rpoints(ig,0) = 0.5*(1.0 - facepoints(ig));
-				rpoints(ig,1) = 0.5*(1.0 + facepoints(ig));
-			}
-		}
-		else
-		{
-			for(int ig = 0; ig < ng; ig++) {
-				rpoints(ig,0) = 0;
-				rpoints(ig,1) = 0.5*(1.0 - facepoints(ig));
-			}
-		}
-	}
-	else if(relem->getGeometricMapping()->getShape() == QUADRANGLE) {
-		if(rlfn == 0)
-			for(int ig = 0; ig < ng; ig++) {
-				rpoints(ig,0) = facepoints(ig);
-				rpoints(ig,1) = -1.0;
-			}
-		else if(rlfn == 1)
-			for(int ig = 0; ig < ng; ig++) {
-				rpoints(ig,0) = 1.0;
-				rpoints(ig,1) = facepoints(ig);
-			}
-		else if(rlfn == 2)
-			for(int ig = 0; ig < ng; ig++) {
-				rpoints(ig,0) = -facepoints(ig);
-				rpoints(ig,1) = 1.0;
-			}
-		else
-			for(int ig = 0; ig < ng; ig++) {
-				rpoints(ig,0) = -1.0;
-				rpoints(ig,1) = -facepoints(ig);
-			}
 	}
 }
 

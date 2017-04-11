@@ -54,8 +54,7 @@ protected:
 	LagrangeMapping1D* map1d;					///< Array containing geometric mapping data for each face
 	Element* elems;								///< List of finite elements
 	Element* dummyelem;							///< Empty element used for ghost elements
-	FaceElement* faces;							///< List of interior face elements
-	FaceElement* bfaces;						///< List of boundary face elements
+	FaceElement* faces;							///< List of face elements
 
 	/// Integral of fluxes across each face for all dofs
 	/** The entries corresponding to different DOFs of a given flow variable are stored contiguously.
@@ -113,7 +112,7 @@ public:
 	}
 
 	/// Mass matrix
-	const std::vector<std::array<Matrix, nvars>>& mass() {
+	const std::vector<std::array<Matrix, nvars>>& mass() const {
 		return m_inv;
 	}
 
@@ -125,7 +124,8 @@ public:
 };
 
 /// Symmetric interior penalty scheme for Laplace operator
-/** Completely steady-state formulation with strong boundary conditions
+/** Completely steady-state formulation with strong boundary conditions,
+ * currently only Dirichlet boundaries.
  */
 class LaplaceSIP : public SpatialBase
 {
@@ -134,19 +134,31 @@ protected:
 	a_real eta;											///< Penalty
 	a_real (*const rhs)(a_real, a_real);				///< forcing function
 	a_real (*const exact)(a_real, a_real);				///< Exact solution
+	a_real (*const exactgradx)(a_real, a_real);			///< Exact x-derivative of exact solution
+	a_real (*const exactgrady)(a_real, a_real);			///< Exact y-derivative of exact solution
 	int dirichlet_id;									///< Boundary marker for Dirichlet boundary
 	int neumann_id;										///< Boundary marker for homogeneous Neumann boundary
 	a_real dirichlet_value;								///< Dirichlet boundary value
 
 	Eigen::SparseMatrix<a_real, Eigen::RowMajor> Ag;	///< Global left hand side matrix
-	Vector fg;											///< Global load vector
-	
-	//void compute_boundary_states(a_int face, const Vector& instates, Vector& bounstates);
+	Vector bg;											///< Global load vector
+	Vector ug;											///< 'Global' solution vector
 
 public:
-	LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), int boundary_ids[2], a_real dir_value);
+	LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, 
+			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
+			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_gradx)(a_real,a_real),
+			int boundary_ids[2], a_real dir_value);
 	void computeLHS();
-	void update_residual();
+	void computeRHS();
+	void solve();
+
+	/// Computes errors in L2 and SIP norms
+	void computeErrors(a_real& l2error, a_real& siperror);
+
+	void  postprocess() {};
+	void update_residual() {};
+	const amat::Array2d<a_real>& getoutput() const {};
 };
 
 /// Spatial discretization for 2D Euler equations

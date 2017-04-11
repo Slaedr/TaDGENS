@@ -195,7 +195,7 @@ public:
  * For example, Lagrange basis is generally defined as a function of reference coordinates
  * while Taylor basis is defined as a function of physical coordinates.
  */
-enum BasisType {REFERENCE, PHYSICAL, NONEXISTENT};
+enum BasisType {REFERENTIAL, PHYSICAL, NONEXISTENT};
 
 /// Abstract finite element
 class Element
@@ -208,9 +208,6 @@ protected:
 	std::vector<Matrix> basisGrad;					///< Values of derivatives of the basis functions at the quadrature points
 	const GeomMapping2D* gmap;						///< The 2D geometric map which maps this element to the reference element
 
-	/// Computes 2D reference coordinates on elements' faces corresponding to face reference points
-	void FaceElement::getElementRefCoords(const Array2d<a_real>& facepoints, const Element *const lelem, const Element *const relem,
-		Array2d<a_real>& lpoints, Array2d<a_real>& rpoints);
 public:
 	/// Set the data, compute geom map, and compute basis and basis grad
 	/** \param[in] geommap The geometric mapping should be initialized beforehand;
@@ -322,6 +319,7 @@ public:
 
 /// An interface "element" between 2 adjacent finite elements
 /** In future, perhaps intfac data could be stored in this class.
+ * \todo TODO: Make interpolation functions more efficient for nodal basis functions.
  */
 class FaceElement
 {
@@ -334,6 +332,14 @@ class FaceElement
 	std::vector<Matrix> rightgrad;						///< right element's basis gradients at face quadrature points
 	const GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
 
+	/// Computes 2D reference coordinates on the face of an element that shares this face corresponding to face reference points
+	/** \param[in] facepoints 1D coordinate on the face
+	 * \param[in] elem Pointer to element
+	 * \param[in] lfn Local face number of this face in element elem
+	 * \praram[in|out] lpoints Contains 2D reference coordinates of face quadrature points in element elem on output.
+	 */
+	void FaceElement::getElementRefCoords(const Array2d<a_real>& facepoints, const Element *const elem,
+		const int lfn, Array2d<a_real>& lpoints);
 public:
 	/// Sets data; computes basis function values of left and right element at each quadrature point
 	/** \note Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
@@ -343,7 +349,7 @@ public:
 	 */
 	void initialize(const Element* lelem, const Element* relem, const GeomMapping1D* geommap, const int l_localface, const int r_localface);
 	
-	/// (TODO: implement) Computes gradients of the left- and right-elements' basis functions at face quadrature points
+	/// Computes gradients of the left- and right-elements' basis functions at face quadrature points
 	/** To be called only after [initializing](@ref initialize) the face element.
 	 */
 	void computeBasisGrads();
