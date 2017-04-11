@@ -100,16 +100,14 @@ public:
 };
 
 /// Abstract geometric mapping between a 2D physical element and a reference element
-/** For some kinds of elements we may not need Jacobian matrices but only the determinant. computeMapping is for that case.
- */
 class GeomMapping2D
 {
 protected:
 	Shape2d shape;								///< Shape of the element
 	int degree;									///< Polynomial degree of the map
 	amat::Array2d<a_real> phyNodes;				///< Physical coordinates of the nodes
-	std::vector<Matrix> jaco;					///< Jacobian matrix of the mapping
-	std::vector<Matrix> jacoinv;				///< Inverse of the Jacobian matrix
+	std::vector<MatrixDim> jaco;				///< Jacobian matrix of the mapping
+	std::vector<MatrixDim> jacoinv;				///< Inverse of the Jacobian matrix
 	std::vector<a_real> jacodet;				///< Determinant of the Jacobian matrix
 	amat::Array2d<a_real> mapping;				///< Physical coords of the quadrature points
 	const Quadrature2D* quadrature;				///< Gauss points and weights for integrating quantities
@@ -131,6 +129,9 @@ public:
 		quadrature = quad;
 	}
 
+	/// Computes the Jacobian inverse and its determinant at a set of reference coordinates
+	virtual void calculateJacobianDetAndInverse(const amat::Array2d<a_real>& refpoints, std::vector<MatrixDim>& jacoi, std::vector<a_real>& jacod) = 0;
+
 	/// Sets the Jacobians, Jacobian inverses and Jacobian determinants corresponding to the quadrature points
 	/** Call this function only after [setting up](@ref setAll).
 	 */
@@ -151,17 +152,17 @@ public:
 		return mapping;
 	}
 
-	/// Read-only access to jacobians
-	const std::vector<Matrix>& jac() const {
+	/// Read-only access to jacobians at domain quadrature points
+	const std::vector<MatrixDim>& jac() const {
 		return jaco;
 	}
 
-	/// Read-only access to inverse of jacobians
-	const std::vector<Matrix>& jacInv() const {
+	/// Read-only access to inverse of jacobians at domain quadrature points
+	const std::vector<MatrixDim>& jacInv() const {
 		return jacoinv;
 	}
 
-	/// Jacobian determinant
+	/// Jacobian determinant at domain quadrature points
 	const std::vector<a_real>& jacDet() const {
 		return jacodet;
 	}
@@ -175,12 +176,17 @@ public:
 /// Lagrange geometric mapping on the reference triangle
 /** The ref triangle is the one having vertices (0,0), (1,0), (0,1) in that order.
  * The reference square's vertices are (-1,-1), (1,-1), (1,1), (-1,1) in that order.
+ *
+ * \note The Jacobian matrix is not actually stored, instead the inverse is stored.
  */
 class LagrangeMapping2D: public GeomMapping2D
 {
 public:
 	void computeForReferenceElement();
+
 	void computeForPhysicalElement();
+	
+	void calculateJacobianDetAndInverse(const amat::Array2d<a_real>& po, std::vector<MatrixDim>& jacoi, std::vector<a_real>& jacod);
 };
 
 /** \brief A type defining whether basis functions are defined in reference space or physical space
