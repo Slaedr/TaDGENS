@@ -234,6 +234,22 @@ void LaplaceSIP::computeLHS()
 	for(int iface = 0; iface < m->gnbface(); iface++)
 	{
 		Matrix Bkk = Matrix::Zero(ndofs,ndofs), Bkkp = Matrix::Zero(ndofs,ndofs), Bkpk = Matrix::Zero(ndofs,ndofs);
+		int ng = map1d[iface].getQuadrature()->numGauss();
+		const amat::Array2d<a_real>& wts = bquad.weights();
+		const std::vector<Vector>& n = map1d[iface].normal();
+		const std::vector<Matrix>& lgrad = bfaces[iface].leftBasisGrad();
+		const std::vector<Matrix>& rgrad = bfaces[iface].rightBasisGrad();
+		const amat::Array2d<a_real>& lbas = bfaces[iface].leftBasis();
+		const amat::Array2d<a_real>& rbas = bfaces[iface].rightBasis();
+
+		for(int ig = 0; ig < ng; ig++)
+		{	
+			for(int i = 0; i < ndofs; i++)
+				for(int j = 0; j < ndofs; j++) {
+					Bkk(i,j) += 0.5 * lgrad[ig].row(j).dot(n) * lbas(ig,i);
+					// TODO
+				}
+		}
 	}
 }
 
