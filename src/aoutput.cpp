@@ -67,9 +67,9 @@ void writeScalarsVectorToVtu_CellData(std::string fname, const acfd::UMesh2dh& m
 	for(int i = 0; i < m.gnpoin(); i++)
 	{
 		out << "\t\t\t";
-		for(int idim = 0; idim < m.gndim(); idim++)
+		for(int idim = 0; idim < NDIM; idim++)
 			out << m.gcoords(i,idim) << " ";
-		if(m.gndim() == 2)
+		if(NDIM == 2)
 			out << "0.0 ";
 		out << '\n';
 	}
@@ -175,9 +175,9 @@ void writeScalarsVectorToVtu_PointData(std::string fname, const acfd::UMesh2dh& 
 	for(int i = 0; i < m.gnpoin(); i++)
 	{
 		out << "\t\t\t";
-		for(int idim = 0; idim < m.gndim(); idim++)
+		for(int idim = 0; idim < NDIM; idim++)
 			out << m.gcoords(i,idim) << " ";
-		if(m.gndim() == 2)
+		if(NDIM == 2)
 			out << "0.0 ";
 		out << '\n';
 	}

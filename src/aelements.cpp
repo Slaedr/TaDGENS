@@ -69,7 +69,7 @@ void LagrangeMapping1D::computeAll()
 void LagrangeMapping2D::calculateJacobianDetAndInverse(const amat::Array2d<a_real>& __restrict__ po, 
 		std::vector<MatrixDim>& __restrict__ jacoi, std::vector<a_real>& __restrict__ jacod)
 {
-	std::vector<MartrixDim> jac(po.rows());
+	std::vector<MatrixDim> jac(po.rows());
 
 	if (shape == TRIANGLE)
 	{
@@ -175,11 +175,12 @@ void LagrangeMapping2D::computeForPhysicalElement()
  * Note that for a quad element of degree bi p (p=1 is bi linear etc), the jacodet is of degree bi 2p-1.
  * For a tri element of degree p, the jacodet is of degree 2p-2.
  */
-void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
+void TaylorElement::initialize(int degr, GeomMapping2D* geommap)
 {
 	type = PHYSICAL;
-	degree = degr; gmap = geommap;
-	gmap->computeForPhysicalElement();
+	degree = degr;
+	geommap->computeForPhysicalElement();
+	gmap = const_cast<const GeomMapping2D*>(geommap);
 
 	ndof = 0;
 	for(int i = 1; i <= degree+1; i++)
@@ -225,9 +226,8 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	
 	// Compute element centers and basis offsets
 
-	const Array2d<a_real>& gp = gmap->getQuadrature()->points();
 	const Array2d<a_real>& gw = gmap->getQuadrature()->weights();
-	int ng = gp.rows();
+	int ng = gmap->getQuadrature()->numGauss();
 #ifdef DEBUG
 	if(ng != ngauss)
 		std::cout << "! TaylorElement: initialize(): ngauss does not match size of gauss point array!" << std::endl;
@@ -244,9 +244,9 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	if(degree >= 2) {
 		for(int ig = 0; ig < ng; ig++)
 		{
-			basisOffset[0][0] += (gmap->map()(ig,0)-center[0])*(gmap->map()(ig,0)-center[0]) * gmap->jacDet(ig) * gw(ig);
-			basisOffset[0][1] += (gmap->map()(ig,1)-center[1])*(gmap->map()(ig,1)-center[1]) * gmap->jacDet(ig) * gw(ig);
-			basisOffset[0][2] += (gmap->map()(ig,0)-center[0])*(gmap->map()(ig,1)-center[1]) * gmap->jacDet(ig) * gw(ig);
+			basisOffset[0][0] += (gmap->map()(ig,0)-center[0])*(gmap->map()(ig,0)-center[0]) * gmap->jacDet()[ig] * gw(ig);
+			basisOffset[0][1] += (gmap->map()(ig,1)-center[1])*(gmap->map()(ig,1)-center[1]) * gmap->jacDet()[ig] * gw(ig);
+			basisOffset[0][2] += (gmap->map()(ig,0)-center[0])*(gmap->map()(ig,1)-center[1]) * gmap->jacDet()[ig] * gw(ig);
 		}
 		basisOffset[0][0] *= 1.0/(area*2*delta[0]*delta[0]);
 		basisOffset[0][1] *= 1.0/(area*2*delta[1]*delta[1]);
@@ -259,10 +259,10 @@ void TaylorElement::initialize(int degr, const GeomMapping2D* geommap)
 	computeBasisGrads(gp, basisGrad);
 }
 
-void TaylorElement::computeBasis(const amat::Array2d<a_real>& __restrict__ gp, amat::Array2d<a_real>& __restrict__ basiss)
+void TaylorElement::computeBasis(const amat::Array2d<a_real>& __restrict__ gp, amat::Array2d<a_real>& __restrict__ basiss) const
 {
 	for(int ip = 0; ip < gp.rows(); ip++) 
-		basis(ip,0) = 1.0;
+		basiss(ip,0) = 1.0;
 
 	if(degree >= 1) {
 		for(int ip = 0; ip < gp.rows(); ip++) 
@@ -285,7 +285,7 @@ void TaylorElement::computeBasis(const amat::Array2d<a_real>& __restrict__ gp, a
 void TaylorElement::computeBasisGrads(const amat::Array2d<a_real>& __restrict__ gp, std::vector<Matrix>& __restrict__ basisG) const
 {
 	for(int ip = 0; ip < gp.rows(); ip++)
-		basisGrad[ip](0,0) = basisGrad[ip](0,1) = 0.0;
+		basisG[ip](0,0) = basisG[ip](0,1) = 0.0;
 
 	if(degree >= 1) {
 		for(int ip = 0; ip < gp.rows(); ip++) 
@@ -305,11 +305,13 @@ void TaylorElement::computeBasisGrads(const amat::Array2d<a_real>& __restrict__ 
 	}
 }
 
-void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
+/// \todo FIXME: We're doing redundant computation of basis grads!
+void LagrangeElement::initialize(int degr, GeomMapping2D* geommap)
 {
 	type = REFERENTIAL;
-	degree = degr; gmap = geommap;
-	gmap->computeForReferenceElement();
+	degree = degr;
+	geommap->computeForReferenceElement();
+	gmap = const_cast<const GeomMapping2D*>(geommap);
 
 	if(gmap->getShape() == QUADRANGLE)
 		ndof = (degree+1)*(degree+1);
@@ -328,9 +330,9 @@ void LagrangeElement::initialize(int degr, const GeomMapping2D* geommap)
 	
 	// Compute basis functions and gradients
 	const Array2d<a_real>& gp = gmap->getQuadrature()->points();
-	const std::vector<Matrix>& jinv = gmap->jacInv();
+	const std::vector<MatrixDim>& jinv = gmap->jacInv();
 	computeBasis(gp, basis);
-	computeBasisGrads(gp, jinv, basisGrad);
+	computeBasisGrads(gp, basisGrad);
 }
 
 void LagrangeElement::computeBasis(const Array2d<a_real>& __restrict__ gp, Array2d<a_real>& __restrict__ basisv) const
@@ -364,13 +366,13 @@ void LagrangeElement::computeBasis(const Array2d<a_real>& __restrict__ gp, Array
 void LagrangeElement::computeBasisGrads(const Array2d<a_real>& __restrict__ gp, std::vector<Matrix>& __restrict__ basisG) const
 {
 	// evaluate Jacobian inverse at the given points
-	std::vector<MatrixDim> jinv(po.rows());
+	std::vector<MatrixDim> jinv(gp.rows());
 	std::vector<a_real> jdet;
-	gmap->computeJacobianDetAndInverse(gp, jinv, jdet);
+	gmap->calculateJacobianDetAndInverse(gp, jinv, jdet);
 	
 	if(gmap->getShape() == TRIANGLE) {
 		if(degree == 1) {
-			for(int ip = 0; ip < ngauss; ip++)
+			for(int ip = 0; ip < gp.rows(); ip++)
 			{
 				basisG[ip](0,0) = -1.0; basisG[ip](0,1) = -1.0;
 				basisG[ip](1,0) = 1.0;  basisG[ip](1,1) = 0.0;
@@ -378,7 +380,7 @@ void LagrangeElement::computeBasisGrads(const Array2d<a_real>& __restrict__ gp, 
 			}
 		}
 		if(degree == 2) {
-			for(int ip = 0; ip < ngauss; ip++)
+			for(int ip = 0; ip < gp.rows(); ip++)
 			{
 				basisG[ip](0,0) = -3.0+4*gp(ip,0)+4*gp(ip,1);    basisG[ip](0,1) = -3.0+4*gp(ip,0)+4*gp(ip,1);
 				basisG[ip](1,0) = 4.0*gp(ip,0)-1.0;              basisG[ip](1,1) = 0;
@@ -393,7 +395,7 @@ void LagrangeElement::computeBasisGrads(const Array2d<a_real>& __restrict__ gp, 
 		//TODO: Add quad lagrange basis
 	}
 	
-	for(int ip = 0; ip < ngauss; ip++)
+	for(int ip = 0; ip < gp.rows(); ip++)
 	{
 		/** To compute gradients in physical space, we use the following.
 		 * Let \f$ a := \nabla_x B(x(\xi)) \f$ and \f$ b = \nabla_\xi B(x(\xi)) \f$. Then,
@@ -445,7 +447,7 @@ void FaceElement::initialize(const Element* lelem, const Element* relem, const G
 		lelem->computeBasis(points, leftbasis);
 		relem->computeBasis(points, rightbasis);
 	}
-	else if(lelem->getType() == REFERENTIAL) {
+	else if(lelem->getType() == REFERENTIAL)
 	{
 		// compute element reference coordinates of face quadrature points from their face reference coordinates
 		Array2d<a_real> lpoints(ng,NDIM);

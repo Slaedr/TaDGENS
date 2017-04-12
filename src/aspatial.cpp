@@ -1,5 +1,5 @@
-/** @file asolverbase.cpp
- * @brief Implements common functionality for solution of Euler/Navier-Stokes equations.
+/** @file aspatial.cpp
+ * @brief Implements spatial discretizations.
  * @author Aditya Kashi
  * @date 2016-02-24
  */
@@ -47,8 +47,9 @@ SpatialBase::~SpatialBase()
 
 SpatialBase::computeFEData()
 {
-	std::cout << "SpatialBase: computeFEData(): Computing basis functions, basis gradients and mass matrices for each element" << std::endl;
+	std::cout << " SpatialBase: computeFEData(): Computing basis functions, basis gradients and mass matrices for each element" << std::endl;
 	minv.resize(m.gnelem());
+	ntotaldofs = 0;
 
 	// loop over elements to setup maps and elements and compute mass matrices
 	for(int iel = 0; iel < m->gnelem(); iel++)
@@ -64,6 +65,7 @@ SpatialBase::computeFEData()
 			map2d[iel].setAll(m->degree(), phynodes, dtquad);
 
 		elems[iel].initialize(p_degree, &map2d[iel]);
+		ntotaldofs += elems[iel].getNumDOFs();
 
 		// allocate mass matrix
 		minv[iel].resize(elems[iel].getNumDOFs(), elems[iel].getNumDOFs());
@@ -78,6 +80,7 @@ SpatialBase::computeFEData()
 					minv[iel](idof,jdof) += elems[iel].bFunc(ig)(idof)*elems[iel].bFunc(ig)(jdof)*map2d[iel].jacDet(ig);
 		}
 	}
+	std::printf(" SpatialBase: computeFEData: Total number of DOFs = %d\n", ntotaldofs);
 
 	dummyelem->initialize(p_degree, &map2d[0]);
 
@@ -91,6 +94,7 @@ SpatialBase::computeFEData()
 				phynodes(i,j) = m->gcoords(m->gintfac(iface,2+i),j);
 
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
+		map1d[iface].computeAll();
 
 		faces[iface].initialize(&elems[lelem], dummyelem, &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
 	}
@@ -105,81 +109,18 @@ SpatialBase::computeFEData()
 				phynodes(i,j) = m->gcoords(m->gintfac(iface,2+i),j);
 
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
+		map1d[iface].computeAll();
 
 		faces[iface].initialize(&elems[lelem], &elems[relem], &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
 	}
 	
-	std::cout << "SpatialBase: computeFEData(): Done." << std::endl;
+	std::cout << " SpatialBase: computeFEData(): Done." << std::endl;
 }
 
-/*void SpatialBase::compute_ghost_cell_coords_about_midpoint()
-{
-	int iface, ielem, idim, ip1, ip2;
-	std::vector<a_real> midpoint(m->gndim());
-	for(iface = 0; iface < m->gnbface(); iface++)
-	{
-		ielem = m->gintfac(iface,0);
-		ip1 = m->gintfac(iface,2);
-		ip2 = m->gintfac(iface,3);
-
-		for(idim = 0; idim < m->gndim(); idim++)
-		{
-			midpoint[idim] = 0.5 * (m->gcoords(ip1,idim) + m->gcoords(ip2,idim));
-		}
-
-		for(idim = 0; idim < m->gndim(); idim++)
-			rcg(iface,idim) = 2*midpoint[idim] - rc(ielem,idim);
-	}
-}
-
-void SpatialBase::compute_ghost_cell_coords_about_face()
-{
-	int ied, ig, ielem;
-	a_real x1, y1, x2, y2, xs, ys, xi, yi;
-
-	for(ied = 0; ied < m->gnbface(); ied++)
-	{
-		ielem = m->gintfac(ied,0); //int lel = ielem;
-		//jelem = m->gintfac(ied,1); //int rel = jelem;
-		a_real nx = m->ggallfa(ied,0);
-		a_real ny = m->ggallfa(ied,1);
-
-		xi = rc.get(ielem,0);
-		yi = rc.get(ielem,1);
-
-		// Note: The ghost cell is a direct reflection of the boundary cell about the boundary-face
-		//       It is NOT the reflection about the midpoint of the boundary-face
-		x1 = m->gcoords(m->gintfac(ied,2),0);
-		x2 = m->gcoords(m->gintfac(ied,3),0);
-		y1 = m->gcoords(m->gintfac(ied,2),1);
-		y2 = m->gcoords(m->gintfac(ied,3),1);
-
-		if(fabs(nx)>SMALL_NUMBER && fabs(ny)>SMALL_NUMBER)		// check if nx != 0 and ny != 0
-		{
-			xs = ( yi-y1 - ny/nx*xi + (y2-y1)/(x2-x1)*x1 ) / ((y2-y1)/(x2-x1)-ny/nx);
-			ys = ny/nx*xs + yi - ny/nx*xi;
-		}
-		else if(fabs(nx)<=A_SMALL_NUMBER)
-		{
-			xs = xi;
-			ys = y1;
-		}
-		else
-		{
-			xs = x1;
-			ys = yi;
-		}
-		rcg(ied,0) = 2*xs-xi;
-		rcg(ied,1) = 2*ys-yi;
-	}
-}*/
-
-LaplaceSIPLaplaceSIP(const UMesh2dh* mesh, const int _p_degree, 
+LaplaceSIP::LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, 
 			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
-			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_gradx)(a_real,a_real),
-			int boundary_ids[2], a_real dir_value)
-	: SpatialBase(mesh, _p_degree), rhs(f), exact(exact_sol), exactgradx(exact_gradx), exactgrady(exact_grady),
-	dirichlet_id(boundary_ids[0]), neumann_id(boundary_ids[1]), dirichlet_value(dir_value)
+			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_grady)(a_real,a_real))
+	: SpatialBase(mesh, _p_degree), rhs(f), exact(exact_sol), exactgradx(exact_gradx), exactgrady(exact_grady)
 {
 	bstates.resize(m->gnbface());
 	for(int i = 0; i < m->gnbface(); i++)
@@ -190,24 +131,60 @@ LaplaceSIPLaplaceSIP(const UMesh2dh* mesh, const int _p_degree,
 	for(int iface = 0; iface < m->gnaface(); iface++)
 		bfaces[iface].computeBasisGrads();
 
-	Ag.resize(m->gnelem()*elems[0].getNumDOFs(), m->gnelem()*elems[0].getNumDOFs());
-	bg = Vector::Zero(m->gnelem()*elems[0].getNumDOFs());
+	int ndofs = elems[0].getNumDOFs();
+	dirdofflags.resize(m->gnelem()*elems[0].getNumDOFs(), 0);
+	for(int iel = 0; iel < m->gnelem(); iel++)
+	{
+		for(int ino = 0; ino < m->gnnode(iel); ino++) {
+			a_int pno = m->ginpoel(iel,ino);
+			if(m->gflag_bpoin(pno) == 1)
+				dirdofflags[iel*ndofs+ino] = 1;
+		}
+	}
+	ndirdofs = 0;
+	for(int i = 0; i < dirdofflags.size(); i++)
+		ndirdofs += dirdofflags[i];
+	printf(" LaplaceSIP: No. of Dirichlet DOFs = %d\n", ndirdofs);
+
+	Ag.resize(ntotaldofs, ntotaldofs);
+	bg = Vector::Zero(ntotaldofs);
+	cbig = 1.0e30;
 }
 
 void LaplaceSIP::compute_boundary_states(const std::vector<Vector>& instates, std::vector<Vector>& bounstates)
 {
-	for(a_int iface = 0; iface < m->gnbface(); iface++)
-	{
-		if(m->gintfacbtags(iface,0) == dirichlet_id) {
-			//
-		}
-	}
 }
 
 void LaplaceSIP::computeLHS()
 {
+	typedef Eigen::SparseMatrix<a_real>::StorageIndex StorageIndex;
+	class Triplet
+	{
+	public:
+	  Triplet() : m_row(0), m_col(0), m_value(0) {}
+
+	  Triplet(const StorageIndex& i, const StorageIndex& j, const Scalar& v = Scalar(0))
+		: m_row(i), m_col(j), m_value(v)
+	  {}
+
+	  /** \returns the row index of the element */
+	  const StorageIndex& row() const { return m_row; }
+
+	  /** \returns the column index of the element */
+	  const StorageIndex& col() const { return m_col; }
+
+	  /** \returns the value of the element */
+	  const a_real& value() const { return m_value; }
+
+	  /// Accessor
+	  a_real& _value() { return m_value; }
+	protected:
+	  StorageIndex m_row, m_col;
+	  a_real m_value;
+	};
+
 	// declare LHS in coordinate (triplet) form for assembly
-	typedef Eigen::Triplet<a_real> COO;
+	typedef Triplet<a_real> COO;
 	std::vector<COO> coo; 
 	int ndofs = elems[0].getNumDOFs();
 	
@@ -229,8 +206,9 @@ void LaplaceSIP::computeLHS()
 		}
 
 		for(int i = 0; i < ndofs; i++)
-			for(int j = 0; j < ndofs; j++)
+			for(int j = 0; j < ndofs; j++) {
 				coo.push_back(COO(ielem*ndofs+i, ielem*ndofs+j, A(i,j)));
+			}
 	}
 
 	// face integrals
@@ -316,6 +294,15 @@ void LaplaceSIP::computeLHS()
 				coo.push_back(COO( lelem*ndofs+i, lelem*ndofs+j, -Bkk(i,j)-Bkk(j,i) +Skk(i,j) ));
 	}
 
+	// apply Dirichlet penalties
+	for(int i = 0; i < coo.size(); i++)
+	{
+		if(coo[i].row() == coo[i].col()){
+			if(dirdofflags[coo[i].row()])
+				coo[i]._value() = cbig*coo[i].value();
+		}
+	}
+
 	// assemble
 	lhs.setFromTriplets(coo.begin(), coo.end());
 }
@@ -340,10 +327,58 @@ void LaplaceSIP::computeRHS()
 		for(int i = 0; i < ndofs; i++)
 			bg(iel*ndofs+i) = bl(i);
 	}
+
+	// Homogeneous Dirichlet BCs
+	for(int i = 0; i < ntotaldofs; i++)
+		if(dirdofflags[i])
+			bg(i) = 0;
 }
 
-void computeErrors(a_real& __restrict__ l2error, a_real& __restrict__ siperror)
+void LaplaceSIP::solve()
 {
+	printf(" LaplaceSIP: solve: Assembling LHS and RHS\n");
+	computeLHS();
+	computeRHS();
+	printf(" LaplaceSIP: solve: Analyzing and factoring LHS...\n");
+	SparseLU<SparseMatrix<a_real>> solver;
+	solver.analyzePattern(Ag);
+	solver.factorize(Ag);
+	printf(" LaplaceSIP: solve: Solving\n");
+	ug = solver.solve(bg);
+	printf(" LaplaceSIP: solve: Done.\n");
+
+	/*int ndofs = elems[0].getNumDOFs();
+	for(int iel = 0; iel < m->gnelem(); iel++)
+	{
+		for(int ino = 0; ino < m->gnnode(iel); ino++) {
+			a_int pno = m->ginpoel(iel,ino);
+			if(m->gflag_bpoin(pno) == 1)
+				ug(iel*ndofs+ino) = 0;
+		}
+	}*/
+}
+
+void LaplaceSIP::postprocess()
+{
+	output.resize(m->gnpoin());
+	std::vector<int> surelems(m->gnpoin(),0);
+	int ndofs = elems[0].getNumDOFs();
+
+	for(int iel = 0; iel < m->gnelem(); iel++)
+	{
+		// iterate over vertices of element
+		for(int ino = 0; ino < m->gnfael(iel); ino++) {
+			output(m->ginpoel(iel,ino)) += ug(iel*ndofs+ino);
+			surelems[m->ginpoel(iel,ino)] += 1;
+		}
+	}
+	for(int ip = 0; ip < m->gnpoin(); ip++)
+		output(ip) /= (a_real)surelems[ip];
+}
+
+void computeErrors(a_real& __restrict__ l2error, a_real& __restrict__ siperror) const
+{
+	std::printf(" LaplaceSIP: computeErrors: Computing the L2 and SIP norm of the error\n");
 	int ndofs = elems[0].getNumDOFs();
 	l2error = 0; siperror = 0;
 	
@@ -426,6 +461,7 @@ void computeErrors(a_real& __restrict__ l2error, a_real& __restrict__ siperror)
 	}
 
 	l2error = std::sqrt(l2error); siperror = std::sqrt(siperror);
+	std::printf(" LaplaceSIP: computeErrors: Done.\n");
 }
 
 EulerFlow::EulerFlow(const UMesh2dh* mesh, const int _p_degree, a_real gamma, Vector& u_inf, Vector& u_in, Vector& u_out, int boun_ids[6])

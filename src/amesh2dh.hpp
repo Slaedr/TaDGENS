@@ -156,6 +156,8 @@ public:
 	void readDomn(std::string mfile);
 
 	/// Reads mesh from Gmsh 2 format file
+	/** Also sets a [flag](@ref flag_bpoin) for each point according to whether or not it is a boundary point.
+	 */
 	void readGmsh2(std::string mfile, int dimensions);
 	
 	/// Stores (in array bpointsb) for each boundary point: the associated global point number and the two bfaces associated with it.

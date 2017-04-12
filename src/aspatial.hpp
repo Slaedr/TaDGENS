@@ -28,6 +28,8 @@
 #include "aelements.hpp"
 #endif
 
+#include <Eigen/Sparse>
+
 namespace acfd {
 
 /// Base class for spatial discretization and integration of weak forms of PDEs
@@ -43,6 +45,7 @@ protected:
 	std::vector<Matrix> m_inv;						///< Inverse of mass matrix for each variable of each element
 	std::vector<Vector> residual;					///< Right hand side for boundary integrals and source terms
 	int p_degree;									///< Polynomial degree of trial/test functions
+	a_int ntotaldofs;								///< Total number of DOFs in the discretization (for 1 physical variable)
 
 	/// stores (for each cell i) \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, where v_n and c are average values of the cell faces
 	std::vector<a_real> integ;
@@ -124,8 +127,8 @@ public:
 };
 
 /// Symmetric interior penalty scheme for Laplace operator
-/** Completely steady-state formulation with strong boundary conditions,
- * currently only Dirichlet boundaries.
+/** \note Strong boundary conditions, hence only nodal basis!
+ * Currently only Dirichlet boundaries.
  */
 class LaplaceSIP : public SpatialBase
 {
@@ -139,26 +142,31 @@ protected:
 	int dirichlet_id;									///< Boundary marker for Dirichlet boundary
 	int neumann_id;										///< Boundary marker for homogeneous Neumann boundary
 	a_real dirichlet_value;								///< Dirichlet boundary value
+	std::vector<a_int> dirdofflags;						///< Binary flag for each DOF, identifying as lying on a Dirichlet boundary or not
+	a_int ndirdofs;										///< Number of Dirichlet DOFs
+	a_real cbig;										///< Penalty for Dirichlet condition
 
-	Eigen::SparseMatrix<a_real, Eigen::RowMajor> Ag;	///< Global left hand side matrix
+	Eigen::SparseMatrix<a_real> Ag;						///< Global left hand side matrix
 	Vector bg;											///< Global load vector
 	Vector ug;											///< 'Global' solution vector
+	amat::Array2d<a_real> output;						///< Output array for plotting
 
 public:
-	LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, 
+	LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real eta,
 			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
-			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_gradx)(a_real,a_real),
-			int boundary_ids[2], a_real dir_value);
+			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_grady)(a_real,a_real));
 	void computeLHS();
 	void computeRHS();
 	void solve();
 
 	/// Computes errors in L2 and SIP norms
-	void computeErrors(a_real& l2error, a_real& siperror);
+	void computeErrors(a_real& l2error, a_real& siperror) const;
 
-	void  postprocess() {};
+	void  postprocess();
+	const amat::Array2d<a_real>& getoutput() const {
+		return output;
+	}
 	void update_residual() {};
-	const amat::Array2d<a_real>& getoutput() const {};
 };
 
 /// Spatial discretization for 2D Euler equations

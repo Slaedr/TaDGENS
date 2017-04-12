@@ -22,7 +22,7 @@ elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 endif()
 
 # Eigen
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_DONT_PARALLELIZE)
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_DONT_PARALLELIZE")
 include_directories($ENV{EIGEN_DIR})
 
 # ---------------------------------------------------------------------------- #
@@ -30,7 +30,7 @@ include_directories($ENV{EIGEN_DIR})
 # flags and stuff
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ggdb -DDEBUG=1")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -UDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -UDEBUG -DNDEBUG")
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     message(STATUS "Debug mode")
@@ -39,18 +39,17 @@ else()
 endif()
 
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+#set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 # libraries to be compiled
-add_library(tadgens_base areconstruction.cpp alimiter.cpp anumericalflux.cpp aoutput.cpp amesh2dh.cpp amatrix.cpp adatastructures.cpp)
-
-add_library(tadgens_explicit aexplicitsolver.cpp)
-target_link_libraries(tadgens_explicit tadgens_base)
+add_library(tadgens_base aoutput.cpp aelements.cpp aquadrature.cpp amesh2dh.cpp adatastructures.cpp)
+add_library(tadgens_spatial aspatial.cpp)
+target_link_libraries(tadgens_spatial tadgens_base)
 
 # for the final executable(s)
 
 add_subdirectory(utilities)
 
-add_executable(tadgense explicitsolver.cpp)
-target_link_libraries(tadgense tadgens_explicit)
+add_executable(poisson explicitsolver.cpp)
+target_link_libraries(poisson tadgens_base tadgens_spatial)
 

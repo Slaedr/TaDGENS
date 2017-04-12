@@ -17,7 +17,7 @@
 #define __AARRAY2D_H
 
 #ifndef __ACONSTANTS_H
-#include "constants.hpp"
+#include "aconstants.hpp"
 #endif
 
 #ifndef MATRIX_DOUBLE_PRECISION

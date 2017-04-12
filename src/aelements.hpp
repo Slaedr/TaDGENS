@@ -38,7 +38,7 @@ protected:
 	int degree;								///< Polynomial degree of the mapping
 	amat::Array2d<a_real> phyNodes;			///< Physical locations of the nodes
 	std::vector<Vector> normals;			///< Unit normals at quadrature points
-	std::vector<Vector> speeds;				///< Magnitude of tangent vectors to the curve at quadrature points
+	std::vector<a_real> speeds;				///< Magnitude of tangent vectors to the curve at quadrature points
 	amat::Array2d<a_real> mapping;			///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
 	const Quadrature1D* quadrature;			///< Gauss points and weights for integrating quantities
 
@@ -61,7 +61,7 @@ public:
 	}
 
 	/// Read-only access to the curve "speed"
-	const std::vector<Vector>& speed() const {
+	const std::vector<a_real>& speed() const {
 		return speeds;
 	}
 
@@ -103,7 +103,7 @@ public:
 class GeomMapping2D
 {
 protected:
-	Shape2d shape;								///< Shape of the element
+	Shape shape;								///< Shape of the element
 	int degree;									///< Polynomial degree of the map
 	amat::Array2d<a_real> phyNodes;				///< Physical coordinates of the nodes
 	std::vector<MatrixDim> jaco;				///< Jacobian matrix of the mapping
@@ -118,7 +118,7 @@ public:
 		return degree;
 	}
 
-	Shape2d getShape() const {
+	Shape getShape() const {
 		return shape;
 	}
 
@@ -213,7 +213,7 @@ public:
 	/** \param[in] geommap The geometric mapping should be initialized beforehand;
 	 * however, the computation of required geometric quantities such as the Jacobian is done here.
 	 */
-	virtual void initialize(int degr, const GeomMapping2D* geommap) = 0;
+	virtual void initialize(int degr, GeomMapping2D* geommap) = 0;
 
 	/// Computes values of basis functions at given points in either reference space or physical space
 	virtual void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const = 0;
@@ -226,7 +226,7 @@ public:
 	{
 		a_real val = 0;
 		for(int i = 0; i < ndof; i++)
-			val += dofs[i]*basis[ig](i);
+			val += dofs[i]*basis(ig,i);
 		return val;
 	}
 
@@ -274,10 +274,10 @@ class TaylorElement : public Element
 	std::vector<std::vector<a_real>> basisOffset;		///< The quantities by which the basis functions are offset from actual Taylor polynomial basis
 public:
 	/// Sets data, computes geometric map data and computes basis functions and their gradients
-	void initialize(int degr, const GeomMapping2D* geommap);
+	void initialize(int degr, GeomMapping2D* geommap);
 	
 	/// Computes values of basis functions at a given point in physical space
-	void computeBasis(const a_real *const point, a_real *const basisvalues) const;
+	void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const;
 	
 	/// Computes basis functions' gradients at given points in physical space
 	void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const;
@@ -298,10 +298,10 @@ class LagrangeElement : public Element
 {
 public:
 	/// Sets data and computes basis functions and their gradients
-	void initialize(int degr, const GeomMapping2D* geommap);
+	void initialize(int degr, GeomMapping2D* geommap);
 	
 	/// Computes values of basis functions at a given point in reference space
-	void computeBasis(const a_real *const point, a_real *const basisvalues) const;
+	void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const;
 	
 	/// Computes basis functions' gradients at given points in reference space
 	void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const;
@@ -314,7 +314,7 @@ class DummyElement : public Element
 {
 public:
 	void initialize(int degr, const GeomMapping2D* geommap) { type = NONEXISTENT; }
-	void computeBasis(const a_real *const point, a_real *const basisvalues) const { }
+	void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const;
 };
 
 /// An interface "element" between 2 adjacent finite elements
@@ -329,7 +329,7 @@ class FaceElement
 	amat::Array2d<a_real> leftbasis;					///< Values of the left element's basis functions at the face quadrature points
 	amat::Array2d<a_real> rightbasis;					///< Values of the left element's basis functions at the face quadrature points
 	std::vector<Matrix> leftbgrad;						///< left element's basis gradients at face quadrature points
-	std::vector<Matrix> rightgrad;						///< right element's basis gradients at face quadrature points
+	std::vector<Matrix> rightbgrad;						///< right element's basis gradients at face quadrature points
 	const GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
 
 	/// Computes 2D reference coordinates on the face of an element that shares this face corresponding to face reference points
@@ -338,12 +338,12 @@ class FaceElement
 	 * \param[in] lfn Local face number of this face in element elem
 	 * \praram[in|out] lpoints Contains 2D reference coordinates of face quadrature points in element elem on output.
 	 */
-	void FaceElement::getElementRefCoords(const Array2d<a_real>& facepoints, const Element *const elem,
-		const int lfn, Array2d<a_real>& lpoints);
+	void getElementRefCoords(const amat::Array2d<a_real>& facepoints, const Element *const elem,
+		const int lfn, amat::Array2d<a_real>& lpoints);
 public:
 	/// Sets data; computes basis function values of left and right element at each quadrature point
 	/** \note Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
-	 * \param[in] geommap The geometric mapping must be [initialized](@ref GeomMapping1D::setAll) and map and normals computed externally
+	 * \param[in] geommap The geometric mapping must be [initialized](@ref GeomMapping1D::setAll) and map and normals [computed externally](@ref GeomMapping1D::computeAll)
 	 * \param[in] l_localface The local face number of this face as seen from the left element
 	 * \param[in] r_localface The local face number of this face as seen from the right element
 	 */

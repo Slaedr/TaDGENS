@@ -31,9 +31,7 @@ namespace acfd
 	typedef double a_real;
 	typedef int a_int;
 
-	/// A type encoding the shape of 2D elements
-	enum Shape2d {TRIANGLE, QUADRANGLE};
-
+	/// A type encoding the shape
 	enum Shape {LINE, TRIANGLE, QUADRANGLE};
 }
 
