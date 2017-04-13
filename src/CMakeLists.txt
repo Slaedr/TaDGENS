@@ -42,14 +42,14 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 #set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 # libraries to be compiled
-add_library(tadgens_base aoutput.cpp aelements.cpp aquadrature.cpp amesh2dh.cpp adatastructures.cpp)
-add_library(tadgens_spatial aspatial.cpp)
-target_link_libraries(tadgens_spatial tadgens_base)
+add_library(tadgens_base aoutput.cpp aspatial.cpp aelements.cpp aquadrature.cpp amesh2dh.cpp adatastructures.cpp)
+add_library(tadgens_poisson aspatialpoisson.cpp)
+target_link_libraries(tadgens_poisson tadgens_base)
 
 # for the final executable(s)
 
 add_subdirectory(utilities)
 
-add_executable(poisson explicitsolver.cpp)
-target_link_libraries(poisson tadgens_base tadgens_spatial)
+add_executable(poisson poisson.cpp)
+target_link_libraries(poisson tadgens_poisson)
 

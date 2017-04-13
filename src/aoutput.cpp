@@ -272,7 +272,7 @@ void writeMeshToVtu(std::string fname, acfd::UMesh2dh& m)
 			elemcode = 23;
 		else if(m.gnnode(i) == 9)
 			elemcode = 23;
-			out << "\t\t\t\t" << elemcode << '\n';
+		out << "\t\t\t\t" << elemcode << '\n';
 	}
 	out << "\t\t\t</DataArray>\n";
 	out << "\t\t</Cells>\n";

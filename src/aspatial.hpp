@@ -20,15 +20,9 @@
 #include "amesh2dh.hpp"
 #endif
 
-#ifndef __ANUMERICALFLUX_H
-#include "anumericalflux.hpp"
-#endif
-
 #ifndef __AELEMENTS_H
 #include "aelements.hpp"
 #endif
-
-#include <Eigen/Sparse>
 
 namespace acfd {
 
@@ -42,7 +36,7 @@ class SpatialBase
 {
 protected:
 	const UMesh2dh* m;								///< Mesh context; requires compute_topological() and compute_boundary_maps() to have been called
-	std::vector<Matrix> m_inv;						///< Inverse of mass matrix for each variable of each element
+	std::vector<Matrix> minv;						///< Inverse of mass matrix for each variable of each element
 	std::vector<Vector> residual;					///< Right hand side for boundary integrals and source terms
 	int p_degree;									///< Polynomial degree of trial/test functions
 	a_int ntotaldofs;								///< Total number of DOFs in the discretization (for 1 physical variable)
@@ -62,7 +56,7 @@ protected:
 	/// Integral of fluxes across each face for all dofs
 	/** The entries corresponding to different DOFs of a given flow variable are stored contiguously.
 	 */
-	std::vector<Array2d<a_real>> faceintegral;
+	std::vector<amat::Array2d<a_real>> faceintegral;
 
 	/// vector of unknowns
 	/** Each Eigen3 (E3) Vector contains the DOF values for an element.
@@ -94,7 +88,7 @@ public:
 	/** \param[in] mesh is the mesh context
 	 * \param _p_degree is the polynomial degree for FE basis functions
 	 */
-	SpatialBase(const UMesh2dh* mesh, const int _p_degree);
+	SpatialBase(const UMesh2dh* mesh, const int _p_degree, char basistype);
 
 	virtual ~SpatialBase();
 
@@ -115,116 +109,15 @@ public:
 	}
 
 	/// Mass matrix
-	const std::vector<std::array<Matrix, nvars>>& mass() const {
-		return m_inv;
+	const std::vector<Matrix>& mass() const {
+		return minv;
 	}
 
 	/// Compute quantities to export
 	virtual void postprocess() = 0;
 
 	/// Read-only access to output quantities
-	virtual const amat::Array2d<a_real>& getoutput() const = 0;
-};
-
-/// Symmetric interior penalty scheme for Laplace operator
-/** \note Strong boundary conditions, hence only nodal basis!
- * Currently only Dirichlet boundaries.
- */
-class LaplaceSIP : public SpatialBase
-{
-protected:
-	a_real nu;											///< Diffusivity
-	a_real eta;											///< Penalty
-	a_real (*const rhs)(a_real, a_real);				///< forcing function
-	a_real (*const exact)(a_real, a_real);				///< Exact solution
-	a_real (*const exactgradx)(a_real, a_real);			///< Exact x-derivative of exact solution
-	a_real (*const exactgrady)(a_real, a_real);			///< Exact y-derivative of exact solution
-	int dirichlet_id;									///< Boundary marker for Dirichlet boundary
-	int neumann_id;										///< Boundary marker for homogeneous Neumann boundary
-	a_real dirichlet_value;								///< Dirichlet boundary value
-	std::vector<a_int> dirdofflags;						///< Binary flag for each DOF, identifying as lying on a Dirichlet boundary or not
-	a_int ndirdofs;										///< Number of Dirichlet DOFs
-	a_real cbig;										///< Penalty for Dirichlet condition
-
-	Eigen::SparseMatrix<a_real> Ag;						///< Global left hand side matrix
-	Vector bg;											///< Global load vector
-	Vector ug;											///< 'Global' solution vector
-	amat::Array2d<a_real> output;						///< Output array for plotting
-
-public:
-	LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real eta,
-			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
-			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_grady)(a_real,a_real));
-	void computeLHS();
-	void computeRHS();
-	void solve();
-
-	/// Computes errors in L2 and SIP norms
-	void computeErrors(a_real& l2error, a_real& siperror) const;
-
-	void  postprocess();
-	const amat::Array2d<a_real>& getoutput() const {
-		return output;
-	}
-	void update_residual() {};
-};
-
-/// Spatial discretization for 2D Euler equations
-/** Most functions are virtual so that other solvers can be subclassed
- * and the functionality here can be selectively used.
- */
-class EulerFlow : public SpatialBase
-{
-protected:
-	a_real g;										///< Adiabatic index
-	Vector uinf;									///< Free-stream/reference condition
-	Vector uin;										///< Inflow condition
-	Vector uout;									///< Outflow condition
-	int slipwall_id;								///< Boundary marker corresponding to solid wall
-	int inflow_id;									///< Boundary marker corresponding to inflow
-	int outflow_id;									///< Boundary marker corresponding to outflow
-	int farfield_id;								///< Boundary marker corresponding to far field
-	int periodic_id;								///< Boundary marker for "periodic" boundary
-	int symmetry_id;								///< Boundary marker for "symmetry" boundary
-
-	/// Add contribution of inviscid numerical flux to flux storage
-	void inviscidFluxContribution();
-
-	/// Computes flow variables at boundaries (either Gauss points or ghost cell centers) using the interior state provided
-	/** \param[in] ins provides the left (interior state) for each boundary face
-	 * \param[in] n the unit normal vector to the face
-	 * \param[in] iface The face index in the [face structure](@ref UMesh2dh::intfac)
-	 * \param[out] bs will contain the right state of boundary faces
-	 *
-	 * Currently does not use characteristic BCs.
-	 * \todo Implement and test characteristic BCs
-	 */
-	virtual void EulerFlow::compute_boundary_states(const a_real ins[NVARS], const Vector& n, int iface, a_real bs[NVARS]);
-
-public:
-	/// Constructor
-	/** \param[in] mesh is the mesh context
-	 * \param _p_degree is the polynomial degree for FE basis functions
-	 * \param u_inf Farfield conditions - density, velocity magnitude, angle of attack and Mach number
-	 * \param u_in Inlet conditions - total pressure, total temperature, angle of attack and Mach number
-	 * \param u_out Outflow conditions - static pressure
-	 * \param boun_ids Boundary flags for the following types of boundary conditions in that order:
-	 * 0: slip wall, 1: inflow, 2: outflow, 3: far field, 4: periodic boundary, 5: symmetry boundary.
-	 * Some simulations may not require one or more of these, in which case dummy unallocated Vectors should be passed.
-	 */
-	EulerFlow(const UMesh2dh* mesh, const int _p_degree, Vector& u_inf, Vector& u_in, Vector& u_out, int boun_ids[6]);
-
-	/// Calls functions to update the [right hand side](@ref residual)
-	virtual void update_residual();
-
-	/// Compute norm of entropy production
-	a_real compute_entropy();
-
-	/// Compute nodal quantities to export, based on area-weighted averaging (which takes into account ghost cells as well)
-	virtual void postprocess();
-
-	/// Read-only access to output quantities
-	virtual const amat::Array2d<a_real>& getoutput() const;
+	virtual const amat::Array2d<a_real>& getOutput() const = 0;
 };
 
 }	// end namespace

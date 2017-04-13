@@ -1,7 +1,7 @@
 // Simple square test case for Poisson problem with DGFEM
 // Aditya Kashi
 
-h = 0.075;
+h = 0.9;
 Point(1) = {0, 0, 0, h};
 Point(2) = {1, 0, 0, h};
 Point(3) = {1, 1, 0, h};
@@ -16,4 +16,4 @@ Physical Line(2) = {1, 2, 3, 4};
 Physical Surface(7) = {6};
 
 // Comment out for triangular mesh
-Recombine Surface {6};
+//Recombine Surface {6};

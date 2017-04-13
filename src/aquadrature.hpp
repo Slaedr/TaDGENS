@@ -28,6 +28,7 @@ protected:
 	amat::Array2d<a_real> gpoints;
 public:
 	virtual void initialize(const int n_poly) = 0;
+	virtual ~QuadratureRule() { }
 	
 	const amat::Array2d<a_real>& weights() const {
 		return gweights;

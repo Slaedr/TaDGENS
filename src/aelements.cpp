@@ -40,6 +40,7 @@ void LagrangeMapping1D::computeAll()
 			for(int idim = 0; idim < NDIM; idim++)
 				vel[idim] /= speeds[i];
 			normals[i][0] = vel[1]; normals[i][1] = -vel[0];
+			//std::printf("%d: %f, (%f,%f); ", i, speeds[i], normals[i][0], normals[i][1]);
 		}
 	}
 	else if(degree == 2) {
@@ -64,9 +65,11 @@ void LagrangeMapping1D::computeAll()
 		std::cout << "! LagrangeMapping1D: Chosen geometric order not available!\n";
 }
 
+/// A global function for computing 2D Lagrange mapping derivatives
 /** Mappings upto P2 are implemented.
  */
-void LagrangeMapping2D::calculateJacobianDetAndInverse(const amat::Array2d<a_real>& __restrict__ po, 
+void getLagrangeJacobianDetAndInverse(const amat::Array2d<a_real>& __restrict__ po, const Shape shape, 
+		const int degree, const amat::Array2d<a_real>& __restrict__ phyNodes,
 		std::vector<MatrixDim>& __restrict__ jacoi, std::vector<a_real>& __restrict__ jacod)
 {
 	std::vector<MatrixDim> jac(po.rows());
@@ -106,6 +109,12 @@ void LagrangeMapping2D::calculateJacobianDetAndInverse(const amat::Array2d<a_rea
 	}
 }
 
+void LagrangeMapping2D::calculateJacobianDetAndInverse(const amat::Array2d<a_real>& __restrict__ po, 
+		std::vector<MatrixDim>& __restrict__ jacoi, std::vector<a_real>& __restrict__ jacod) const
+{
+	getLagrangeJacobianDetAndInverse(po, shape, degree, phyNodes, jacoi, jacod);
+}
+
 void LagrangeMapping2D::computeForReferenceElement()
 {
 	const Array2d<a_real>& points = quadrature->points();
@@ -113,9 +122,9 @@ void LagrangeMapping2D::computeForReferenceElement()
 	int npoin = points.rows();
 	jacoinv.resize(npoin);
 	jacodet.resize(npoin);
-	mapping.resize(npoin,NDIM);
+	//mapping.resize(npoin,NDIM);
 
-	calculateJacobianDetAndInverse(points, jacoinv, jacodet);
+	getLagrangeJacobianDetAndInverse(points, shape, degree, phyNodes, jacoinv, jacodet);
 }
 
 void LagrangeMapping2D::computeForPhysicalElement()
@@ -167,6 +176,45 @@ void LagrangeMapping2D::computeForPhysicalElement()
 
 	for(int ip = 0; ip < npoin; ip++)
 		jacodet[ip] = jac(0,0)*jac(1,1) - jac(0,1)*jac(1,0);
+}
+
+void LagrangeMapping2D::computePhysicalCoordsOfDomainQuadraturePoints()
+{
+	const Array2d<a_real>& points = quadrature->points();
+	shape = quadrature->getShape();
+	int npoin = points.rows();
+	mapping.resize(npoin,NDIM);
+
+	if(shape == TRIANGLE)
+	{
+		if(degree == 1) {
+			for(int ip = 0; ip < npoin; ip++)
+			{
+				for(int idim = 0; idim < NDIM; idim++) 
+				{
+					mapping(ip,idim) = phyNodes(0,idim)*(1.0-points(ip,0)-points(ip,1)) + phyNodes(1,idim)*points(ip,0) + phyNodes(2,idim)*points(ip,1);
+				}
+			}
+		}
+		else if(degree == 2) {
+			for(int ip = 0; ip < npoin; ip++)
+			{
+				for(int idim = 0; idim < NDIM; idim++) 
+				{
+					mapping(ip,idim) = phyNodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
+						+ phyNodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
+						+ phyNodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
+						+ phyNodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
+						+ phyNodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
+						+ phyNodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
+				}
+			}
+		}
+	}
+	else if (shape == QUADRANGLE)
+	{
+		//TODO: Add bilinear and biquadratic shape functions
+	}
 }
 
 /** We currently have upto P2 elements.
@@ -330,7 +378,7 @@ void LagrangeElement::initialize(int degr, GeomMapping2D* geommap)
 	
 	// Compute basis functions and gradients
 	const Array2d<a_real>& gp = gmap->getQuadrature()->points();
-	const std::vector<MatrixDim>& jinv = gmap->jacInv();
+	//const std::vector<MatrixDim>& jinv = gmap->jacInv();
 	computeBasis(gp, basis);
 	computeBasisGrads(gp, basisGrad);
 }
@@ -367,7 +415,7 @@ void LagrangeElement::computeBasisGrads(const Array2d<a_real>& __restrict__ gp, 
 {
 	// evaluate Jacobian inverse at the given points
 	std::vector<MatrixDim> jinv(gp.rows());
-	std::vector<a_real> jdet;
+	std::vector<a_real> jdet(gp.rows());
 	gmap->calculateJacobianDetAndInverse(gp, jinv, jdet);
 	
 	if(gmap->getShape() == TRIANGLE) {
@@ -445,7 +493,6 @@ void FaceElement::initialize(const Element* lelem, const Element* relem, const G
 		leftbasis.resize(ng,lelem->getNumDOFs());
 		const Array2d<a_real>& points = gmap->map();
 		lelem->computeBasis(points, leftbasis);
-		relem->computeBasis(points, rightbasis);
 	}
 	else if(lelem->getType() == REFERENTIAL)
 	{
@@ -464,10 +511,10 @@ void FaceElement::initialize(const Element* lelem, const Element* relem, const G
 		const Array2d<a_real>& points = gmap->map();
 		relem->computeBasis(points, rightbasis);
 	}
-	else if(relem->getType() == REFERENTIAL) { 
+	else if(relem->getType() == REFERENTIAL)
 	{
 		// compute element reference coordinates of face quadrature points from their face reference coordinates
-		Array2d<a_real> lpoints(ng,NDIM), rpoints(ng,NDIM);
+		Array2d<a_real> rpoints(ng,NDIM);
 		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
 		getElementRefCoords(facepoints, rightel, rlfn, rpoints);
 	
@@ -484,7 +531,7 @@ void FaceElement::computeBasisGrads()
 	if(leftel->getType() == PHYSICAL) {
 		leftbgrad.resize(ng);
 		for(int ip = 0; ip < ng; ip++)
-			leftbgrad.resize(leftel->getNumDOFs(), NDIM);
+			leftbgrad[ip].resize(leftel->getNumDOFs(), NDIM);
 
 		const amat::Array2d<a_real>& gp = gmap->map();
 		leftel->computeBasisGrads(gp, leftbgrad);
@@ -493,7 +540,7 @@ void FaceElement::computeBasisGrads()
 	{
 		leftbgrad.resize(ng);
 		for(int ip = 0; ip < ng; ip++)
-			leftbgrad.resize(leftel->getNumDOFs(), NDIM);
+			leftbgrad[ip].resize(leftel->getNumDOFs(), NDIM);
 
 		Array2d<a_real> lpoints(ng,NDIM);
 		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
@@ -504,16 +551,16 @@ void FaceElement::computeBasisGrads()
 	if(rightel->getType() == PHYSICAL) {
 		rightbgrad.resize(ng);
 		for(int ip = 0; ip < ng; ip++)
-			rightbgrad.resize(rightel->getNumDOFs(), NDIM);
+			rightbgrad[ip].resize(rightel->getNumDOFs(), NDIM);
 
 		const amat::Array2d<a_real>& gp = gmap->map();
-		leftel->computeBasisGrads(gp, leftbgrad);
+		rightel->computeBasisGrads(gp, rightbgrad);
 	}
 	else if(rightel->getType() == REFERENTIAL)
 	{
 		rightbgrad.resize(ng);
 		for(int ip = 0; ip < ng; ip++)
-			rightbgrad.resize(rightel->getNumDOFs(), NDIM);
+			rightbgrad[ip].resize(rightel->getNumDOFs(), NDIM);
 
 		Array2d<a_real> rpoints(ng,NDIM);
 		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
@@ -525,6 +572,11 @@ void FaceElement::computeBasisGrads()
 void FaceElement::getElementRefCoords(const Array2d<a_real>& __restrict__ facepoints, const Element *const __restrict__ lelem, 
 		const int llfn, Array2d<a_real>& __restrict__ lpoints)
 {
+	int ng = facepoints.rows();
+#ifdef DEBUG
+	if(ng != lpoints.rows())
+		printf("!  FaceElement: getElementRefCoords: Size mismatch!\n");
+#endif
 	if(lelem->getGeometricMapping()->getShape() == TRIANGLE) {
 		if(llfn == 0)
 		{

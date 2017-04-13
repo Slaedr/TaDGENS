@@ -88,7 +88,7 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		gw = {{4.0}};*/
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
-		std::printf("Quadrature2DSquare: Ngauss = 1.\n");
+		std::printf("  Quadrature2DSquare: Ngauss = 1.\n");
 	}
 	else {
 		nPoly = 2;	// override argument
@@ -97,7 +97,7 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		a_real gw[][1] = {{1.0}, {1.0}, {1.0}, {1.0}};
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
-		std::printf("Quadrature2DSquare: Ngauss = 4.\n");
+		std::printf("  Quadrature2DSquare: Ngauss = 4.\n");
 	}
 }
 
@@ -111,7 +111,7 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 		a_real gw[][1] = {{0.5}};
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
-		printf("Quadrature2DTriangle: Ngauss = 1.\n");
+		printf("  Quadrature2DTriangle: Ngauss = 1.\n");
 	}
 	else if(nPoly == 2) {
 		ngauss = 3;
@@ -119,7 +119,7 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 		a_real gw[][1] = {{0.1666666666667}, {0.1666666666667}, {0.1666666666667}};
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
-		printf("Quadrature2DTriangle: Ngauss = 3.\n");
+		printf("  Quadrature2DTriangle: Ngauss = 3.\n");
 	}
 	else if(nPoly == 3) {
 		ngauss = 4;
@@ -127,7 +127,7 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 		a_real gw[][1] = {{-0.28125000000}, {0.26041666667}, {0.26041666667}, {0.26041666667}};
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
-		printf("Quadrature2DTriangle: Ngauss = 4.\n");
+		printf("  Quadrature2DTriangle: Ngauss = 4.\n");
 	}
 	else if(nPoly == 4) {
 		ngauss = 6;
@@ -145,7 +145,7 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 							{0.0549758718276610}};
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
-		printf("Quadrature2DTriangle: Ngauss = 6.\n");
+		printf("  Quadrature2DTriangle: Ngauss = 6.\n");
 	}
 	else if(nPoly == 5) {
 		ngauss = 7;
@@ -166,7 +166,7 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 							{0.12593918054483}};
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
-		printf("Quadrature2DTriangle: Ngauss = 7.\n");
+		printf("  Quadrature2DTriangle: Ngauss = 7.\n");
 	}
 	else { /* npoly == 6 */
 		ngauss = 12;
@@ -196,7 +196,7 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 							{0.0414255378091870}};
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
-		printf("Quadrature2DTriangle: Ngauss = 12.\n");
+		printf("  Quadrature2DTriangle: Ngauss = 12.\n");
 	}
 }
 

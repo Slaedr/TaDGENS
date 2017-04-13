@@ -1,9 +1,14 @@
+/** @file adatastructures.hpp
+ * @brief Some basic data structures and algorithms, used only in mesh class.
+ * @author Aditya Kashi
+ */
+
 #ifndef __ADATASTRUCTURES_H
 
 #define __ADATASTRUCTURES_H
 
 #ifndef __ACONSTANTS_H
-#include <aconstants.hpp>
+#include "aconstants.hpp"
 #endif
 
 template <class T>

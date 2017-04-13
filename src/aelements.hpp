@@ -82,6 +82,8 @@ public:
 	const Quadrature1D* getQuadrature() const {
 		return quadrature;
 	}
+
+	virtual ~GeomMapping1D() { }
 };
 
 /// 1D Lagrange basis parameterization of a boundary
@@ -129,18 +131,21 @@ public:
 		quadrature = quad;
 	}
 
-	/// Computes the Jacobian inverse and its determinant at a set of reference coordinates
-	virtual void calculateJacobianDetAndInverse(const amat::Array2d<a_real>& refpoints, std::vector<MatrixDim>& jacoi, std::vector<a_real>& jacod) = 0;
-
-	/// Sets the Jacobians, Jacobian inverses and Jacobian determinants corresponding to the quadrature points
+	/// Allocates and sets the Jacobian inverses and Jacobian determinants corresponding to the quadrature points
 	/** Call this function only after [setting up](@ref setAll).
 	 */
 	virtual void computeForReferenceElement() = 0;
 
 	/// Computes basis function values and Jacobian determinants at quadrature points
-	/** Note that storage is allocated only for mapping and jacodet.
+	/** Note that storage is allocated only for mapping and jacodet, not for Jacobian matrix or its inverse.
 	 */
 	virtual void computeForPhysicalElement() = 0;
+
+	/// Computes the Jacobian inverse and its determinant at a set of reference coordinates
+	virtual void calculateJacobianDetAndInverse(const amat::Array2d<a_real>& refpoints, std::vector<MatrixDim>& jacoi, std::vector<a_real>& jacod) const = 0;
+
+	/// Calculate physical coords of domain quadrature points separately, in case needed by referential elements
+	virtual void computePhysicalCoordsOfDomainQuadraturePoints() = 0;
 
 	/// Read-only access to physical node locations
 	const amat::Array2d<a_real>& getPhyNodes() const {
@@ -171,6 +176,8 @@ public:
 	const Quadrature2D* getQuadrature() const {
 		return quadrature;
 	}
+
+	virtual ~GeomMapping2D() { }
 };
 
 /// Lagrange geometric mapping on the reference triangle
@@ -186,7 +193,9 @@ public:
 
 	void computeForPhysicalElement();
 	
-	void calculateJacobianDetAndInverse(const amat::Array2d<a_real>& po, std::vector<MatrixDim>& jacoi, std::vector<a_real>& jacod);
+	void calculateJacobianDetAndInverse(const amat::Array2d<a_real>& po, std::vector<MatrixDim>& jacoi, std::vector<a_real>& jacod) const;
+	
+	void computePhysicalCoordsOfDomainQuadraturePoints();
 };
 
 /** \brief A type defining whether basis functions are defined in reference space or physical space
@@ -220,6 +229,8 @@ public:
 
 	/// Computes basis functions' gradients at given points in either reference space or physical space
 	virtual void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const = 0;
+
+	virtual ~Element() { }
 
 	/// Computes interpolated values at the quadrature point with index ig from given DOF values
 	a_real interpolate(const int ig, const a_real* const dofs) const
@@ -313,8 +324,9 @@ public:
 class DummyElement : public Element
 {
 public:
-	void initialize(int degr, const GeomMapping2D* geommap) { type = NONEXISTENT; }
-	void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const;
+	void initialize(int degr, GeomMapping2D* geommap) { type = NONEXISTENT; }
+	void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const { };
+	void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const { };
 };
 
 /// An interface "element" between 2 adjacent finite elements

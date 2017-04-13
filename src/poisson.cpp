@@ -4,7 +4,7 @@
  * @date 2017 April 11
  */
 
-#include "aspatial.hpp"
+#include "aspatialpoisson.hpp"
 #include "aoutput.hpp"
 
 using namespace amat;
@@ -21,7 +21,7 @@ double exactgrady(double x, double y) {
 	return sin(PI*x)*PI*cos(PI*y);
 }
 double rhs(double x, double y) {
-	return -2.0*PI*PI*sin(PI*x)*sin(PI*y);
+	return 2.0*PI*PI*sin(PI*x)*sin(PI*y);
 }
 
 int main(int argc, char* argv[])
@@ -35,8 +35,8 @@ int main(int argc, char* argv[])
 	// Read control file
 	ifstream control(argv[1]);
 
-	string dum, meshfile, outf, invflux, reconst, limiter;
-	double cfl, ttime, M_inf, vinf, alpha, rho_inf, tolerance, stab;
+	string dum, meshprefix, outf;
+	double stab;
 	int degree, nmesh;
 
 	control >> dum; control >> nmesh;
@@ -48,16 +48,17 @@ int main(int argc, char* argv[])
 
 	vector<string> mfiles(nmesh), sfiles(nmesh);
 	vector<double> h(nmesh,0), l2err(nmesh,0), siperr(nmesh,0);
+	string names[] = {"poisson"};
 
 	for(int i = 0; i < nmesh; i++) {
 		mfiles[i] = meshprefix + to_string(i) + ".msh";
 		sfiles[i] = meshprefix + to_string(i) + ".vtu";
 	}
 
-	for(imesh = 0; imesh < nmesh; imesh++)
+	for(int imesh = 0; imesh < nmesh; imesh++)
 	{
 		UMesh2dh m; m.readGmsh2(mfiles[imesh], NDIM); m.compute_topological();
-		LaplaceSIP sd(&m, degree, eta, &rhs, &exactsol, &exactgradx, &exactgrady);
+		LaplaceSIP sd(&m, degree, stab, &rhs, &exactsol, &exactgradx, &exactgrady);
 		sd.solve();
 		sd.postprocess();
 		sd.computeErrors(l2err[imesh], siperr[imesh]);
@@ -68,7 +69,7 @@ int main(int argc, char* argv[])
 
 		const Array2d<a_real>& u = sd.getOutput();
 		Array2d<a_real> vecs;
-		writeScalarsVectorToVTU_PointData(sfiles[imesh], m, output, "poisson", vecs, "none");
+		writeScalarsVectorToVtu_PointData(sfiles[imesh], m, u, names, vecs, "none");
 	}
 
 	ofstream convf(outf);
@@ -81,5 +82,6 @@ int main(int argc, char* argv[])
 		printf("L2 slope = %f, SIP slope = %f\n", l2slope, sipslope);
 	}
 
+	printf("---\n\n");
 	return 0;
 }
