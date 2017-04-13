@@ -3,7 +3,7 @@
 -Mesh-prefix
 ../testcases/poisson-square/grids/squaretest
 -output-file-for-convergence
-../testcases/poisson-square/errors.txt
+../testcases/poisson-square/errors-sip.txt
 -polynomial-degree-of-computed-solution
 1
 -stabilization-parameter

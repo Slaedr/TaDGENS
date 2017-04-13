@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 
 	for(int i = 0; i < nmesh; i++) {
 		mfiles[i] = meshprefix + to_string(i) + ".msh";
-		sfiles[i] = meshprefix + to_string(i) + ".vtu";
+		sfiles[i] = meshprefix + to_string(i) + "-SIP.vtu";
 	}
 
 	for(int imesh = 0; imesh < nmesh; imesh++)
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 		sd.postprocess();
 		sd.computeErrors(l2err[imesh], siperr[imesh]);
 		
-		l2err[imesh] = log10(l2err[imesh]); siperr[imesh] = log10(l2err[imesh]);
+		l2err[imesh] = log10(l2err[imesh]); siperr[imesh] = log10(siperr[imesh]);
 		h[imesh] = log10(sqrt(1.0/m.gnelem()));
 		printf("Mesh %d: Log mesh size = %f, log L2 error = %f, log SIP error = %f\n", imesh, h[imesh], l2err[imesh], siperr[imesh]);
 

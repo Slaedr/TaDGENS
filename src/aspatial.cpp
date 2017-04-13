@@ -13,9 +13,9 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char basisty
 	std::cout << " SpatialBase: Setting up spaital integrator for FE polynomial degree " << p_degree << std::endl;
 	
 	// set quadrature strength
-	int dom_quaddegree = 4*p_degree;
+	int dom_quaddegree = 2*p_degree;
 	if(m->degree() == 2) dom_quaddegree += 1;
-	int boun_quaddegree = 4*p_degree;
+	int boun_quaddegree = 2*p_degree;
 	if(m->degree() == 2) boun_quaddegree += 1;
 	std::cout << " SpatialBase: Quadrature strengths for domain and boundary integrals set at " << dom_quaddegree << ", " << boun_quaddegree << std::endl;
 

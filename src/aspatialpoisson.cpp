@@ -39,39 +39,51 @@ LaplaceSIP::LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, const a_real s
 	Ag.resize(ntotaldofs, ntotaldofs);
 	bg = Vector::Zero(ntotaldofs);
 	ug = Vector::Zero(ntotaldofs);
+
 	cbig = 1.0e30;
 	nu=1.0;
 }
 
-void LaplaceSIP::computeLHS()
+void LaplaceSIP::assemble()
 {
 	// declare LHS in coordinate (triplet) form for assembly
 	typedef Eigen::Triplet<a_real> COO;
 	std::vector<COO> coo; 
 	int ndofs = elems[0].getNumDOFs();
 	
-	// domain integral
+	// domain integral and RHS
 	for(int ielem = 0; ielem < m->gnelem(); ielem++)
 	{
+		const amat::Array2d<a_real>& basis = elems[ielem].bFunc();
 		const std::vector<Matrix>& bgrad = elems[ielem].bGrad();
 		const GeomMapping2D* gmap = elems[ielem].getGeometricMapping();
 		int ng = gmap->getQuadrature()->numGauss();
 		const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
+		const amat::Array2d<a_real>& quadp = map2d[ielem].map();
 
 		Matrix A = Matrix::Zero(ndofs,ndofs);
+		Vector bl = Vector::Zero(ndofs);
+
 		for(int ig = 0; ig < ng; ig++)
 		{
-			for(int i = 0; i < ndofs; i++)
+			a_real weightAndJDet = wts(ig)*map2d[ielem].jacDet()[ig];
+			for(int i = 0; i < ndofs; i++) 
+			{
+				bl(i) += rhs(quadp(ig,0),quadp(ig,1)) * basis(ig,i) * weightAndJDet;
 				for(int j = 0; j < ndofs; j++) {
-					A(i,j) += nu * bgrad[ig].row(i).dot(bgrad[ig].row(j)) * wts(ig) * gmap->jacDet()[ig];
+					A(i,j) += nu * bgrad[ig].row(i).dot(bgrad[ig].row(j)) * weightAndJDet;
 				}
+			}
 		}
 		//std::cout << A << std::endl << std::endl;
 
 		for(int i = 0; i < ndofs; i++)
+		{
+			bg(ielem*ndofs+i) = bl(i);
 			for(int j = 0; j < ndofs; j++) {
-				coo.push_back(COO(ielem*ndofs+i, ielem*ndofs+j, A(i,j)));
+					coo.push_back(COO(ielem*ndofs+i, ielem*ndofs+j, A(i,j)));
 			}
+		}
 	}
 
 	// face integrals
@@ -161,34 +173,31 @@ void LaplaceSIP::computeLHS()
 	Ag.setFromTriplets(coo.begin(), coo.end());
 
 	// apply Dirichlet penalties
-	printf("  Dir DOF flags ");
+	/*printf("  Dir DOF flags ");
 	for(int i = 0; i < ntotaldofs; i++)
 	{
 		if(dirdofflags[i]) {
 			Ag.coeffRef(i,i) *= cbig;
 		}
-	}
+	}*/
 	printf("\n");
 	/*Matrix agmat = Matrix(Ag);
 	std::cout << agmat;*/
 }
 
-void LaplaceSIP::computeRHS()
+/*void LaplaceSIP::computeRHS()
 {
 	int ndofs = elems[0].getNumDOFs();
-	for(int iel = 0; iel < m->gnelem(); iel++)
+	for(int ielem = 0; ielem < m->gnelem(); ielem++)
 	{
 		Vector bl = Vector::Zero(ndofs);
-		int ng = map2d[iel].getQuadrature()->numGauss();
-		const amat::Array2d<a_real>& wts = map2d[iel].getQuadrature()->weights();
-		const amat::Array2d<a_real>& quadp = map2d[iel].map();
-		const amat::Array2d<a_real>& basis = elems[iel].bFunc();
-		/*basis.mprint();
-		std::printf("\n---\n");
-		quadp.mprint();*/
+		int ng = map2d[ielem].getQuadrature()->numGauss();
+		const amat::Array2d<a_real>& wts = map2d[ielem].getQuadrature()->weights();
+		const amat::Array2d<a_real>& quadp = map2d[ielem].map();
+		const amat::Array2d<a_real>& basis = elems[ielem].bFunc();
 
 		for(int ig = 0; ig < ng; ig++) {
-			a_real weightAndJDet = wts(ig)*map2d[iel].jacDet()[ig];
+			a_real weightAndJDet = wts(ig)*map2d[ielem].jacDet()[ig];
 			for(int i = 0; i < ndofs; i++)
 				bl(i) += rhs(quadp(ig,0),quadp(ig,1)) * basis(ig,i) * weightAndJDet;
 		}
@@ -201,31 +210,57 @@ void LaplaceSIP::computeRHS()
 	for(int i = 0; i < ntotaldofs; i++)
 		if(dirdofflags[i])
 			bg(i) = 0;
-}
+}*/
 
 void LaplaceSIP::solve()
 {
 	printf(" LaplaceSIP: solve: Assembling LHS and RHS\n");
-	computeLHS();
-	computeRHS();
+	assemble();
 	//std::cout << Ag;
+	
+	printf(" LaplaceSIP: solve: Removing Dirichlet rows and cols\n");
+	Eigen::SparseMatrix<a_real> Af; Af.resize(ntotaldofs-ndirdofs, ntotaldofs-ndirdofs);
+	Vector bf = Vector::Zero(ntotaldofs-ndirdofs);
+	Vector uf = Vector::Zero(ntotaldofs-ndirdofs);
+	a_int I=0, J=0;
+	for(int i = 0; i < ntotaldofs; i++)
+	{
+		if(!dirdofflags[i]) {
+			for(int j = 0; j < ntotaldofs; j++)
+			{
+				if(!dirdofflags[j]) {
+					Af.coeffRef(I,J) = Ag.coeff(i,j);
+					J++;
+				}
+			}
+			bf(I) = bg(i);
+			I++;
+			J = 0;
+		}
+	}
+	
 	printf(" LaplaceSIP: solve: Analyzing and factoring LHS...\n");
 	Eigen::SparseLU<Eigen::SparseMatrix<a_real>> solver;
-	solver.analyzePattern(Ag);
-	solver.factorize(Ag);
+	solver.compute(Af);
 	printf(" LaplaceSIP: solve: Solving\n");
-	ug = solver.solve(bg);
+	uf = solver.solve(bf);
 	printf(" LaplaceSIP: solve: Done.\n");
-
-	/*int ndofs = elems[0].getNumDOFs();
-	for(int iel = 0; iel < m->gnelem(); iel++)
+	
+	I=0;
+	//int ndofs = elems[0].getNumDOFs();
+	for(int i = 0; i < ntotaldofs; i++)
 	{
-		for(int ino = 0; ino < m->gnnode(iel); ino++) {
-			a_int pno = m->ginpoel(iel,ino);
-			if(m->gflag_bpoin(pno) == 1)
-				ug(iel*ndofs+ino) = 0;
+		if(!dirdofflags[i]) {
+			// assign computed value
+			ug(i) = uf(I);
+			I++;
 		}
-	}*/
+		/*else {
+			// assign boundary value
+			a_int iel = i/ndofs; int idof = i % ndofs;
+			amat::Array2d<a_real>& map2d[iel].getPhyNodes();
+		}*/
+	}
 }
 
 void LaplaceSIP::postprocess()
@@ -297,7 +332,7 @@ void LaplaceSIP::computeErrors(a_real& __restrict__ l2error, a_real& __restrict_
 			a_real weightandspeed = wts(ig) * map1d[iface].speed()[ig];
 			a_real lu = 0;
 			for(int j = 0; j < ndofs; j++) {
-				lu += ug(lelem*ndofs+j)*lbas(ig,j) - ug(relem+j*ndofs)*rbas(ig,j);
+				lu += ug(lelem*ndofs+j)*lbas(ig,j) - ug(relem*ndofs+j)*rbas(ig,j);
 			}
 			siperror += hinv * lu*lu * weightandspeed;
 		}
@@ -329,6 +364,169 @@ void LaplaceSIP::computeErrors(a_real& __restrict__ l2error, a_real& __restrict_
 
 	l2error = std::sqrt(l2error); siperror = std::sqrt(siperror);
 	std::printf(" LaplaceSIP: computeErrors: Done.\n");
+}
+
+LaplaceC::LaplaceC(const UMesh2dh* mesh, const int _p_degree, const a_real stab,
+			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
+			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_grady)(a_real,a_real))
+	: SpatialBase(mesh, _p_degree, 'l'), eta(stab), rhs(f), exact(exact_sol), exactgradx(exact_gradx), exactgrady(exact_grady)
+{
+	computeFEData();
+
+	for(int iel = 0; iel < m->gnelem(); iel++)
+		map2d[iel].computePhysicalCoordsOfDomainQuadraturePoints();
+
+	for(int iface = 0; iface < m->gnaface(); iface++)
+		faces[iface].computeBasisGrads();
+
+	Ag.resize(m->gnpoin(), m->gnpoin());
+	bg = Vector::Zero(m->gnpoin());
+	ug = Vector::Zero(m->gnpoin());
+
+	cbig = 1.0e30;
+	nu=1.0;
+}
+
+void LaplaceC::assemble()
+{
+	// declare LHS in coordinate (triplet) form for assembly
+	typedef Eigen::Triplet<a_real> COO;
+	std::vector<COO> coo; 
+	int ndofs = elems[0].getNumDOFs();
+	
+	// domain integral
+	for(int ielem = 0; ielem < m->gnelem(); ielem++)
+	{
+		const amat::Array2d<a_real>& basis = elems[ielem].bFunc();
+		const std::vector<Matrix>& bgrad = elems[ielem].bGrad();
+		const GeomMapping2D* gmap = elems[ielem].getGeometricMapping();
+		int ng = gmap->getQuadrature()->numGauss();
+		const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
+		const amat::Array2d<a_real>& quadp = map2d[ielem].map();
+
+		Matrix A = Matrix::Zero(ndofs,ndofs);
+		Vector bl = Vector::Zero(ndofs);
+
+		for(int ig = 0; ig < ng; ig++)
+		{
+			a_real weightAndJDet = wts(ig)*map2d[ielem].jacDet()[ig];
+			for(int i = 0; i < ndofs; i++) 
+			{
+				bl(i) += rhs(quadp(ig,0),quadp(ig,1)) * basis(ig,i) * weightAndJDet;
+				for(int j = 0; j < ndofs; j++) {
+					A(i,j) += nu * bgrad[ig].row(i).dot(bgrad[ig].row(j)) * weightAndJDet;
+				}
+			}
+		}
+		//std::cout << A << std::endl << std::endl;
+		
+		for(int i = 0; i < ndofs; i++)
+		{
+			bg(m->ginpoel(ielem,i)) += bl(i);
+			for(int j = 0; j < ndofs; j++) {
+					coo.push_back(COO(m->ginpoel(ielem,i), m->ginpoel(ielem,j), A(i,j)));
+			}
+		}
+	}
+	
+	// assemble
+	Ag.setFromTriplets(coo.begin(), coo.end());
+
+	// apply Dirichlet penalties
+	for(int i = 0; i < m->gnpoin(); i++)
+	{
+		if(m->gflag_bpoin(i)) {
+			Ag.coeffRef(i,i) *= cbig;
+			bg(i) = 0;
+		}
+	}
+}
+
+void LaplaceC::solve()
+{
+	printf(" LaplaceC: solve: Assembling LHS and RHS\n");
+	assemble();
+	//std::cout << Ag;
+	
+	/*printf(" LaplaceC: solve: Removing Dirichlet rows and cols\n");
+	Eigen::SparseMatrix<a_real> Af; Af.resize(ntotaldofs-ndirdofs, ntotaldofs-ndirdofs);
+	Vector bf = Vector::Zero(ntotaldofs-ndirdofs);
+	Vector uf = Vector::Zero(ntotaldofs-ndirdofs);
+	a_int I=0, J=0;
+	for(int i = 0; i < ntotaldofs; i++)
+	{
+		if(!dirdofflags[i]) {
+			for(int j = 0; j < ntotaldofs; j++)
+			{
+				if(!dirdofflags[j]) {
+					Af.coeffRef(I,J) = Ag.coeff(i,j);
+					J++;
+				}
+			}
+			bf(I) = bg(i);
+			I++;
+			J = 0;
+		}
+	}*/
+	
+	printf(" LaplaceC: solve: Analyzing and factoring LHS...\n");
+	Eigen::SparseLU<Eigen::SparseMatrix<a_real>> solver;
+	solver.compute(Ag);
+	printf(" LaplaceC: solve: Solving\n");
+	ug = solver.solve(bg);
+	printf(" LaplaceC: solve: Done.\n");
+	
+	/*I=0;
+	//int ndofs = elems[0].getNumDOFs();
+	for(int i = 0; i < ntotaldofs; i++)
+	{
+		if(!dirdofflags[i]) {
+			// assign computed value
+			ug(i) = uf(I);
+			I++;
+		}
+	}*/
+}
+
+void LaplaceC::postprocess()
+{
+	output.resize(m->gnpoin());
+	for(int i = 0; i < m->gnpoin(); i++)
+		output(i) = ug(i);
+}
+
+void LaplaceC::computeErrors(a_real& __restrict__ l2error, a_real& __restrict__ siperror) const
+{
+	std::printf(" LaplaceC: computeErrors: Computing the L2 and H1 norm of the error\n");
+	int ndofs = elems[0].getNumDOFs();
+	l2error = 0; siperror = 0;
+	
+	// domain integral
+	for(int ielem = 0; ielem < m->gnelem(); ielem++)
+	{
+		const std::vector<Matrix>& bgrad = elems[ielem].bGrad();
+		const amat::Array2d<a_real>& bfunc = elems[ielem].bFunc();
+		const GeomMapping2D* gmap = elems[ielem].getGeometricMapping();
+		int ng = gmap->getQuadrature()->numGauss();
+		const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
+		const amat::Array2d<a_real>& qp = gmap->map();
+
+		for(int ig = 0; ig < ng; ig++)
+		{
+			a_real lu = 0, lux = 0, luy = 0;
+			for(int j = 0; j < ndofs; j++) {
+				lu += ug(m->ginpoel(ielem,j))*bfunc(ig,j);
+				lux += ug(m->ginpoel(ielem,j))*bgrad[ig](j,0);
+				luy += ug(m->ginpoel(ielem,j))*bgrad[ig](j,1);
+			}
+			l2error += std::pow(lu-exact(qp(ig,0),qp(ig,1)),2) * wts(ig) * gmap->jacDet()[ig];
+			siperror += ( std::pow(lux-exactgradx(qp(ig,0),qp(ig,1)),2) + std::pow(luy-exactgrady(qp(ig,0),qp(ig,1)),2) ) * wts(ig) * gmap->jacDet()[ig];
+		}
+	}
+
+	siperror += l2error;
+	l2error = std::sqrt(l2error); siperror = std::sqrt(siperror);
+	std::printf(" LaplaceC: computeErrors: Done.\n");
 }
 
 }	// end namespace

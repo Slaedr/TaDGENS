@@ -50,6 +50,8 @@ target_link_libraries(tadgens_poisson tadgens_base)
 
 add_subdirectory(utilities)
 
-add_executable(poisson poisson.cpp)
-target_link_libraries(poisson tadgens_poisson)
+add_executable(poissonsip poissonSIP.cpp)
+target_link_libraries(poissonsip tadgens_poisson)
+add_executable(poissonc poissonC.cpp)
+target_link_libraries(poissonc tadgens_poisson)
 
