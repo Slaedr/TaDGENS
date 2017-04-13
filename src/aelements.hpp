@@ -348,10 +348,11 @@ class FaceElement
 	/** \param[in] facepoints 1D coordinate on the face
 	 * \param[in] elem Pointer to element
 	 * \param[in] lfn Local face number of this face in element elem
+	 * \param[in] isright A flag that's 1 if elem is the left element and -1 if it's the right.
 	 * \praram[in|out] lpoints Contains 2D reference coordinates of face quadrature points in element elem on output.
 	 */
 	void getElementRefCoords(const amat::Array2d<a_real>& facepoints, const Element *const elem,
-		const int lfn, amat::Array2d<a_real>& lpoints);
+		const int lfn, const int isright, amat::Array2d<a_real>& lpoints);
 public:
 	/// Sets data; computes basis function values of left and right element at each quadrature point
 	/** \note Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!
@@ -359,7 +360,7 @@ public:
 	 * \param[in] l_localface The local face number of this face as seen from the left element
 	 * \param[in] r_localface The local face number of this face as seen from the right element
 	 */
-	void initialize(const Element* lelem, const Element* relem, const GeomMapping1D* geommap, const int l_localface, const int r_localface);
+	void initialize(const Element *const lelem, const Element *const relem, const GeomMapping1D *const geommap, const int l_localface, const int r_localface);
 	
 	/// Computes gradients of the left- and right-elements' basis functions at face quadrature points
 	/** To be called only after [initializing](@ref initialize) the face element.

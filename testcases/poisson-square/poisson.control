@@ -1,7 +1,7 @@
 -number-of-meshes
 1
 -Mesh-prefix
-../testcases/poisson-square/grids/squaretest
+../testcases/poisson-square/grids/square
 -output-file-for-convergence
 ../testcases/poisson-square/errors-sip.txt
 -polynomial-degree-of-computed-solution

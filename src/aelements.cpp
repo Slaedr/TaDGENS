@@ -28,7 +28,7 @@ void LagrangeMapping1D::computeAll()
 		for(int i = 0; i < npoin; i++)
 		{
 			for(int idim = 0; idim < NDIM; idim++) {
-				// mapping - num of Lagrange shape functions mulitplied by resp coeffs
+				// mapping - sum of Lagrange shape functions multiplied by resp coeffs
 				mapping[i][idim] = phyNodes(0,idim)*(1.0-points(i))*0.5 + phyNodes(1,idim)*(1.0+points(i))*0.5;
 				// get sum Lagrange derivatives multiplied by coeffs
 				vel[idim] = (phyNodes[1][idim] - phyNodes[0][idim])/2.0;
@@ -353,7 +353,7 @@ void TaylorElement::computeBasisGrads(const amat::Array2d<a_real>& __restrict__ 
 	}
 }
 
-/// \todo FIXME: We're doing redundant computation of basis grads!
+/// \todo FIXME: We're doing redundant computation of Jacobian at domain quadrature points! \sa computeBasisGrads
 void LagrangeElement::initialize(int degr, GeomMapping2D* geommap)
 {
 	type = REFERENTIAL;
@@ -483,7 +483,7 @@ void LagrangeElement::computeBasisGrads(const Array2d<a_real>& __restrict__ gp, 
  * Face 3: \f[ \xi = -\zeta, \, \eta = 1 \f]
  * Face 4: \f[ \xi = -1, \, \eta = -\zeta \f]
  */
-void FaceElement::initialize(const Element* lelem, const Element* relem, const GeomMapping1D* gmapping, const int l_lfn, const int r_lfn)
+void FaceElement::initialize(const Element*const lelem, const Element*const relem, const GeomMapping1D*const gmapping, const int l_lfn, const int r_lfn)
 {
 	gmap = gmapping; leftel = lelem; rightel = relem; llfn = l_lfn; rlfn = r_lfn;
 
@@ -499,7 +499,7 @@ void FaceElement::initialize(const Element* lelem, const Element* relem, const G
 		// compute element reference coordinates of face quadrature points from their face reference coordinates
 		Array2d<a_real> lpoints(ng,NDIM);
 		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
-		getElementRefCoords(facepoints, leftel, llfn, lpoints);
+		getElementRefCoords(facepoints, leftel, llfn, 1, lpoints);
 	
 		// now compute basis function values
 		leftbasis.resize(ng,lelem->getNumDOFs());
@@ -516,7 +516,7 @@ void FaceElement::initialize(const Element* lelem, const Element* relem, const G
 		// compute element reference coordinates of face quadrature points from their face reference coordinates
 		Array2d<a_real> rpoints(ng,NDIM);
 		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
-		getElementRefCoords(facepoints, rightel, rlfn, rpoints);
+		getElementRefCoords(facepoints, rightel, rlfn, -1, rpoints);
 	
 		// now compute basis function values
 		rightbasis.resize(ng,relem->getNumDOFs());
@@ -544,7 +544,7 @@ void FaceElement::computeBasisGrads()
 
 		Array2d<a_real> lpoints(ng,NDIM);
 		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
-		getElementRefCoords(facepoints, leftel, llfn, lpoints);
+		getElementRefCoords(facepoints, leftel, llfn, 1, lpoints);
 		leftel->computeBasisGrads(lpoints, leftbgrad);
 	}
 
@@ -564,69 +564,72 @@ void FaceElement::computeBasisGrads()
 
 		Array2d<a_real> rpoints(ng,NDIM);
 		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
-		getElementRefCoords(facepoints, rightel, rlfn, rpoints);
+		getElementRefCoords(facepoints, rightel, rlfn, -1, rpoints);
 		rightel->computeBasisGrads(rpoints, rightbgrad);
 	}
 }
 
-void FaceElement::getElementRefCoords(const Array2d<a_real>& __restrict__ facepoints, const Element *const __restrict__ lelem, 
-		const int llfn, Array2d<a_real>& __restrict__ lpoints)
+/** Note that the order of points has to be reversed for the right element.
+ * We use lr for this.
+ */
+void FaceElement::getElementRefCoords(const Array2d<a_real>& __restrict__ facepoints, const Element *const __restrict__ elem, 
+		const int llfn, const int lr, Array2d<a_real>& __restrict__ dompoints)
 {
 	int ng = facepoints.rows();
 #ifdef DEBUG
-	if(ng != lpoints.rows())
+	if(ng != dompoints.rows())
 		printf("!  FaceElement: getElementRefCoords: Size mismatch!\n");
 #endif
-	if(lelem->getGeometricMapping()->getShape() == TRIANGLE) {
+	if(elem->getGeometricMapping()->getShape() == TRIANGLE) {
 		if(llfn == 0)
 		{
 			for(int ig = 0; ig < ng; ig++) {
-				lpoints(ig,0) = 0.5*(1.0 + facepoints(ig));
-				lpoints(ig,1) = 0;
+				dompoints(ig,0) = 0.5*(1.0 + lr*facepoints(ig));
+				dompoints(ig,1) = 0;
 			}
 		}
 		else if(llfn == 1)
 		{
 			for(int ig = 0; ig < ng; ig++) {
-				lpoints(ig,0) = 0.5*(1.0 - facepoints(ig));
-				lpoints(ig,1) = 0.5*(1.0 + facepoints(ig));
+				dompoints(ig,0) = 0.5*(1.0 - lr*facepoints(ig));
+				dompoints(ig,1) = 0.5*(1.0 + lr*facepoints(ig));
 			}
 		}
 		else
 		{
 			for(int ig = 0; ig < ng; ig++) {
-				lpoints(ig,0) = 0;
-				lpoints(ig,1) = 0.5*(1.0 - facepoints(ig));
+				dompoints(ig,0) = 0;
+				dompoints(ig,1) = 0.5*(1.0 - lr*facepoints(ig));
 			}
 		}
 	}
-	else if(lelem->getGeometricMapping()->getShape() == QUADRANGLE) {
+	else if(elem->getGeometricMapping()->getShape() == QUADRANGLE) {
 		if(llfn == 0)
 		{
 			for(int ig = 0; ig < ng; ig++) {
-				lpoints(ig,0) = facepoints(ig);
-				lpoints(ig,1) = -1.0;
+				dompoints(ig,0) = lr*facepoints(ig);
+				dompoints(ig,1) = -1.0;
 			}
 		}
 		else if(llfn == 1)
 		{
 			for(int ig = 0; ig < ng; ig++) {
-				lpoints(ig,0) = 1.0;
-				lpoints(ig,1) = facepoints(ig);
+				dompoints(ig,0) = 1.0;
+				dompoints(ig,1) = lr*facepoints(ig);
 			}
 		}
 		else if(llfn == 2)
 		{
 			for(int ig = 0; ig < ng; ig++) {
-				lpoints(ig,0) = -facepoints(ig);
-				lpoints(ig,1) = 1.0;
+				dompoints(ig,0) = lr*(-facepoints(ig));
+				dompoints(ig,1) = 1.0;
 			}
 		}
 		else
 		{
 			for(int ig = 0; ig < ng; ig++) {
-				lpoints(ig,0) = -1.0;
-				lpoints(ig,1) = -facepoints(ig);
+				dompoints(ig,0) = -1.0;
+				dompoints(ig,1) = lr*(-facepoints(ig));
 			}
 		}
 	}

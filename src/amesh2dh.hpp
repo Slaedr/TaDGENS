@@ -71,7 +71,7 @@ private:
 
 	/// Local face numbers, in the left element and right element, for each intfac face
 	/** facelocalnum(iface,0) holds local face number of face iface as seen by the left element,
-	 * facelocalnum(iface,1) hoilds the local face number of iface as seen by the right element.
+	 * facelocalnum(iface,1) holds the local face number of iface as seen by the right element.
 	 */
 	amat::Array2d<a_int> facelocalnum;
 

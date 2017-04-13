@@ -93,6 +93,7 @@ void LaplaceSIP::assemble()
 		a_int lelem = m->gintfac(iface,0);
 		a_int relem = m->gintfac(iface,1);
 
+		// local matrices
 		Matrix Bkk = Matrix::Zero(ndofs,ndofs), Bkkp = Matrix::Zero(ndofs,ndofs), Bkpk = Matrix::Zero(ndofs,ndofs), Bkpkp = Matrix::Zero(ndofs,ndofs);
 		Matrix Skk = Matrix::Zero(ndofs,ndofs), Skkp = Matrix::Zero(ndofs,ndofs), Skpk = Matrix::Zero(ndofs,ndofs), Skpkp = Matrix::Zero(ndofs,ndofs);
 
@@ -173,44 +174,17 @@ void LaplaceSIP::assemble()
 	Ag.setFromTriplets(coo.begin(), coo.end());
 
 	// apply Dirichlet penalties
-	/*printf("  Dir DOF flags ");
-	for(int i = 0; i < ntotaldofs; i++)
+	/*for(int i = 0; i < ntotaldofs; i++)
 	{
 		if(dirdofflags[i]) {
 			Ag.coeffRef(i,i) *= cbig;
+			bg(i) = 0;
 		}
-	}*/
-	printf("\n");
+	}
+	printf("\n");*/
 	/*Matrix agmat = Matrix(Ag);
 	std::cout << agmat;*/
 }
-
-/*void LaplaceSIP::computeRHS()
-{
-	int ndofs = elems[0].getNumDOFs();
-	for(int ielem = 0; ielem < m->gnelem(); ielem++)
-	{
-		Vector bl = Vector::Zero(ndofs);
-		int ng = map2d[ielem].getQuadrature()->numGauss();
-		const amat::Array2d<a_real>& wts = map2d[ielem].getQuadrature()->weights();
-		const amat::Array2d<a_real>& quadp = map2d[ielem].map();
-		const amat::Array2d<a_real>& basis = elems[ielem].bFunc();
-
-		for(int ig = 0; ig < ng; ig++) {
-			a_real weightAndJDet = wts(ig)*map2d[ielem].jacDet()[ig];
-			for(int i = 0; i < ndofs; i++)
-				bl(i) += rhs(quadp(ig,0),quadp(ig,1)) * basis(ig,i) * weightAndJDet;
-		}
-
-		for(int i = 0; i < ndofs; i++)
-			bg(iel*ndofs+i) = bl(i);
-	}
-
-	// Homogeneous Dirichlet BCs
-	for(int i = 0; i < ntotaldofs; i++)
-		if(dirdofflags[i])
-			bg(i) = 0;
-}*/
 
 void LaplaceSIP::solve()
 {
@@ -255,11 +229,6 @@ void LaplaceSIP::solve()
 			ug(i) = uf(I);
 			I++;
 		}
-		/*else {
-			// assign boundary value
-			a_int iel = i/ndofs; int idof = i % ndofs;
-			amat::Array2d<a_real>& map2d[iel].getPhyNodes();
-		}*/
 	}
 }
 
