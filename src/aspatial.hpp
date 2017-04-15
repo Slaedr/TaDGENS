@@ -37,12 +37,15 @@ class SpatialBase
 protected:
 	const UMesh2dh* m;								///< Mesh context; requires compute_topological() and compute_boundary_maps() to have been called
 	std::vector<Matrix> minv;						///< Inverse of mass matrix for each variable of each element
-	std::vector<Vector> residual;					///< Right hand side for boundary integrals and source terms
+	std::vector<Matrix> res;						///< Residuals - a Matrix contains residual DOFs for an element
 	int p_degree;									///< Polynomial degree of trial/test functions
 	a_int ntotaldofs;								///< Total number of DOFs in the discretization (for 1 physical variable)
 
-	/// stores (for each cell i) \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, where v_n and c are average values of the cell faces
-	std::vector<a_real> integ;
+	/// Maximum allowable explicit time step for each element
+	/** stores (for each elem i) Vol(i) / \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, 
+	 * where v_n and c are average values of the cell faces
+	 */
+	std::vector<a_real> mets;
 
 	Quadrature2DTriangle* dtquad;				///< Domain quadrature context
 	Quadrature2DSquare* dsquad;					///< Domain quadrature context
@@ -56,12 +59,12 @@ protected:
 	/// Integral of fluxes across each face for all dofs
 	/** The entries corresponding to different DOFs of a given flow variable are stored contiguously.
 	 */
-	std::vector<amat::Array2d<a_real>> faceintegral;
+	std::vector<Matrix> faceintegral;
 
 	/// vector of unknowns
-	/** Each Eigen3 (E3) Vector contains the DOF values for an element.
+	/** Each Eigen3 (E3) Matrix contains the DOF values of all physical variables for an element.
 	 */
-	std::vector<Vector> u;
+	std::vector<Matrix> u;
 
 	amat::Array2d<a_real> scalars;			///< Holds density, Mach number and pressure for each mesh point
 	amat::Array2d<a_real> velocities;		///< Holds velocity components for each mesh point
@@ -82,6 +85,12 @@ protected:
 	/// computes ghost cell centers assuming symmetry about the face
 	void compute_ghost_cell_coords_about_face();
 	*/
+	
+	/// Computes the L2 error in a FE function on an element
+	a_real computeElemL2Error2(const int ielem, const Vector& ug, a_real (* const exact)(a_real, a_real)) const;
+	
+	/// Computes the L2 norm of a FE function on an element
+	a_real computeElemL2Norm2(const int ielem, const Vector& ug) const;
 
 public:
 	/// Constructor
@@ -95,23 +104,28 @@ public:
 	/// Compute all finite element data, including mass matrix, needed for the spatial discretization
 	void computeFEData();
 
-	/// Calls functions to add contribution to the [right hand side](@ref residual)
-	virtual void update_residual() = 0;
-
 	/// Access to vector of unknowns
 	std::vector<Vector>& unk() {
 		return u;
 	}
 
 	/// Access to residual vector
-	std::vector<Vector>& res() {
-		return residual;
+	std::vector<Vector>& resdual() {
+		return res;
+	}
+
+	/// Maximum allowable explicit time steps for all elements
+	const std::vector<a_real>& maxExplicitTimeStep() const {
+		return mets;
 	}
 
 	/// Mass matrix
 	const std::vector<Matrix>& mass() const {
 		return minv;
 	}
+
+	/// Calls functions to add contribution to the [right hand side](@ref residual)
+	virtual void update_residual() = 0;
 
 	/// Compute quantities to export
 	virtual void postprocess() = 0;

@@ -307,7 +307,7 @@ void TaylorElement::initialize(int degr, GeomMapping2D* geommap)
 	computeBasisGrads(gp, basisGrad);
 }
 
-void TaylorElement::computeBasis(const amat::Array2d<a_real>& __restrict__ gp, amat::Array2d<a_real>& __restrict__ basiss) const
+void TaylorElement::computeBasis(const amat::Array2d<a_real>& __restrict__ gp, Matrix& __restrict__ basiss) const
 {
 	for(int ip = 0; ip < gp.rows(); ip++) 
 		basiss(ip,0) = 1.0;
@@ -370,7 +370,7 @@ void LagrangeElement::initialize(int degr, GeomMapping2D* geommap)
 	}	
 
 	int ngauss = gmap->getQuadrature()->numGauss();
-	basis.setup(ngauss,ndof);
+	basis.resize(ngauss,ndof);
 	basisGrad.resize(ngauss);
 	for(int i = 0; i < ngauss; i++) {
 		basisGrad[i].resize(ndof,NDIM);
@@ -383,7 +383,7 @@ void LagrangeElement::initialize(int degr, GeomMapping2D* geommap)
 	computeBasisGrads(gp, basisGrad);
 }
 
-void LagrangeElement::computeBasis(const Array2d<a_real>& __restrict__ gp, Array2d<a_real>& __restrict__ basisv) const
+void LagrangeElement::computeBasis(const Array2d<a_real>& __restrict__ gp, Matrix& __restrict__ basisv) const
 {
 	if(gmap->getShape() == TRIANGLE) {
 		if(degree == 1) {

@@ -1,11 +1,11 @@
-/** @file aode.hpp
+/** @file aodecoeffs.hpp
  * @brief Provides coefficients in the Butcher tableau of ODE integrators
  * @author Aditya Kashi
  * @date 2017-03-04
  */
 
-#ifndef __AODE_H
-#define __AODE_H
+#ifndef __AODECOEFFS_H
+#define __AODECOEFFS_H
 
 #ifndef __AARRAY2D_H
 #include "aarray2d.hpp"

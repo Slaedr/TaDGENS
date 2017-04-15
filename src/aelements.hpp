@@ -213,7 +213,7 @@ protected:
 	BasisType type;									///< Where are the basis functions defined? \sa BasisType
 	int degree;										///< Polynomial degree
 	int ndof;										///< Number of local DOFs
-	amat::Array2d<a_real> basis;					///< Values of basis functions at quadrature points
+	Matrix basis;									///< Values of basis functions at quadrature points
 	std::vector<Matrix> basisGrad;					///< Values of derivatives of the basis functions at the quadrature points
 	const GeomMapping2D* gmap;						///< The 2D geometric map which maps this element to the reference element
 
@@ -233,7 +233,7 @@ public:
 	virtual ~Element() { }
 
 	/// Computes interpolated values at the quadrature point with index ig from given DOF values
-	a_real interpolate(const int ig, const a_real* const dofs) const
+	a_real interpolate(const int ig, const Vector& dofs) const
 	{
 		a_real val = 0;
 		for(int i = 0; i < ndof; i++)
@@ -241,8 +241,19 @@ public:
 		return val;
 	}
 
+	/// Computes values of a function at domain quadrature points using DOFs supplied
+	/** \param[in] dofs The vector of local DOFs
+	 * \param[in|out] values Values of the function at each quadrature point. CANNOT be the same as dofs, the first argument.
+	 * 
+	 * \todo Notice that when we have a system of PDEs, we might want to use a BLAS 3 call to compute all values.
+	 */
+	void interpolateAll(const Vector& __restrict__ dofs, Vector& __restrict__ values) const
+	{
+		values.noalias() = basis * dofs;
+	}
+
 	/// Read-only access to basis at a given quadrature point
-	const amat::Array2d<a_real>& bFunc() const {
+	const Matrix& bFunc() const {
 		return basis;
 	}
 
@@ -288,7 +299,7 @@ public:
 	void initialize(int degr, GeomMapping2D* geommap);
 	
 	/// Computes values of basis functions at a given point in physical space
-	void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const;
+	void computeBasis(const amat::Array2d<a_real>& points, Matrix& basisvalues) const;
 	
 	/// Computes basis functions' gradients at given points in physical space
 	void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const;
@@ -312,7 +323,7 @@ public:
 	void initialize(int degr, GeomMapping2D* geommap);
 	
 	/// Computes values of basis functions at a given point in reference space
-	void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const;
+	void computeBasis(const amat::Array2d<a_real>& points, Matrix& basisvalues) const;
 	
 	/// Computes basis functions' gradients at given points in reference space
 	void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const;
@@ -325,7 +336,7 @@ class DummyElement : public Element
 {
 public:
 	void initialize(int degr, GeomMapping2D* geommap) { type = NONEXISTENT; }
-	void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const { };
+	void computeBasis(const amat::Array2d<a_real>& points, Matrix& basisvalues) const { };
 	void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const { };
 };
 
@@ -338,8 +349,8 @@ class FaceElement
 	const Element* leftel;								///< "Left" element
 	const Element* rightel;								///< "Right" element
 	int llfn, rlfn;										///< Local face number of this face w.r.t the left and right elements
-	amat::Array2d<a_real> leftbasis;					///< Values of the left element's basis functions at the face quadrature points
-	amat::Array2d<a_real> rightbasis;					///< Values of the left element's basis functions at the face quadrature points
+	Matrix leftbasis;									///< Values of the left element's basis functions at the face quadrature points
+	Matrix rightbasis;									///< Values of the left element's basis functions at the face quadrature points
 	std::vector<Matrix> leftbgrad;						///< left element's basis gradients at face quadrature points
 	std::vector<Matrix> rightbgrad;						///< right element's basis gradients at face quadrature points
 	const GeomMapping1D* gmap;							///< 1D geometric mapping (parameterization) of the face
@@ -368,12 +379,12 @@ public:
 	void computeBasisGrads();
 
 	/// Read-only access to basis function values from left element
-	const amat::Array2d<a_real>& leftBasis() {
+	const Matrix& leftBasis() {
 		return leftbasis;
 	}
 
 	/// Read-only access to basis function values from right element
-	const amat::Array2d<a_real>& rightBasis() {
+	const Matrix& rightBasis() {
 		return rightbasis;
 	}
 
@@ -388,7 +399,7 @@ public:
 	}
 
 	/// Interpolates values from left element at the face quadrature points
-	a_real interpolate_left(const int ig, const a_real *const dofs)
+	a_real interpolate_left(const int ig, const Vector& dofs)
 	{
 		a_real val = 0;
 		for(int i = 0; i < leftel->getNumDOFs(); i++)
@@ -397,12 +408,20 @@ public:
 	}
 
 	/// Interpolates values from right element at the face quadrature points
-	a_real interpolate_right(const int ig, const a_real *const dofs)
+	a_real interpolate_right(const int ig, const Vector& dofs)
 	{
 		a_real val = 0;
 		for(int i = 0; i < rightel->getNumDOFs(); i++)
 			val += dofs[i]*rightbasis(ig,i);
 		return val;
+	}
+
+	void interpolateAll_left(const Vector& __restrict__ dofs, Vector& __restrict__ values) {
+		values.noalias() = leftbasis*dofs;
+	}
+
+	void interpolateAll_right(const Vector& __restrict__ dofs, Vector& __restrict__ values) {
+		values.noalias() = rightbasis*dofs;
 	}
 };
 

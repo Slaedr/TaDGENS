@@ -122,4 +122,53 @@ void SpatialBase::computeFEData()
 	std::cout << " SpatialBase: computeFEData(): Done." << std::endl;
 }
 
+a_real SpatialBase::computeElemL2Norm2(const int ielem, const Vector& __restrict__ ug) const
+{
+	int ndofs = elems[ielem].getNumDOFs();
+	a_real l2error = 0;
+	
+	const std::vector<Matrix>& bgrad = elems[ielem].bGrad();
+	const amat::Array2d<a_real>& bfunc = elems[ielem].bFunc();
+	const GeomMapping2D* gmap = elems[ielem].getGeometricMapping();
+	int ng = gmap->getQuadrature()->numGauss();
+	const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
+	const amat::Array2d<a_real>& qp = gmap->map();
+
+	for(int ig = 0; ig < ng; ig++)
+	{
+		a_real lu = 0;
+		for(int j = 0; j < ndofs; j++) {
+			lu += ug(j)*bfunc(ig,j);
+		}
+		l2error += lu*lu * wts(ig) * gmap->jacDet()[ig];
+	}
+
+	return l2error;
+}
+
+a_real SpatialBase::computeElemL2Error2(const int ielem, const Vector& __restrict__ ug, a_real (* const exact)(a_real, a_real)) const
+{
+	int ndofs = elems[ielem].getNumDOFs();
+	a_real l2error = 0;
+	
+	const std::vector<Matrix>& bgrad = elems[ielem].bGrad();
+	const amat::Array2d<a_real>& bfunc = elems[ielem].bFunc();
+	const GeomMapping2D* gmap = elems[ielem].getGeometricMapping();
+	int ng = gmap->getQuadrature()->numGauss();
+	const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
+	const amat::Array2d<a_real>& qp = gmap->map();
+
+	// TODO: Use interpolateAll here
+	for(int ig = 0; ig < ng; ig++)
+	{
+		a_real lu = 0;
+		for(int j = 0; j < ndofs; j++) {
+			lu += ug(j)*bfunc(ig,j);
+		}
+		l2error += std::pow(lu-exact(qp(ig,0),qp(ig,1)),2) * wts(ig) * gmap->jacDet()[ig];
+	}
+
+	return l2error;
+}
+
 }	// end namespace
