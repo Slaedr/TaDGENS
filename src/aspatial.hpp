@@ -7,7 +7,6 @@
 #ifndef __ASPATIAL_H
 #define __ASPATIAL_H 1
 
-
 #ifndef __ACONSTANTS_H
 #include "aconstants.hpp"
 #endif
@@ -23,6 +22,8 @@
 #ifndef __AELEMENTS_H
 #include "aelements.hpp"
 #endif
+
+#include <Eigen/LU>
 
 namespace acfd {
 
@@ -40,6 +41,7 @@ protected:
 	std::vector<Matrix> res;						///< Residuals - a Matrix contains residual DOFs for an element
 	int p_degree;									///< Polynomial degree of trial/test functions
 	a_int ntotaldofs;								///< Total number of DOFs in the discretization (for 1 physical variable)
+	char basis_type;								///< Type of basis to use - Lagrange ('l') or Taylor ('t')
 
 	/// Maximum allowable explicit time step for each element
 	/** stores (for each elem i) Vol(i) / \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, 
@@ -52,14 +54,17 @@ protected:
 	Quadrature1D* bquad;						///< Boundary quadrature context
 	LagrangeMapping2D* map2d;					///< Array containing geometric mapping data for each element
 	LagrangeMapping1D* map1d;					///< Array containing geometric mapping data for each face
-	Element* elems;								///< List of finite elements
+	Element** elems;							///< List of finite elements
 	Element* dummyelem;							///< Empty element used for ghost elements
 	FaceElement* faces;							///< List of face elements
 
-	/// Integral of fluxes across each face for all dofs
+	///@{
+	/// Integral of fluxes across each face for all dofs of left and right element
 	/** The entries corresponding to different DOFs of a given flow variable are stored contiguously.
 	 */
-	std::vector<Matrix> faceintegral;
+	std::vector<Matrix> leftfaceterms;
+	std::vector<Matrix> rightfaceterms;
+	///@}
 
 	/// vector of unknowns
 	/** Each Eigen3 (E3) Matrix contains the DOF values of all physical variables for an element.
@@ -87,7 +92,9 @@ protected:
 	*/
 	
 	/// Computes the L2 error in a FE function on an element
-	a_real computeElemL2Error2(const int ielem, const Vector& ug, a_real (* const exact)(a_real, a_real)) const;
+	/** \param[in] comp The index of the row of ug whose error is to be computed
+	 */
+	a_real computeElemL2Error2(const int ielem, const int comp, const Matrix& ug, a_real (* const exact)(a_real, a_real, a_real), const double time) const;
 	
 	/// Computes the L2 norm of a FE function on an element
 	a_real computeElemL2Norm2(const int ielem, const Vector& ug) const;
@@ -105,12 +112,12 @@ public:
 	void computeFEData();
 
 	/// Access to vector of unknowns
-	std::vector<Vector>& unk() {
+	std::vector<Matrix>& unk() {
 		return u;
 	}
 
 	/// Access to residual vector
-	std::vector<Vector>& resdual() {
+	std::vector<Matrix>& residual() {
 		return res;
 	}
 
@@ -119,19 +126,25 @@ public:
 		return mets;
 	}
 
-	/// Mass matrix
-	const std::vector<Matrix>& mass() const {
+	/// Inverse of mass matrix
+	const std::vector<Matrix>& massInv() const {
 		return minv;
 	}
 
-	/// Calls functions to add contribution to the [right hand side](@ref residual)
-	virtual void update_residual() = 0;
+	/// Calls functions to add contribution to the [right hand side](@ref residual), and also compute [time steps](@ref mets)
+	virtual void update_residual(std::vector<Matrix>& ustage) = 0;
 
 	/// Compute quantities to export
 	virtual void postprocess() = 0;
 
 	/// Read-only access to output quantities
 	virtual const amat::Array2d<a_real>& getOutput() const = 0;
+
+	/// Sets initial conditions using a function describing a variable
+	void setInitialConditionNodal( const int comp, double (*const init)(a_real, a_real));
+
+	/// Sets initial conditions using functions for a variable and its space derivatives
+	void setInitialConditionModal( const int comp, double (**const init)(a_real, a_real));
 };
 
 }	// end namespace

@@ -289,6 +289,22 @@ void TaylorElement::initialize(int degr, GeomMapping2D* geommap)
 	for(int idim = 0; idim < NDIM; idim++)
 		center[idim] /= area;
 
+#ifdef DEBUG
+	// check for P1 case
+	if(gmap->getDegree() == 1) {
+		a_real xc, yc;
+		const Array2d<a_real>& nodes = gmap->getPhyNodes();
+		for(int i = 0; i < nodes.rows(); i++) {
+			xc += nodes(i,0); yc += nodes(i,1);
+		}
+		xc /= nodes.rows(); yc /= nodes.rows();
+		if(std::fabs(center[0]-xc) > SMALL_NUMBER)
+			std::printf(" ! TaylorElement: initialize(): Difference between integrated and trivially computed x center is %f!\n", std::fabs(center[0]-xc));
+		if(std::fabs(center[1]-yc) > SMALL_NUMBER)
+			std::printf(" ! TaylorElement: initialize(): Difference between integrated and trivially computed y center is %f!\n", std::fabs(center[1]-yc));
+	}
+#endif
+
 	if(degree >= 2) {
 		for(int ig = 0; ig < ng; ig++)
 		{

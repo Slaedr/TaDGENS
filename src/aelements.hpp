@@ -225,7 +225,7 @@ public:
 	virtual void initialize(int degr, GeomMapping2D* geommap) = 0;
 
 	/// Computes values of basis functions at given points in either reference space or physical space
-	virtual void computeBasis(const amat::Array2d<a_real>& points, amat::Array2d<a_real>& basisvalues) const = 0;
+	virtual void computeBasis(const amat::Array2d<a_real>& points, Matrix& basisvalues) const = 0;
 
 	/// Computes basis functions' gradients at given points in either reference space or physical space
 	virtual void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const = 0;
@@ -242,14 +242,15 @@ public:
 	}
 
 	/// Computes values of a function at domain quadrature points using DOFs supplied
-	/** \param[in] dofs The vector of local DOFs
-	 * \param[in|out] values Values of the function at each quadrature point. CANNOT be the same as dofs, the first argument.
+	/** \param[in] dofs The rowmajor matrix of local DOFs (1 row per physical variable)
+	 * \param[in|out] values Values of the function at each quadrature point. Each row contains all DOFs of a physical variable
+	 * CANNOT be the same as dofs, the first argument.
 	 * 
 	 * \todo Notice that when we have a system of PDEs, we might want to use a BLAS 3 call to compute all values.
 	 */
-	void interpolateAll(const Vector& __restrict__ dofs, Vector& __restrict__ values) const
+	void interpolateAll(const Matrix& __restrict__ dofs, Matrix& __restrict__ values) const
 	{
-		values.noalias() = basis * dofs;
+		values.noalias() = basis * dofs.transpose();
 	}
 
 	/// Read-only access to basis at a given quadrature point
@@ -295,6 +296,10 @@ class TaylorElement : public Element
 	a_real delta[NDIM];									///< Maximum extent of the element in the coordinate directions
 	std::vector<std::vector<a_real>> basisOffset;		///< The quantities by which the basis functions are offset from actual Taylor polynomial basis
 public:
+	TaylorElement() {
+		type = PHYSICAL;
+	}
+
 	/// Sets data, computes geometric map data and computes basis functions and their gradients
 	void initialize(int degr, GeomMapping2D* geommap);
 	
@@ -306,6 +311,22 @@ public:
 
 	void printDetails() const {
 		std::printf("  (%f,%f), %f, %f, %f\n", center[0], center[1], delta[0], delta[1], area);
+	}
+
+	a_real getArea() const {
+		return area;
+	}
+
+	const a_real* getCenter() const {
+		return center;
+	}
+
+	const a_real* getDelta() const {
+		return delta;
+	}
+
+	const std::vector<std::vector<a_real>>& getBasisOffsets() const {
+		return basisOffset;
 	}
 };
 
@@ -319,6 +340,10 @@ public:
 class LagrangeElement : public Element
 {
 public:
+	LagrangeElement() {
+		type = REFERENTIAL;
+	}
+
 	/// Sets data and computes basis functions and their gradients
 	void initialize(int degr, GeomMapping2D* geommap);
 	
@@ -416,12 +441,12 @@ public:
 		return val;
 	}
 
-	void interpolateAll_left(const Vector& __restrict__ dofs, Vector& __restrict__ values) {
-		values.noalias() = leftbasis*dofs;
+	void interpolateAll_left(const Matrix& __restrict__ dofs, Matrix& __restrict__ values) {
+		values.noalias() = leftbasis*dofs.transpose();
 	}
 
-	void interpolateAll_right(const Vector& __restrict__ dofs, Vector& __restrict__ values) {
-		values.noalias() = rightbasis*dofs;
+	void interpolateAll_right(const Matrix& __restrict__ dofs, Matrix& __restrict__ values) {
+		values.noalias() = rightbasis*dofs.transpose();
 	}
 };
 

@@ -7,12 +7,16 @@
 #ifndef __ASPATIALADVECTION_H
 #define __ASPATIALADVECTION_H
 
+#define NVARS 1
+
 #include "aspatial.hpp"
 
 namespace acfd {
 
 /// Residual computation for linear advection
 /** \note Make sure to call both compute_topological and compute_boundary_maps on the mesh object before using an object of this class!
+ *
+ * If the ODE is \f$ \frac{du}{dt} + R(u) = 0 \f$, [res](@ref res) holds \f$ R \f$.
  */
 class LinearAdvection : public SpatialBase
 {
@@ -21,24 +25,32 @@ protected:
 	a_real bval;							///< Value to be imposed at inflow
 	int inoutflow_flag;						///< Boundary flag at faces where inflow or outflow is required
 	int extrapolation_flag;					///< Boundary flag for extrapolation condition
+	amat::Array2d<a_real> output;			///< Pointwise values for output
 
-	void computeFaceTerms();				///< Computes face integrals
-	void computeDomainTerms();				///< Computes domain integrals
+	/// Computes upwind flux
+	void computeNumericalFlux(const a_real* const uleft, const a_real* const uright, const a_real* const n, a_real* const flux);
 
-	/// Computes boundary (ghost) states depending on face marker
-	void computeBoundaryState(const int iface, const Vector& instate, Vector& bstate);
+	/// Computes face integrals from flow state described by the parameter
+	void computeFaceTerms(std::vector<Matrix>& ustage);
+
+	/// Computes boundary (ghost) states depending on face marker for the face denoted by the first argument
+	void computeBoundaryState(const int iface, const Matrix& instate, Matrix& bstate);
 
 public:
 	LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, const Vector vel, const a_real b_val, const int inoutflag, const int extrapflag);
 	
-	/// Calls functions to add contribution to the [right hand side](@ref residual)
-	void update_residual();
+	/// Adds face contributions and computes domain contribution to the [right hand side](@ref residual) 
+	void update_residual(std::vector<Matrix>& ustage);
 
 	/// Compute quantities to export
 	void postprocess();
 
 	/// Read-only access to output quantities
-	const amat::Array2d<a_real>& getOutput() const;
+	const amat::Array2d<a_real>& getOutput() const {
+		return output;
+	}
+
+	a_real computeL2Error(double (*const exact)(double,double,double), const double time) const;
 };
 
 }

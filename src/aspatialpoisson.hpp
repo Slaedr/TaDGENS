@@ -26,7 +26,7 @@ protected:
 	a_real nu;											///< Diffusivity
 	a_real eta;											///< Penalty
 	a_real (*const rhs)(a_real, a_real);				///< forcing function
-	a_real (*const exact)(a_real, a_real);				///< Exact solution
+	a_real (*const exact)(a_real, a_real,a_real);		///< Exact solution
 	a_real (*const exactgradx)(a_real, a_real);			///< Exact x-derivative of exact solution
 	a_real (*const exactgrady)(a_real, a_real);			///< Exact y-derivative of exact solution
 	int dirichlet_id;									///< Boundary marker for Dirichlet boundary
@@ -43,7 +43,7 @@ protected:
 
 public:
 	LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real stab_param,
-			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
+			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real,a_real), 
 			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_grady)(a_real,a_real));
 
 	void assemble();
@@ -65,7 +65,7 @@ protected:
 	a_real nu;											///< Diffusivity
 	a_real eta;											///< Penalty
 	a_real (*const rhs)(a_real, a_real);				///< forcing function
-	a_real (*const exact)(a_real, a_real);				///< Exact solution
+	a_real (*const exact)(a_real, a_real,a_real);		///< Exact solution
 	a_real (*const exactgradx)(a_real, a_real);			///< Exact x-derivative of exact solution
 	a_real (*const exactgrady)(a_real, a_real);			///< Exact y-derivative of exact solution
 	int dirichlet_id;									///< Boundary marker for Dirichlet boundary
@@ -82,7 +82,7 @@ protected:
 
 public:
 	LaplaceC(const UMesh2dh* mesh, const int _p_degree, a_real stab_param,
-			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
+			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real,a_real), 
 			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_grady)(a_real,a_real));
 
 	void assemble();

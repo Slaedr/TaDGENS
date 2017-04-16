@@ -9,7 +9,7 @@
 namespace acfd {
 
 LaplaceSIP::LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, const a_real stab,
-			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
+			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real,a_real), 
 			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_grady)(a_real,a_real))
 	: SpatialBase(mesh, _p_degree, 'l'), eta(stab), rhs(f), exact(exact_sol), exactgradx(exact_gradx), exactgrady(exact_grady)
 {
@@ -54,7 +54,7 @@ void LaplaceSIP::assemble()
 	// domain integral and RHS
 	for(int ielem = 0; ielem < m->gnelem(); ielem++)
 	{
-		const amat::Array2d<a_real>& basis = elems[ielem].bFunc();
+		const Matrix& basis = elems[ielem].bFunc();
 		const std::vector<Matrix>& bgrad = elems[ielem].bGrad();
 		const GeomMapping2D* gmap = elems[ielem].getGeometricMapping();
 		int ng = gmap->getQuadrature()->numGauss();
@@ -106,8 +106,8 @@ void LaplaceSIP::assemble()
 		const std::vector<Vector>& n = map1d[iface].normal();
 		const std::vector<Matrix>& lgrad = faces[iface].leftBasisGrad();
 		const std::vector<Matrix>& rgrad = faces[iface].rightBasisGrad();
-		const amat::Array2d<a_real>& lbas = faces[iface].leftBasis();
-		const amat::Array2d<a_real>& rbas = faces[iface].rightBasis();
+		const Matrix& lbas = faces[iface].leftBasis();
+		const Matrix& rbas = faces[iface].rightBasis();
 
 		for(int ig = 0; ig < ng; ig++)
 		{
@@ -151,7 +151,7 @@ void LaplaceSIP::assemble()
 		const amat::Array2d<a_real>& wts = bquad->weights();
 		const std::vector<Vector>& n = map1d[iface].normal();
 		const std::vector<Matrix>& lgrad = faces[iface].leftBasisGrad();
-		const amat::Array2d<a_real>& lbas = faces[iface].leftBasis();
+		const Matrix& lbas = faces[iface].leftBasis();
 
 		for(int ig = 0; ig < ng; ig++)
 		{
@@ -261,7 +261,7 @@ void LaplaceSIP::computeErrors(a_real& __restrict__ l2error, a_real& __restrict_
 	for(int ielem = 0; ielem < m->gnelem(); ielem++)
 	{
 		const std::vector<Matrix>& bgrad = elems[ielem].bGrad();
-		const amat::Array2d<a_real>& bfunc = elems[ielem].bFunc();
+		const Matrix& bfunc = elems[ielem].bFunc();
 		const GeomMapping2D* gmap = elems[ielem].getGeometricMapping();
 		int ng = gmap->getQuadrature()->numGauss();
 		const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
@@ -275,7 +275,7 @@ void LaplaceSIP::computeErrors(a_real& __restrict__ l2error, a_real& __restrict_
 				lux += ug(ielem*ndofs+j)*bgrad[ig](j,0);
 				luy += ug(ielem*ndofs+j)*bgrad[ig](j,1);
 			}
-			l2error += std::pow(lu-exact(qp(ig,0),qp(ig,1)),2) * wts(ig) * gmap->jacDet()[ig];
+			l2error += std::pow(lu-exact(qp(ig,0),qp(ig,1),0),2) * wts(ig) * gmap->jacDet()[ig];
 			siperror += ( std::pow(lux-exactgradx(qp(ig,0),qp(ig,1)),2) + std::pow(luy-exactgrady(qp(ig,0),qp(ig,1)),2) ) * wts(ig) * gmap->jacDet()[ig];
 		}
 	}
@@ -293,8 +293,8 @@ void LaplaceSIP::computeErrors(a_real& __restrict__ l2error, a_real& __restrict_
 
 		int ng = map1d[iface].getQuadrature()->numGauss();
 		const amat::Array2d<a_real>& wts = bquad->weights();
-		const amat::Array2d<a_real>& lbas = faces[iface].leftBasis();
-		const amat::Array2d<a_real>& rbas = faces[iface].rightBasis();
+		const Matrix& lbas = faces[iface].leftBasis();
+		const Matrix& rbas = faces[iface].rightBasis();
 
 		for(int ig = 0; ig < ng; ig++)
 		{
@@ -318,7 +318,7 @@ void LaplaceSIP::computeErrors(a_real& __restrict__ l2error, a_real& __restrict_
 		int ng = map1d[iface].getQuadrature()->numGauss();
 		const amat::Array2d<a_real>& wts = bquad->weights();
 		const amat::Array2d<a_real>& qp = map1d[iface].map();
-		const amat::Array2d<a_real>& lbas = faces[iface].leftBasis();
+		const Matrix& lbas = faces[iface].leftBasis();
 
 		for(int ig = 0; ig < ng; ig++)
 		{
@@ -327,7 +327,7 @@ void LaplaceSIP::computeErrors(a_real& __restrict__ l2error, a_real& __restrict_
 			for(int j = 0; j < ndofs; j++) {
 				lu += ug(lelem*ndofs+j)*lbas(ig,j);
 			}
-			siperror += hinv * pow(lu-exact(qp(ig,0),qp(ig,1)),2) * weightandspeed;
+			siperror += hinv * pow(lu-exact(qp(ig,0),qp(ig,1),0),2) * weightandspeed;
 		}
 	}
 
@@ -336,7 +336,7 @@ void LaplaceSIP::computeErrors(a_real& __restrict__ l2error, a_real& __restrict_
 }
 
 LaplaceC::LaplaceC(const UMesh2dh* mesh, const int _p_degree, const a_real stab,
-			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
+			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real,a_real), 
 			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_grady)(a_real,a_real))
 	: SpatialBase(mesh, _p_degree, 'l'), eta(stab), rhs(f), exact(exact_sol), exactgradx(exact_gradx), exactgrady(exact_grady)
 {
@@ -366,7 +366,7 @@ void LaplaceC::assemble()
 	// domain integral
 	for(int ielem = 0; ielem < m->gnelem(); ielem++)
 	{
-		const amat::Array2d<a_real>& basis = elems[ielem].bFunc();
+		const Matrix& basis = elems[ielem].bFunc();
 		const std::vector<Matrix>& bgrad = elems[ielem].bGrad();
 		const GeomMapping2D* gmap = elems[ielem].getGeometricMapping();
 		int ng = gmap->getQuadrature()->numGauss();
@@ -415,28 +415,6 @@ void LaplaceC::solve()
 {
 	printf(" LaplaceC: solve: Assembling LHS and RHS\n");
 	assemble();
-	//std::cout << Ag;
-	
-	/*printf(" LaplaceC: solve: Removing Dirichlet rows and cols\n");
-	Eigen::SparseMatrix<a_real> Af; Af.resize(ntotaldofs-ndirdofs, ntotaldofs-ndirdofs);
-	Vector bf = Vector::Zero(ntotaldofs-ndirdofs);
-	Vector uf = Vector::Zero(ntotaldofs-ndirdofs);
-	a_int I=0, J=0;
-	for(int i = 0; i < ntotaldofs; i++)
-	{
-		if(!dirdofflags[i]) {
-			for(int j = 0; j < ntotaldofs; j++)
-			{
-				if(!dirdofflags[j]) {
-					Af.coeffRef(I,J) = Ag.coeff(i,j);
-					J++;
-				}
-			}
-			bf(I) = bg(i);
-			I++;
-			J = 0;
-		}
-	}*/
 	
 	printf(" LaplaceC: solve: Analyzing and factoring LHS...\n");
 	Eigen::SparseLU<Eigen::SparseMatrix<a_real>> solver;
@@ -444,17 +422,6 @@ void LaplaceC::solve()
 	printf(" LaplaceC: solve: Solving\n");
 	ug = solver.solve(bg);
 	printf(" LaplaceC: solve: Done.\n");
-	
-	/*I=0;
-	//int ndofs = elems[0].getNumDOFs();
-	for(int i = 0; i < ntotaldofs; i++)
-	{
-		if(!dirdofflags[i]) {
-			// assign computed value
-			ug(i) = uf(I);
-			I++;
-		}
-	}*/
 }
 
 void LaplaceC::postprocess()
@@ -470,11 +437,10 @@ void LaplaceC::computeErrors(a_real& __restrict__ l2error, a_real& __restrict__ 
 	int ndofs = elems[0].getNumDOFs();
 	l2error = 0; siperror = 0;
 	
-	// domain integral
 	for(int ielem = 0; ielem < m->gnelem(); ielem++)
 	{
 		const std::vector<Matrix>& bgrad = elems[ielem].bGrad();
-		const amat::Array2d<a_real>& bfunc = elems[ielem].bFunc();
+		const Matrix& bfunc = elems[ielem].bFunc();
 		const GeomMapping2D* gmap = elems[ielem].getGeometricMapping();
 		int ng = gmap->getQuadrature()->numGauss();
 		const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
@@ -488,7 +454,7 @@ void LaplaceC::computeErrors(a_real& __restrict__ l2error, a_real& __restrict__ 
 				lux += ug(m->ginpoel(ielem,j))*bgrad[ig](j,0);
 				luy += ug(m->ginpoel(ielem,j))*bgrad[ig](j,1);
 			}
-			l2error += std::pow(lu-exact(qp(ig,0),qp(ig,1)),2) * wts(ig) * gmap->jacDet()[ig];
+			l2error += std::pow(lu-exact(qp(ig,0),qp(ig,1),0),2) * wts(ig) * gmap->jacDet()[ig];
 			siperror += ( std::pow(lux-exactgradx(qp(ig,0),qp(ig,1)),2) + std::pow(luy-exactgrady(qp(ig,0),qp(ig,1)),2) ) * wts(ig) * gmap->jacDet()[ig];
 		}
 	}

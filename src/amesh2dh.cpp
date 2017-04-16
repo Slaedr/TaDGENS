@@ -163,7 +163,6 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 		while(ch != '\n');
 
 	infile >> npoin;
-	std::cout << "UMesh2d: readGmsh2(): No. of points = " << npoin << std::endl;
 	coords.setup(npoin,ndim);
 
 	// read coords of points
@@ -191,7 +190,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	maxnnofa = 2;
 	g_degree = 1;
 	
-	std::cout << "UMesh2d: readGmsh2(): Total number of elms is " << nelm << std::endl;
+	//std::cout << "UMesh2d: readGmsh2(): Total number of elms is " << nelm << std::endl;
 
 	for(int i = 0; i < nelm; i++)
 	{
@@ -311,7 +310,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 				nelem++;
 		}
 	}
-	std::cout << "UMesh2d: readGmsh2(): Done reading elms" << std::endl;
+	
 	/*for(int i = 0; i < nelm; i++)
 		std::cout << nnodes[i] << " " << nfaels[i] << std::endl;*/
 
@@ -486,7 +485,7 @@ void UMesh2dh::compute_topological()
 	// Elements surrounding points is now done.
 
 	/// 2. Points surrounding points
-	std::cout << "UMesh2dh: compute_topological(): Points surrounding points\n";
+	
 	psup_p.setup(npoin+1,1);
 	psup_p.zeros();
 	psup_p(0,0) = 0;
@@ -587,7 +586,6 @@ void UMesh2dh::compute_topological()
 	//Points surrounding points is now done.
 
 	/// 3. Elements surrounding elements
-	std::cout << "UMesh2dh: compute_topological(): Elements surrounding elements...\n";
 
 	//amat::Array2d<int> lpoin(npoin,1);
 	esuel.setup(nelem, maxnfael);
@@ -666,7 +664,6 @@ void UMesh2dh::compute_topological()
 	 * \note After the following portion, esuel holds (nelem + face no.) for each ghost cell, instead of -1 as before.
 	 */
 
-	std::cout << "UMesh2dh: compute_topological(): Computing intfac..." << std::endl;
 	nbface = naface = 0;
 	// first run: calculate nbface
 	for(int ie = 0; ie < nelem; ie++)
@@ -787,7 +784,7 @@ void UMesh2dh::compute_topological()
 	for(int i = 0; i < npoin; i++)
 		if(isbpflag(i)==1) nbpoin++;
 
-	std::cout << "UMesh2dh: compute_topological(): Number of boundary points = " << nbpoin << std::endl;
+	//std::cout << "UMesh2dh: compute_topological(): Number of boundary points = " << nbpoin << std::endl;
 	std::cout << "UMesh2dh: compute_topological(): Done." << std::endl;
 }
 

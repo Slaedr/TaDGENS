@@ -11,7 +11,7 @@ using namespace amat;
 using namespace std;
 using namespace acfd;
 
-double exactsol(double x, double y) {
+double exactsol(double x, double y, double t) {
 	return sin(PI*x)*sin(PI*y);
 }
 double exactgradx(double x, double y) {

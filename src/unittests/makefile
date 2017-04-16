@@ -14,7 +14,7 @@ aelements.o: ../aelements.cpp
 	${CXX} -c ${CXXFLAGS} ../aelements.cpp
 	
 mat: testmat.cpp
-	${CXX} -o mat -std=c++14 testmat.cpp -Wall
+	${CXX} ${CXXFLAGS} -o mat testmat.cpp
 
 mesh: amesh2dh.o testmesh.cpp
 	${CXX} -c ${CXXFLAGS} testmesh.cpp
