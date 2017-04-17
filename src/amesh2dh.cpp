@@ -448,8 +448,6 @@ void UMesh2dh::writeGmsh2(std::string mfile)
 /// \todo: TODO: There is an issue with psup for some boundary nodes belonging to elements of different types. Correct this.
 void UMesh2dh::compute_topological()
 {
-
-	std::cout << "UMesh2dh: compute_topological(): Calculating and storing topological information...\n";
 	/// 1. Elements surrounding points. Note that we only consider the vertices, not high-order points for this.
 	//std::cout << "UMesh2d: compute_topological(): Elements surrounding points\n";
 	esup_p.setup(npoin+1,1);
@@ -785,7 +783,6 @@ void UMesh2dh::compute_topological()
 		if(isbpflag(i)==1) nbpoin++;
 
 	//std::cout << "UMesh2dh: compute_topological(): Number of boundary points = " << nbpoin << std::endl;
-	std::cout << "UMesh2dh: compute_topological(): Done." << std::endl;
 }
 
 void UMesh2dh::compute_boundary_maps()

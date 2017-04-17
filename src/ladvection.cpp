@@ -56,13 +56,14 @@ int main(int argc, char* argv[])
 	control >> dum; control >> extrapflag;
 	control.close();
 
-	vector<string> mfiles(nmesh), sfiles(nmesh);
-	vector<double> h(nmesh,0), l2err(nmesh,0);
+	vector<string> mfiles(nmesh), sfiles(nmesh), exfiles(nmesh);
+	vector<double> h(nmesh,0), l2err(nmesh,0), dt(nmesh,0);
 	string names[] = {"passive-scalar"};
 
 	for(int i = 0; i < nmesh; i++) {
 		mfiles[i] = meshprefix + to_string(i) + ".msh";
-		sfiles[i] = meshprefix + to_string(i) + "-C.vtu";
+		sfiles[i] = meshprefix + to_string(i) + ".vtu";
+		exfiles[i] = meshprefix + to_string(i) + "-exact.vtu";
 	}
 
 	for(int imesh = 0; imesh < nmesh; imesh++)
@@ -83,26 +84,32 @@ int main(int argc, char* argv[])
 
 		TVDRKStepping td(&m, &sd, tdegree, ftime, cfl, 'c', tstep);
 
-		double actual_ftime = td.integrate();
+		double actual_ftime = td.integrate_ForwardEuler();
 		sd.postprocess();
 		l2err[imesh] = sd.computeL2Error(exactsol, actual_ftime);
 		
 		l2err[imesh] = log10(l2err[imesh]);
 		h[imesh] = log10(hh);
-		printf("Mesh %d: Log mesh size = %f, log L2 error = %f\n", imesh, h[imesh], l2err[imesh]);
+		dt[imesh] = log10(tstep);
+		printf("Mesh %d: Log mesh size = %f, log time step = %f, log L2 error = %f\n", imesh, h[imesh], dt[imesh], l2err[imesh]);
 
 		const Array2d<a_real>& u = sd.getOutput();
 		Array2d<a_real> vecs;
 		writeScalarsVectorToVtu_PointData(sfiles[imesh], m, u, names, vecs, "none");
+
+		/*Array2d<a_real> exactout(m.gnpoin(),1);
+		for(a_int i = 0; i < m.gnpoin(); i++)
+			exactout(i) = exactsol(m.gcoords(i,0),m.gcoords(i,1),actual_ftime);
+		writeScalarsVectorToVtu_PointData(exfiles[imesh], m, exactout, names, vecs, "none");*/
 	}
 
 	ofstream convf(outf);
 	for(int i = 0; i < nmesh; i++)
-		convf << h[i] << " " << l2err[i] << "\n";
+		convf << h[i] << " " << dt[i] << " " << l2err[i] << "\n";
 	convf.close();
 	if(nmesh > 1) {
 		double l2slope = (l2err[nmesh-1]-l2err[nmesh-2])/(h[nmesh-1]-h[nmesh-2]);
-		printf("L2 slope = %f\n", l2slope);
+		printf("L2 spatial slope = %f\n", l2slope);
 	}
 
 	printf("---\n\n");

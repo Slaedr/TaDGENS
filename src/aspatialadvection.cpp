@@ -28,7 +28,7 @@ LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, cons
 	for(a_int iface = m->gnbface(); iface < m->gnaface(); iface++)
 		rightfaceterms[iface].resize(NVARS, elems[m->gintfac(iface,1)]->getNumDOFs());
 
-	std::cout << "  LinearAdvection: Velocity is (" << a(0) << ", " << a(1) << ")\n";
+	std::cout << " LinearAdvection: Velocity is (" << a(0) << ", " << a(1) << ")\n";
 	if(a.rows() != NDIM)
 		printf("! LinearAdvection: The advection velocity vector does not have dimension %d!\n", NDIM);
 }
@@ -129,25 +129,27 @@ void LinearAdvection::update_residual(std::vector<Matrix>& u)
 
 	for(a_int iel = 0; iel < m->gnelem(); iel++)
 	{
-		int ng = map2d[iel].getQuadrature()->numGauss();
-		int ndofs = elems[iel]->getNumDOFs();
-		const std::vector<Matrix>& bgrads = elems[iel]->bGrad();
+		if(p_degree > 0) {	
+			int ng = map2d[iel].getQuadrature()->numGauss();
+			int ndofs = elems[iel]->getNumDOFs();
+			const std::vector<Matrix>& bgrads = elems[iel]->bGrad();
 
-		Matrix xflux(ng, NVARS), yflux(ng, NVARS);
-		elems[iel]->interpolateAll(u[iel], xflux);
-		yflux = a[1]*xflux;
-		xflux *= a[0];
-		Matrix term = Matrix::Zero(NVARS, ndofs);
+			Matrix xflux(ng, NVARS), yflux(ng, NVARS);
+			elems[iel]->interpolateAll(u[iel], xflux);
+			yflux = a[1]*xflux;
+			xflux *= a[0];
+			Matrix term = Matrix::Zero(NVARS, ndofs);
 
-		for(int ig = 0; ig < ng; ig++)
-		{
-			a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
-			for(int ivar = 0; ivar < NVARS; ivar++)
-				for(int idof = 0; idof < ndofs; idof++)
-					term(ivar,idof) += (xflux(ig,ivar)*bgrads[ig](idof,0) + yflux(ig,ivar)*bgrads[ig](idof,1)) * weightjacdet;
+			for(int ig = 0; ig < ng; ig++)
+			{
+				a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
+				for(int ivar = 0; ivar < NVARS; ivar++)
+					for(int idof = 0; idof < ndofs; idof++)
+						term(ivar,idof) += (xflux(ig,ivar)*bgrads[ig](idof,0) + yflux(ig,ivar)*bgrads[ig](idof,1)) * weightjacdet;
+			}
+
+			res[iel] -= term;
 		}
-
-		res[iel] -= term;
 
 		for(int ifa = 0; ifa < m->gnfael(iel); ifa++) {
 			a_int iface = m->gelemface(iel,ifa);

@@ -1,13 +1,13 @@
 -number-of-meshes
-3
+4
 -Mesh-prefix
 ../testcases/advection/grids/square
 -output-file-for-convergence
 ../testcases/advection/errors.txt
 -spatial-polynomial-degree-of-computed-solution
-1
+0
 -temporal-order
-2
+1
 -final-time
 1.0
 -CFL

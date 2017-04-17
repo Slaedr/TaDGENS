@@ -17,6 +17,8 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char basisty
 	if(m->degree() == 2) dom_quaddegree += 1;
 	int boun_quaddegree = 2*p_degree;
 	if(m->degree() == 2) boun_quaddegree += 1;
+	if(dom_quaddegree == 0) dom_quaddegree = 1;
+	if(boun_quaddegree == 0) boun_quaddegree = 1;
 	std::cout << " SpatialBase: Quadrature strengths for domain and boundary integrals set at " << dom_quaddegree << ", " << boun_quaddegree << std::endl;
 
 	dtquad = new Quadrature2DTriangle();
