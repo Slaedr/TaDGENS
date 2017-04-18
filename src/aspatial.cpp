@@ -13,10 +13,8 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char basisty
 	std::cout << " SpatialBase: Setting up spaital integrator for FE polynomial degree " << p_degree << std::endl;
 	
 	// set quadrature strength
-	int dom_quaddegree = 2*p_degree;
-	if(m->degree() == 2) dom_quaddegree += 1;
-	int boun_quaddegree = 2*p_degree;
-	if(m->degree() == 2) boun_quaddegree += 1;
+	int dom_quaddegree = 2*p_degree+2 + m->degree()-1;
+	int boun_quaddegree = 2*p_degree+2 + m->degree()-1;
 	if(dom_quaddegree == 0) dom_quaddegree = 1;
 	if(boun_quaddegree == 0) boun_quaddegree = 1;
 	std::cout << " SpatialBase: Quadrature strengths for domain and boundary integrals set at " << dom_quaddegree << ", " << boun_quaddegree << std::endl;
@@ -61,14 +59,13 @@ SpatialBase::~SpatialBase()
 
 void SpatialBase::computeFEData()
 {
-	std::cout << " SpatialBase: computeFEData(): Computing basis functions, basis gradients and mass matrices for each element" << std::endl;
 	minv.resize(m->gnelem());
 	ntotaldofs = 0;
 
 	// loop over elements to setup maps and elements and compute mass matrices
 	for(int iel = 0; iel < m->gnelem(); iel++)
 	{
-		amat::Array2d<a_real> phynodes(m->gnnode(iel),NDIM);
+		Matrix phynodes(m->gnnode(iel),NDIM);
 		for(int i = 0; i < m->gnnode(iel); i++)
 			for(int j = 0; j < NDIM; j++)
 				phynodes(i,j) = m->gcoords(m->ginpoel(iel,i),j);
@@ -78,6 +75,9 @@ void SpatialBase::computeFEData()
 		else {
 			map2d[iel].setAll(m->degree(), phynodes, dtquad);
 		}
+
+		if(basis_type == 'l')
+			map2d[iel].computePhysicalCoordsOfDomainQuadraturePoints();
 
 		elems[iel]->initialize(p_degree, &map2d[iel]);
 		ntotaldofs += elems[iel]->getNumDOFs();
@@ -89,9 +89,10 @@ void SpatialBase::computeFEData()
 		const Quadrature2D* lquad = map2d[iel].getQuadrature();
 		for(int ig = 0; ig < lquad->numGauss(); ig++)
 		{
+			a_real weightandjdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
 			for(int idof = 0; idof < elems[iel]->getNumDOFs(); idof++)
 				for(int jdof = 0; jdof < elems[iel]->getNumDOFs(); jdof++)
-					minv[iel](idof,jdof) += elems[iel]->bFunc()(ig,idof)*elems[iel]->bFunc()(ig,jdof)*map2d[iel].jacDet()[ig];
+					minv[iel](idof,jdof) += elems[iel]->bFunc()(ig,idof)*elems[iel]->bFunc()(ig,jdof) * weightandjdet;
 		}
 
 		minv[iel] = minv[iel].inverse().eval();
@@ -104,7 +105,7 @@ void SpatialBase::computeFEData()
 	for(int iface = 0; iface < m->gnbface(); iface++)
 	{
 		int lelem = m->gintfac(iface,0);
-		amat::Array2d<a_real> phynodes(m->gnnofa(iface),NDIM);
+		Matrix phynodes(m->gnnofa(iface),NDIM);
 		for(int i = 0; i < m->gnnofa(iface); i++)
 			for(int j = 0; j < NDIM; j++)
 				phynodes(i,j) = m->gcoords(m->gintfac(iface,2+i),j);
@@ -119,7 +120,7 @@ void SpatialBase::computeFEData()
 	{
 		int lelem = m->gintfac(iface,0);
 		int relem = m->gintfac(iface,1);
-		amat::Array2d<a_real> phynodes(m->gnnofa(iface),NDIM);
+		Matrix phynodes(m->gnnofa(iface),NDIM);
 		for(int i = 0; i < m->gnnofa(iface); i++)
 			for(int j = 0; j < NDIM; j++)
 				phynodes(i,j) = m->gcoords(m->gintfac(iface,2+i),j);
@@ -130,9 +131,8 @@ void SpatialBase::computeFEData()
 		faces[iface].initialize(elems[lelem], elems[relem], &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
 	}
 	
-	std::cout << "               Mesh degree = " << m->degree() << ", geom map degee = " << map2d[0].getDegree() 
+	std::cout << " SpatialBase: computeFEData: Mesh degree = " << m->degree() << ", geom map degee = " << map2d[0].getDegree() 
 		 << ", element degree = " << elems[0]->getDegree() << std::endl;
-	std::cout << " SpatialBase: computeFEData(): Done." << std::endl;
 }
 
 a_real SpatialBase::computeElemL2Norm2(const int ielem, const Vector& __restrict__ ug) const
@@ -166,7 +166,7 @@ a_real SpatialBase::computeElemL2Error2(const int ielem, const int comp, const M
 	const GeomMapping2D* gmap = elems[ielem]->getGeometricMapping();
 	int ng = gmap->getQuadrature()->numGauss();
 	const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
-	const amat::Array2d<a_real>& qp = gmap->map();
+	const Matrix& qp = gmap->map();
 
 	// TODO: Use interpolateAll here
 	for(int ig = 0; ig < ng; ig++)
@@ -181,13 +181,20 @@ a_real SpatialBase::computeElemL2Error2(const int ielem, const int comp, const M
 	return l2error;
 }
 
-/// Currently only works for isoparametric FEM!
-void SpatialBase::setInitialConditionNodal(const int comp, double (*const init)(a_real, a_real))
+void SpatialBase::setInitialConditionNodal(const int comp, double (**const init)(a_real, a_real))
 {
+	if(basis_type != 'l') {
+		printf("!  SpatialBase: setInitialConditionNodal: Not nodal basis!\n");
+		return;
+	}
 	for(int iel = 0; iel < m->gnelem(); iel++)
 	{
-		for(int inode = 0; inode < m->gnnode(iel); inode++) {
-			u[iel](comp,inode) = init(m->gcoords(m->ginpoel(iel,inode),0), m->gcoords(m->ginpoel(iel,inode),1));
+		Matrix refs = reinterpret_cast<LagrangeElement*>(elems[iel])->getReferenceNodes();
+		Matrix points(elems[iel]->getNumDOFs(), NDIM);
+		map2d[iel].calculateMap(refs, points);
+
+		for(int idof = 0; idof < elems[iel]->getNumDOFs(); idof++) {
+			u[iel](comp,idof) = init[0](points(idof,0),points(idof,1));
 		}
 	}
 }

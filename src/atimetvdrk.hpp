@@ -77,7 +77,7 @@ double TVDRKStepping::integrate()
 	
 	for(int iel = 0; iel < m->gnelem(); iel++)
 		ustage[iel] = u[iel];
-
+	
 	while(time < ftime-SMALL_NUMBER)
 	{
 		for(int istage = 0; istage < order; istage++)
@@ -126,6 +126,15 @@ double TVDRKStepping::integrate_ForwardEuler()
 	const std::vector<a_real>& tsl = spatial->maxExplicitTimeStep();
 	std::printf(" TVDRKStepping: integrate: Time step = %f, option = %c, order = %d\n", tsg, tch, order);
 
+	// compare P1 area inverses
+	std::vector<a_real> mi(m->gnelem());
+	for(int i = 0; i < m->gnelem(); i++)
+	{
+		mi[i] = 2.0/( m->gcoords(m->ginpoel(i,0),0)*(m->gcoords(m->ginpoel(i,1),1) - m->gcoords(m->ginpoel(i,2),1)) 
+				- m->gcoords(m->ginpoel(i,0),1)*(m->gcoords(m->ginpoel(i,1),0)-m->gcoords(m->ginpoel(i,2),0)) 
+				+ m->gcoords(m->ginpoel(i,1),0)*m->gcoords(m->ginpoel(i,2),1) - m->gcoords(m->ginpoel(i,2),0)*m->gcoords(m->ginpoel(i,1),1) );
+	}
+
 	while(time < ftime-SMALL_NUMBER)
 	{
 		for(int iel = 0; iel < m->gnelem(); iel++) {
@@ -146,7 +155,7 @@ double TVDRKStepping::integrate_ForwardEuler()
 		// step
 		for(int iel = 0; iel < m->gnelem(); iel++)
 		{
-			u[iel] = u[iel] - tsg*R[iel]*Mi[iel];
+			u[iel](0,0) = u[iel](0,0) - tsg*R[iel](0,0)*Mi[iel](0,0);
 		}
 
 		time += tsg; step++;

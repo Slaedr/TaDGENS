@@ -185,6 +185,11 @@ public:
 	 * Also stores boundary markers in [intfacbtags](@ref intfacbtags).
 	 */
 	void compute_boundary_maps();
+
+	/// Computes the "mesh size" h
+	/** Call only after compute_topological() has been called.
+	 */
+	a_real meshSizeParameter() const;
 	
 	/// Writes the boundary point maps [ifbmap](@ref ifbmap) and [bifmap](@ref bifmap) to a file
 	void writeBoundaryMapsToFile(std::string mapfile);

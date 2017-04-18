@@ -88,6 +88,12 @@ void LinearAdvection::computeFaceTerms(std::vector<Matrix>& u)
 					leftfaceterms[iface](ivar,idof) += fluxes(ig,ivar) * lbasis(ig,idof) * weightandsp;
 			}
 		}
+	
+		// ! P0 only !
+		/*a_real length = std::pow(m->gcoords(m->gintfac(iface,2),0)-m->gcoords(m->gintfac(iface,3),0),2);
+		length += std::pow(m->gcoords(m->gintfac(iface,2),1)-m->gcoords(m->gintfac(iface,3),1),2);
+		length = std::sqrt(length);
+		leftfaceterms[iface](0,0) = fluxes(0,0)*length;*/
 	}
 	
 	for(a_int iface = m->gnbface(); iface < m->gnaface(); iface++)
@@ -120,6 +126,13 @@ void LinearAdvection::computeFaceTerms(std::vector<Matrix>& u)
 					rightfaceterms[iface](ivar,idof) += fluxes(ig,ivar) * rbasis(ig,idof) * weightandsp;
 			}
 		}
+	
+		// ! P0 only !
+		/*a_real length = std::pow(m->gcoords(m->gintfac(iface,2),0)-m->gcoords(m->gintfac(iface,3),0),2);
+		length += std::pow(m->gcoords(m->gintfac(iface,2),1)-m->gcoords(m->gintfac(iface,3),1),2);
+		length = std::sqrt(length);
+		leftfaceterms[iface](0,0) = fluxes(0,0)*length;
+		rightfaceterms[iface](0,0) = fluxes(0,0)*length;*/
 	}
 }
 

@@ -141,7 +141,7 @@ public:
 	virtual const amat::Array2d<a_real>& getOutput() const = 0;
 
 	/// Sets initial conditions using a function describing a variable
-	void setInitialConditionNodal( const int comp, double (*const init)(a_real, a_real));
+	void setInitialConditionNodal( const int comp, double (**const init)(a_real, a_real));
 
 	/// Sets initial conditions using functions for a variable and its space derivatives
 	void setInitialConditionModal( const int comp, double (**const init)(a_real, a_real));

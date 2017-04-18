@@ -36,10 +36,10 @@ class GeomMapping1D
 {
 protected:
 	int degree;								///< Polynomial degree of the mapping
-	amat::Array2d<a_real> phyNodes;			///< Physical locations of the nodes
+	Matrix phyNodes;						///< Physical locations of the nodes
 	std::vector<Vector> normals;			///< Unit normals at quadrature points
 	std::vector<a_real> speeds;				///< Magnitude of tangent vectors to the curve at quadrature points
-	amat::Array2d<a_real> mapping;			///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
+	Matrix mapping;							///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
 	const Quadrature1D* quadrature;			///< Gauss points and weights for integrating quantities
 
 public:
@@ -49,14 +49,14 @@ public:
 	}
 
 	/// Sets the polynomial degree and coordinates of physical nodes of the element and the quadrature context
-	void setAll(const int deg, const amat::Array2d<a_real>& physicalnodes, const Quadrature1D* q) {
+	void setAll(const int deg, const Matrix& physicalnodes, const Quadrature1D* q) {
 		degree = deg;
 		phyNodes = physicalnodes;
 		quadrature = q;
 	}
 
 	/// Read-only access to physical node locations
-	const amat::Array2d<a_real>& getPhyNodes() const {
+	const Matrix& getPhyNodes() const {
 		return phyNodes;
 	}
 
@@ -71,7 +71,7 @@ public:
 	}
 
 	/// Read-only access to physical coords of the quadrature points
-	const amat::Array2d<a_real>& map() const {
+	const Matrix& map() const {
 		return mapping;
 	}
 
@@ -107,11 +107,11 @@ class GeomMapping2D
 protected:
 	Shape shape;								///< Shape of the element
 	int degree;									///< Polynomial degree of the map
-	amat::Array2d<a_real> phyNodes;				///< Physical coordinates of the nodes
+	Matrix phyNodes;							///< Physical coordinates of the nodes
 	std::vector<MatrixDim> jaco;				///< Jacobian matrix of the mapping
 	std::vector<MatrixDim> jacoinv;				///< Inverse of the Jacobian matrix
 	std::vector<a_real> jacodet;				///< Determinant of the Jacobian matrix
-	amat::Array2d<a_real> mapping;				///< Physical coords of the quadrature points
+	Matrix mapping;								///< Physical coords of the quadrature points
 	const Quadrature2D* quadrature;				///< Gauss points and weights for integrating quantities
 
 public:
@@ -125,7 +125,7 @@ public:
 	}
 
 	/// Sets the polynomial degree, coordinates of physical nodes of the element and the integration context
-	void setAll(const int deg, const amat::Array2d<a_real>& physicalnodes, const Quadrature2D* const quad) {
+	void setAll(const int deg, const Matrix& physicalnodes, const Quadrature2D* const quad) {
 		degree = deg;
 		phyNodes = physicalnodes;
 		quadrature = quad;
@@ -142,18 +142,21 @@ public:
 	virtual void computeForPhysicalElement() = 0;
 
 	/// Computes the Jacobian inverse and its determinant at a set of reference coordinates
-	virtual void calculateJacobianDetAndInverse(const amat::Array2d<a_real>& refpoints, std::vector<MatrixDim>& jacoi, std::vector<a_real>& jacod) const = 0;
+	virtual void calculateJacobianDetAndInverse(const Matrix& refpoints, std::vector<MatrixDim>& jacoi, std::vector<a_real>& jacod) const = 0;
 
 	/// Calculate physical coords of domain quadrature points separately, in case needed by referential elements
 	virtual void computePhysicalCoordsOfDomainQuadraturePoints() = 0;
+	
+	/// Computes physical locations of points given their reference coordinates
+	virtual void calculateMap(const Matrix& points, Matrix& maps) const = 0;
 
 	/// Read-only access to physical node locations
-	const amat::Array2d<a_real>& getPhyNodes() const {
+	const Matrix& getPhyNodes() const {
 		return phyNodes;
 	}
 
 	/// Read-only access to the mapping evaluated at quadrature points \sa mapping
-	const amat::Array2d<a_real>& map() const {
+	const Matrix& map() const {
 		return mapping;
 	}
 
@@ -193,9 +196,11 @@ public:
 
 	void computeForPhysicalElement();
 	
-	void calculateJacobianDetAndInverse(const amat::Array2d<a_real>& po, std::vector<MatrixDim>& jacoi, std::vector<a_real>& jacod) const;
+	void calculateJacobianDetAndInverse(const Matrix& po, std::vector<MatrixDim>& jacoi, std::vector<a_real>& jacod) const;
 	
 	void computePhysicalCoordsOfDomainQuadraturePoints();
+	
+	void calculateMap(const Matrix& __restrict__ points, Matrix& __restrict__ maps) const;
 };
 
 /** \brief A type defining whether basis functions are defined in reference space or physical space
@@ -225,10 +230,10 @@ public:
 	virtual void initialize(int degr, GeomMapping2D* geommap) = 0;
 
 	/// Computes values of basis functions at given points in either reference space or physical space
-	virtual void computeBasis(const amat::Array2d<a_real>& points, Matrix& basisvalues) const = 0;
+	virtual void computeBasis(const Matrix& points, Matrix& basisvalues) const = 0;
 
 	/// Computes basis functions' gradients at given points in either reference space or physical space
-	virtual void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const = 0;
+	virtual void computeBasisGrads(const Matrix& points, std::vector<Matrix>& basisgrads) const = 0;
 
 	virtual ~Element() { }
 
@@ -304,10 +309,10 @@ public:
 	void initialize(int degr, GeomMapping2D* geommap);
 	
 	/// Computes values of basis functions at a given point in physical space
-	void computeBasis(const amat::Array2d<a_real>& points, Matrix& basisvalues) const;
+	void computeBasis(const Matrix& points, Matrix& basisvalues) const;
 	
 	/// Computes basis functions' gradients at given points in physical space
-	void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const;
+	void computeBasisGrads(const Matrix& points, std::vector<Matrix>& basisgrads) const;
 
 	void printDetails() const {
 		std::printf("  (%f,%f), %f, %f, %f\n", center[0], center[1], delta[0], delta[1], area);
@@ -348,10 +353,13 @@ public:
 	void initialize(int degr, GeomMapping2D* geommap);
 	
 	/// Computes values of basis functions at a given point in reference space
-	void computeBasis(const amat::Array2d<a_real>& points, Matrix& basisvalues) const;
+	void computeBasis(const Matrix& points, Matrix& basisvalues) const;
 	
 	/// Computes basis functions' gradients at given points in reference space
-	void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const;
+	void computeBasisGrads(const Matrix& points, std::vector<Matrix>& basisgrads) const;
+	
+	/// Returns the locations of nodes in reference space
+	Matrix getReferenceNodes() const;
 };
 
 /// Just that - a dummy element
@@ -361,8 +369,8 @@ class DummyElement : public Element
 {
 public:
 	void initialize(int degr, GeomMapping2D* geommap) { type = NONEXISTENT; }
-	void computeBasis(const amat::Array2d<a_real>& points, Matrix& basisvalues) const { };
-	void computeBasisGrads(const amat::Array2d<a_real>& points, std::vector<Matrix>& basisgrads) const { };
+	void computeBasis(const Matrix& points, Matrix& basisvalues) const { };
+	void computeBasisGrads(const Matrix& points, std::vector<Matrix>& basisgrads) const { };
 };
 
 /// An interface "element" between 2 adjacent finite elements
@@ -387,8 +395,8 @@ class FaceElement
 	 * \param[in] isright A flag that's 1 if elem is the left element and -1 if it's the right.
 	 * \praram[in|out] lpoints Contains 2D reference coordinates of face quadrature points in element elem on output.
 	 */
-	void getElementRefCoords(const amat::Array2d<a_real>& facepoints, const Element *const elem,
-		const int lfn, const int isright, amat::Array2d<a_real>& lpoints);
+	void getElementRefCoords(const Matrix& facepoints, const Element *const elem,
+		const int lfn, const int isright, Matrix& lpoints);
 public:
 	/// Sets data; computes basis function values of left and right element at each quadrature point
 	/** \note Call only after element data has been precomputed, ie, by calling the compute function on the elements, first!

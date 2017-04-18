@@ -14,7 +14,7 @@ using namespace amat;
  */
 void LagrangeMapping1D::computeAll()
 {
-	const Array2d<a_real>& points = quadrature->points();
+	const Matrix& points = quadrature->points();
 	int npoin = points.rows();
 	speeds.resize(npoin);
 	normals.resize(npoin);
@@ -29,9 +29,9 @@ void LagrangeMapping1D::computeAll()
 		{
 			for(int idim = 0; idim < NDIM; idim++) {
 				// mapping - sum of Lagrange shape functions multiplied by resp coeffs
-				mapping[i][idim] = phyNodes(0,idim)*(1.0-points(i))*0.5 + phyNodes(1,idim)*(1.0+points(i))*0.5;
+				mapping(i,idim) = phyNodes(0,idim)*(1.0-points(i))*0.5 + phyNodes(1,idim)*(1.0+points(i))*0.5;
 				// get sum Lagrange derivatives multiplied by coeffs
-				vel[idim] = (phyNodes[1][idim] - phyNodes[0][idim])/2.0;
+				vel[idim] = (phyNodes(1,idim) - phyNodes(0,idim))/2.0;
 			}
 			
 			speeds[i] = std::sqrt(vel[0]*vel[0] + vel[1]*vel[1]);
@@ -47,8 +47,8 @@ void LagrangeMapping1D::computeAll()
 		for(int i = 0; i < npoin; i++)
 		{
 			for(int idim = 0; idim < NDIM; idim++) {
-				mapping[i][idim] = phyNodes(0,idim)*points(i)*(points(i)-1.0)/2 + phyNodes(1,idim)*points(i)*(points(i)+1.0)/2 + phyNodes(2,idim)*(1.0-points(i)*points(i));
-				vel[idim] = phyNodes[0][idim]*(points(i)-0.5) + phyNodes[1][idim]*(points(i)+0.5) + phyNodes[2][idim]*(-2.0*points(i));
+				mapping(i,idim) = phyNodes(0,idim)*points(i)*(points(i)-1.0)/2 + phyNodes(1,idim)*points(i)*(points(i)+1.0)/2 + phyNodes(2,idim)*(1.0-points(i)*points(i));
+				vel[idim] = phyNodes(0,idim)*(points(i)-0.5) + phyNodes(1,idim)*(points(i)+0.5) + phyNodes(2,idim)*(-2.0*points(i));
 			}
 			
 			speeds[i] = std::sqrt(vel[0]*vel[0] + vel[1]*vel[1]);
@@ -68,8 +68,8 @@ void LagrangeMapping1D::computeAll()
 /// A global function for computing 2D Lagrange mapping derivatives
 /** Mappings upto P2 are implemented.
  */
-void getLagrangeJacobianDetAndInverse(const amat::Array2d<a_real>& __restrict__ po, const Shape shape, 
-		const int degree, const amat::Array2d<a_real>& __restrict__ phyNodes,
+void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape shape, 
+		const int degree, const Matrix& __restrict__ phyNodes,
 		std::vector<MatrixDim>& __restrict__ jacoi, std::vector<a_real>& __restrict__ jacod)
 {
 	std::vector<MatrixDim> jac(po.rows());
@@ -109,7 +109,50 @@ void getLagrangeJacobianDetAndInverse(const amat::Array2d<a_real>& __restrict__ 
 	}
 }
 
-void LagrangeMapping2D::calculateJacobianDetAndInverse(const amat::Array2d<a_real>& __restrict__ po, 
+/// Value of 2D Lagrange mapping at any reference coordinates
+void getLagrangeMap(const Matrix& __restrict__ points, const Shape shape, 
+		const int degree, const Matrix& __restrict__ phyNodes, Matrix& __restrict__ mapping)
+{
+	int npoin = points.rows();
+
+	if(shape == TRIANGLE)
+	{
+		if(degree == 1) {
+			for(int ip = 0; ip < npoin; ip++)
+			{
+				for(int idim = 0; idim < NDIM; idim++) 
+				{
+					mapping(ip,idim) = phyNodes(0,idim)*(1.0-points(ip,0)-points(ip,1)) + phyNodes(1,idim)*points(ip,0) + phyNodes(2,idim)*points(ip,1);
+				}
+			}
+		}
+		else if(degree == 2) {
+			for(int ip = 0; ip < npoin; ip++)
+			{
+				for(int idim = 0; idim < NDIM; idim++) 
+				{
+					mapping(ip,idim) = phyNodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
+						+ phyNodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
+						+ phyNodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
+						+ phyNodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
+						+ phyNodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
+						+ phyNodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
+				}
+			}
+		}
+	}
+	else if (shape == QUADRANGLE)
+	{
+		//TODO: Add bilinear and biquadratic shape functions
+	}
+}
+
+void LagrangeMapping2D::calculateMap(const Matrix& __restrict__ points, Matrix& __restrict__ maps) const
+{
+	getLagrangeMap(points, shape, degree, phyNodes, maps);
+}
+
+void LagrangeMapping2D::calculateJacobianDetAndInverse(const Matrix& __restrict__ po, 
 		std::vector<MatrixDim>& __restrict__ jacoi, std::vector<a_real>& __restrict__ jacod) const
 {
 	getLagrangeJacobianDetAndInverse(po, shape, degree, phyNodes, jacoi, jacod);
@@ -117,7 +160,7 @@ void LagrangeMapping2D::calculateJacobianDetAndInverse(const amat::Array2d<a_rea
 
 void LagrangeMapping2D::computeForReferenceElement()
 {
-	const Array2d<a_real>& points = quadrature->points();
+	const Matrix& points = quadrature->points();
 	shape = quadrature->getShape();
 	int npoin = points.rows();
 	jacoinv.resize(npoin);
@@ -127,94 +170,29 @@ void LagrangeMapping2D::computeForReferenceElement()
 	getLagrangeJacobianDetAndInverse(points, shape, degree, phyNodes, jacoinv, jacodet);
 }
 
+/** We can make this more efficient by not computing the Jacobian inverse below.
+ * For that we need (global functions) getLagrangeJacobianDet() and get2by2Inverse() separetely.
+ */
 void LagrangeMapping2D::computeForPhysicalElement()
 {
-	const Array2d<a_real>& points = quadrature->points();
+	const Matrix& points = quadrature->points();
 	shape = quadrature->getShape();
 	int npoin = points.rows();
 	jacodet.resize(npoin);
 	mapping.resize(npoin,NDIM);
 
-	MatrixDim jac;
-
-	if(shape == TRIANGLE)
-	{
-		if(degree == 1) {
-			for(int ip = 0; ip < npoin; ip++)
-			{
-				for(int idim = 0; idim < NDIM; idim++) 
-				{
-					mapping(ip,idim) = phyNodes(0,idim)*(1.0-points(ip,0)-points(ip,1)) + phyNodes(1,idim)*points(ip,0) + phyNodes(2,idim)*points(ip,1);
-					jac(idim,0) = phyNodes(1,idim)-phyNodes(0,idim);
-					jac(idim,1) = phyNodes(2,idim)-phyNodes(0,idim);
-				}
-			}
-		}
-		else if(degree == 2) {
-			for(int ip = 0; ip < npoin; ip++)
-			{
-				for(int idim = 0; idim < NDIM; idim++) 
-				{
-					mapping(ip,idim) = phyNodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
-						+ phyNodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
-						+ phyNodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
-						+ phyNodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
-						+ phyNodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
-						+ phyNodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
-					jac(idim,0) = phyNodes(0,idim)*(-3+4*points(ip,0)+4*points(ip,1)) +phyNodes(1,idim)*(4*points(ip,0)-1) +phyNodes(3,idim)*4*(1-2*points(ip,0)-points(ip,1)) 
-						+phyNodes(4,idim)*4*points(ip,1) -phyNodes(5,idim)*4.0*points(ip,1);
-					jac(idim,1) = phyNodes(0,idim)*(-3+4*points(ip,1)+4*points(ip,0)) +phyNodes(2,idim)*(4*points(ip,1)-1) -phyNodes(3,idim)*4*points(ip,0) 
-						+ phyNodes(4,idim)*4*points(ip,0) +phyNodes(5,idim)*4*(1-2*points(ip,1)-points(ip,0));
-				}
-			}
-		}
-	}
-	else if (shape == QUADRANGLE)
-	{
-		//TODO: Add bilinear and biquadratic shape functions
-	}
-
-	for(int ip = 0; ip < npoin; ip++)
-		jacodet[ip] = jac(0,0)*jac(1,1) - jac(0,1)*jac(1,0);
+	std::vector<MatrixDim> jacoi(npoin);
+	getLagrangeMap(points, shape, degree, phyNodes, mapping);
+	getLagrangeJacobianDetAndInverse(points, shape, degree, phyNodes, jacoi, jacodet);
 }
 
 void LagrangeMapping2D::computePhysicalCoordsOfDomainQuadraturePoints()
 {
-	const Array2d<a_real>& points = quadrature->points();
-	shape = quadrature->getShape();
+	const Matrix& points = quadrature->points();
 	int npoin = points.rows();
 	mapping.resize(npoin,NDIM);
-
-	if(shape == TRIANGLE)
-	{
-		if(degree == 1) {
-			for(int ip = 0; ip < npoin; ip++)
-			{
-				for(int idim = 0; idim < NDIM; idim++) 
-				{
-					mapping(ip,idim) = phyNodes(0,idim)*(1.0-points(ip,0)-points(ip,1)) + phyNodes(1,idim)*points(ip,0) + phyNodes(2,idim)*points(ip,1);
-				}
-			}
-		}
-		else if(degree == 2) {
-			for(int ip = 0; ip < npoin; ip++)
-			{
-				for(int idim = 0; idim < NDIM; idim++) 
-				{
-					mapping(ip,idim) = phyNodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
-						+ phyNodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
-						+ phyNodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
-						+ phyNodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
-						+ phyNodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
-						+ phyNodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
-				}
-			}
-		}
-	}
-	else if (shape == QUADRANGLE)
-	{
-		//TODO: Add bilinear and biquadratic shape functions
-	}
+	
+	getLagrangeMap(points, shape, degree, phyNodes, mapping);
 }
 
 /** We currently have upto P2 elements.
@@ -258,7 +236,7 @@ void TaylorElement::initialize(int degr, GeomMapping2D* geommap)
 
 	// Compute max extents of the physical element
 	
-	const Array2d<a_real>& phn = gmap->getPhyNodes();
+	const Matrix& phn = gmap->getPhyNodes();
 	for(int i = 0; i < phn.rows(); i++) {
 		for(int j = i+1; j < phn.rows(); j++) 
 		{
@@ -293,7 +271,7 @@ void TaylorElement::initialize(int degr, GeomMapping2D* geommap)
 	// check for P1 case
 	if(gmap->getDegree() == 1) {
 		a_real xc, yc;
-		const Array2d<a_real>& nodes = gmap->getPhyNodes();
+		const Matrix& nodes = gmap->getPhyNodes();
 		for(int i = 0; i < nodes.rows(); i++) {
 			xc += nodes(i,0); yc += nodes(i,1);
 		}
@@ -318,12 +296,12 @@ void TaylorElement::initialize(int degr, GeomMapping2D* geommap)
 	}
 	
 	// Compute basis functions and gradients
-	const Array2d<a_real>& gp = gmap->map();
+	const Matrix& gp = gmap->map();
 	computeBasis(gp, basis);
 	computeBasisGrads(gp, basisGrad);
 }
 
-void TaylorElement::computeBasis(const amat::Array2d<a_real>& __restrict__ gp, Matrix& __restrict__ basiss) const
+void TaylorElement::computeBasis(const Matrix& __restrict__ gp, Matrix& __restrict__ basiss) const
 {
 	for(int ip = 0; ip < gp.rows(); ip++) 
 		basiss(ip,0) = 1.0;
@@ -346,7 +324,7 @@ void TaylorElement::computeBasis(const amat::Array2d<a_real>& __restrict__ gp, M
 	}
 }
 
-void TaylorElement::computeBasisGrads(const amat::Array2d<a_real>& __restrict__ gp, std::vector<Matrix>& __restrict__ basisG) const
+void TaylorElement::computeBasisGrads(const Matrix& __restrict__ gp, std::vector<Matrix>& __restrict__ basisG) const
 {
 	for(int ip = 0; ip < gp.rows(); ip++)
 		basisG[ip](0,0) = basisG[ip](0,1) = 0.0;
@@ -393,13 +371,48 @@ void LagrangeElement::initialize(int degr, GeomMapping2D* geommap)
 	}
 	
 	// Compute basis functions and gradients
-	const Array2d<a_real>& gp = gmap->getQuadrature()->points();
+	const Matrix& gp = gmap->getQuadrature()->points();
 	//const std::vector<MatrixDim>& jinv = gmap->jacInv();
 	computeBasis(gp, basis);
 	computeBasisGrads(gp, basisGrad);
 }
 
-void LagrangeElement::computeBasis(const Array2d<a_real>& __restrict__ gp, Matrix& __restrict__ basisv) const
+Matrix LagrangeElement::getReferenceNodes() const
+{
+	Matrix refs(ndof,NDIM);
+	if(gmap->getShape() == TRIANGLE)
+	{
+		if(degree >= 1) {
+			refs(0,0) = 0; refs(0,1) = 0;
+			refs(1,0) = 1; refs(1,1) = 0;
+			refs(2,0) = 0; refs(2,1) = 1;
+		}
+		if(degree == 2) {
+			refs(3,0) = 0.5; refs(3,1) = 0.0;
+			refs(4,0) = 0.5; refs(4,1) = 0.5;
+			refs(5,0) = 0.0; refs(5,1) = 0.5;
+		}
+	}
+	else if(gmap->getShape() == QUADRANGLE)
+	{
+		if(degree >= 1) {
+			refs(0,0) = -1; refs(0,1) = -1;
+			refs(1,0) = 1;  refs(1,1) = -1;
+			refs(2,0) = 1;  refs(2,1) = 1;
+			refs(3,0) = -1; refs(3,1) = 1;
+		}
+		if(degree == 2) {
+			refs(4,0) = 0;  refs(4,1) = -1;
+			refs(5,0) = 1;  refs(5,1) = 0;
+			refs(6,0) = 0;  refs(6,1) = 1;
+			refs(7,0) = -1; refs(7,1) = 0;
+			refs(8,0) = 0;  refs(8,1) = 0;
+		}
+	}
+	return refs;
+}
+
+void LagrangeElement::computeBasis(const Matrix& __restrict__ gp, Matrix& __restrict__ basisv) const
 {
 	if(gmap->getShape() == TRIANGLE) {
 		if(degree == 1) {
@@ -427,7 +440,7 @@ void LagrangeElement::computeBasis(const Array2d<a_real>& __restrict__ gp, Matri
 	}
 }
 
-void LagrangeElement::computeBasisGrads(const Array2d<a_real>& __restrict__ gp, std::vector<Matrix>& __restrict__ basisG) const
+void LagrangeElement::computeBasisGrads(const Matrix& __restrict__ gp, std::vector<Matrix>& __restrict__ basisG) const
 {
 	// evaluate Jacobian inverse at the given points
 	std::vector<MatrixDim> jinv(gp.rows());
@@ -507,14 +520,14 @@ void FaceElement::initialize(const Element*const lelem, const Element*const rele
 
 	if(lelem->getType() == PHYSICAL) {
 		leftbasis.resize(ng,lelem->getNumDOFs());
-		const Array2d<a_real>& points = gmap->map();
+		const Matrix& points = gmap->map();
 		lelem->computeBasis(points, leftbasis);
 	}
 	else if(lelem->getType() == REFERENTIAL)
 	{
 		// compute element reference coordinates of face quadrature points from their face reference coordinates
-		Array2d<a_real> lpoints(ng,NDIM);
-		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
+		Matrix lpoints(ng,NDIM);
+		const Matrix& facepoints = gmap->getQuadrature()->points();
 		getElementRefCoords(facepoints, leftel, llfn, 1, lpoints);
 	
 		// now compute basis function values
@@ -524,14 +537,14 @@ void FaceElement::initialize(const Element*const lelem, const Element*const rele
 
 	if(relem->getType() == PHYSICAL) {
 		rightbasis.resize(ng,relem->getNumDOFs());
-		const Array2d<a_real>& points = gmap->map();
+		const Matrix& points = gmap->map();
 		relem->computeBasis(points, rightbasis);
 	}
 	else if(relem->getType() == REFERENTIAL)
 	{
 		// compute element reference coordinates of face quadrature points from their face reference coordinates
-		Array2d<a_real> rpoints(ng,NDIM);
-		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
+		Matrix rpoints(ng,NDIM);
+		const Matrix& facepoints = gmap->getQuadrature()->points();
 		getElementRefCoords(facepoints, rightel, rlfn, -1, rpoints);
 	
 		// now compute basis function values
@@ -549,7 +562,7 @@ void FaceElement::computeBasisGrads()
 		for(int ip = 0; ip < ng; ip++)
 			leftbgrad[ip].resize(leftel->getNumDOFs(), NDIM);
 
-		const amat::Array2d<a_real>& gp = gmap->map();
+		const Matrix& gp = gmap->map();
 		leftel->computeBasisGrads(gp, leftbgrad);
 	}
 	else if(leftel->getType() == REFERENTIAL)
@@ -558,8 +571,8 @@ void FaceElement::computeBasisGrads()
 		for(int ip = 0; ip < ng; ip++)
 			leftbgrad[ip].resize(leftel->getNumDOFs(), NDIM);
 
-		Array2d<a_real> lpoints(ng,NDIM);
-		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
+		Matrix lpoints(ng,NDIM);
+		const Matrix& facepoints = gmap->getQuadrature()->points();
 		getElementRefCoords(facepoints, leftel, llfn, 1, lpoints);
 		leftel->computeBasisGrads(lpoints, leftbgrad);
 	}
@@ -569,7 +582,7 @@ void FaceElement::computeBasisGrads()
 		for(int ip = 0; ip < ng; ip++)
 			rightbgrad[ip].resize(rightel->getNumDOFs(), NDIM);
 
-		const amat::Array2d<a_real>& gp = gmap->map();
+		const Matrix& gp = gmap->map();
 		rightel->computeBasisGrads(gp, rightbgrad);
 	}
 	else if(rightel->getType() == REFERENTIAL)
@@ -578,8 +591,8 @@ void FaceElement::computeBasisGrads()
 		for(int ip = 0; ip < ng; ip++)
 			rightbgrad[ip].resize(rightel->getNumDOFs(), NDIM);
 
-		Array2d<a_real> rpoints(ng,NDIM);
-		const Array2d<a_real>& facepoints = gmap->getQuadrature()->points();
+		Matrix rpoints(ng,NDIM);
+		const Matrix& facepoints = gmap->getQuadrature()->points();
 		getElementRefCoords(facepoints, rightel, rlfn, -1, rpoints);
 		rightel->computeBasisGrads(rpoints, rightbgrad);
 	}
@@ -588,8 +601,8 @@ void FaceElement::computeBasisGrads()
 /** Note that the order of points has to be reversed for the right element.
  * We use lr for this.
  */
-void FaceElement::getElementRefCoords(const Array2d<a_real>& __restrict__ facepoints, const Element *const __restrict__ elem, 
-		const int llfn, const int lr, Array2d<a_real>& __restrict__ dompoints)
+void FaceElement::getElementRefCoords(const Matrix& __restrict__ facepoints, const Element *const __restrict__ elem, 
+		const int llfn, const int lr, Matrix& __restrict__ dompoints)
 {
 	int ng = facepoints.rows();
 #ifdef DEBUG

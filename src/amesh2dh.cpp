@@ -846,6 +846,18 @@ void UMesh2dh::compute_boundary_maps()
 	}
 }
 
+a_real UMesh2dh::meshSizeParameter() const
+{
+	a_real h = 0;
+	for(a_int iface = 0; iface < gnaface(); iface++)
+	{
+		a_real length = std::pow(gcoords(gintfac(iface,2),0)-gcoords(gintfac(iface,3),0),2);
+		length += std::pow(gcoords(gintfac(iface,2),1)-gcoords(gintfac(iface,3),1),2);
+		if(h < length) h = length;
+	}
+	return std::sqrt(h);
+}
+
 void UMesh2dh::writeBoundaryMapsToFile(std::string mapfile)
 {
 	if(isBoundaryMaps == false) {

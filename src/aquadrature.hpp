@@ -25,7 +25,7 @@ protected:
 	int ngauss;										///< Number of quadrature points
 	int nPoly;										///< Degree of polynomial to integrate exactly
 	amat::Array2d<a_real> gweights;
-	amat::Array2d<a_real> gpoints;
+	Matrix ggpoints;
 public:
 	virtual void initialize(const int n_poly) = 0;
 	virtual ~QuadratureRule() { }
@@ -34,8 +34,8 @@ public:
 		return gweights;
 	}
 
-	const amat::Array2d<a_real>& points() const {
-		return gpoints;
+	const Matrix& points() const {
+		return ggpoints;
 	}
 
 	int numGauss() const {

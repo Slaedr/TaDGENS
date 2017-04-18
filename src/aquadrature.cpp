@@ -11,6 +11,7 @@ namespace acfd {
 void Quadrature1D::initialize(const int n_poly)
 {
 	using std::sqrt;
+	amat::Array2d<a_real> gpoints;
 
 	nPoly = n_poly;
 	shape = LINE;
@@ -19,6 +20,7 @@ void Quadrature1D::initialize(const int n_poly)
 		ngauss = 1;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
+		ggpoints.resize(ngauss,1);
 		gpoints(0) = 0.0;
 		gweights(0) = 2.0;
 	}
@@ -26,6 +28,7 @@ void Quadrature1D::initialize(const int n_poly)
 		ngauss = 2;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
+		ggpoints.resize(ngauss,1);
 		gpoints(0) = -1.0/sqrt(3); gpoints(1) = 1.0/sqrt(3);
 		gweights(0) = 1.0; gweights(1) = 1.0;
 	}
@@ -33,6 +36,7 @@ void Quadrature1D::initialize(const int n_poly)
 		ngauss = 3;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
+		ggpoints.resize(ngauss,1);
 		gpoints(0) = -sqrt(3.0/5.0); gpoints(1) = 0.0; gpoints(2) = sqrt(3.0/5.0);
 		gweights(0) = 5.0/9.0;  gweights(1) = 8.0/9.0, gweights(2) = 5.0/9.0;
 	}
@@ -40,6 +44,7 @@ void Quadrature1D::initialize(const int n_poly)
 		ngauss = 4;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
+		ggpoints.resize(ngauss,1);
 		gpoints(0) = -sqrt(3.0/7 + 2.0/7*sqrt(6.0/5)); gpoints(1) = -sqrt(3.0/7 - 2.0/7*sqrt(6.0/5));
 		gpoints(2) = sqrt(3.0/7 + 2.0/7*sqrt(6.0/5)); gpoints(3) = sqrt(3.0/7 + 2.0/7*sqrt(6.0/5));
 		gweights(0) = (18.0-sqrt(30))/36.0; gweights(1) = (18.0+sqrt(30))/36.0;
@@ -49,6 +54,7 @@ void Quadrature1D::initialize(const int n_poly)
 		ngauss = 5;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
+		ggpoints.resize(ngauss,1);
 		gpoints(0) = -1.0/3*sqrt(5.0 + 2.0*sqrt(10.0/7)); gpoints(1) = -1.0/3*sqrt(5.0 - 2.0*sqrt(10.0/7));
 		gpoints(2) = 0.0;
 		gpoints(3) = 1.0/3*sqrt(5.0 - 2.0*sqrt(10.0/7)); gpoints(4) = 1.0/3*sqrt(5.0 + 2.0*sqrt(10.0/7));
@@ -57,21 +63,41 @@ void Quadrature1D::initialize(const int n_poly)
 		gweights(3) = (322.0+13*sqrt(70.0))/900; gweights(4) = (322.0-13*sqrt(70.0))/900;
 	}
 	else {
-		ngauss = 5;
+		nPoly = 8;
+		ngauss = 8;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
-		printf("! Quadrature1D: Quadrature with this number of Gauss points is not supported! Setting to 5.\n");
-		gpoints(0) = -1.0/3*sqrt(5.0 + 2.0*sqrt(10.0/7)); gpoints(1) = -1.0/3*sqrt(5.0 - 2.0*sqrt(10.0/7));
-		gpoints(2) = 0.0;
-		gpoints(3) = 1.0/3*sqrt(5.0 - 2.0*sqrt(10.0/7)); gpoints(4) = 1.0/3*sqrt(5.0 + 2.0*sqrt(10.0/7));
-		gweights(0) = (322.0-13*sqrt(70.0))/900; gweights(1) = (322.0+13*sqrt(70.0))/900;
-		gweights(2) = 128.0/225;
-		gweights(3) = (322.0+13*sqrt(70.0))/900; gweights(4) = (322.0-13*sqrt(70.0))/900;
+		ggpoints.resize(ngauss,1);
+		printf("! Quadrature1D: Quadrature with this number of Gauss points is not supported! Setting to 8.\n");
+		
+		a_real gp[][1] = {{-0.960289856497536231684},
+							{-0.796666477413626739592},
+							{-0.525532409916328985818},
+							{-0.183434642495649804939},
+							{0.183434642495649804939},
+							{0.525532409916328985818},
+							{0.796666477413626739592},
+							{0.960289856497536231684}};
+
+		a_real gw[][1] = {{0.10122853629037625915},
+		                  {0.22238103445337447054},
+		                  {0.31370664587788728733},
+		                  {0.36268378337836198296},
+		                  {0.36268378337836198296},
+		                  {0.31370664587788728733},
+		                  {0.22238103445337447054},
+		                  {0.10122853629037625915}};
+		gpoints.initialize(ngauss, 1, (a_real*)gp);
+		gweights.initialize(ngauss, 1, (a_real*)gw);
 	}
+
+	for(int i = 0; i < ggpoints.rows(); i++)
+		ggpoints(i,0) = gpoints(i,0);
 }
 
 void Quadrature2DSquare::initialize(const int n_poly)
 {
+	amat::Array2d<a_real> gpoints;
 	nPoly = n_poly;
 	shape  = QUADRANGLE;
 	if(nPoly == 1) {
@@ -89,6 +115,10 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
 		std::printf("  Quadrature2DSquare: Ngauss = 1.\n");
+		ggpoints.resize(ngauss,2);
+		for(int i = 0; i < ggpoints.rows(); i++)
+			for(int j = 0; j < 2; j++)
+				ggpoints(i,j) = gpoints(i,j);
 	}
 	else {
 		nPoly = 2;	// override argument
@@ -98,13 +128,19 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
 		std::printf("  Quadrature2DSquare: Ngauss = 4.\n");
+		ggpoints.resize(ngauss,2);
+		for(int i = 0; i < ggpoints.rows(); i++)
+			for(int j = 0; j < 2; j++)
+				ggpoints(i,j) = gpoints(i,j);
 	}
 }
 
 void Quadrature2DTriangle::initialize(const int n_poly)
 {
+	amat::Array2d<a_real> gpoints;
 	nPoly = n_poly;
 	shape = TRIANGLE;
+
 	if(nPoly == 1) {
 		ngauss = 1;
 		a_real gp[][2] = {{1.0/3, 1.0/3}};
@@ -112,6 +148,7 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
 		printf("  Quadrature2DTriangle: Ngauss = 1.\n");
+		ggpoints.resize(ngauss,2);
 	}
 	else if(nPoly == 2) {
 		ngauss = 3;
@@ -120,6 +157,7 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
 		printf("  Quadrature2DTriangle: Ngauss = 3.\n");
+		ggpoints.resize(ngauss,2);
 	}
 	else if(nPoly == 3) {
 		ngauss = 4;
@@ -128,6 +166,7 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
 		printf("  Quadrature2DTriangle: Ngauss = 4.\n");
+		ggpoints.resize(ngauss,2);
 	}
 	else if(nPoly == 4) {
 		ngauss = 6;
@@ -146,6 +185,7 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
 		printf("  Quadrature2DTriangle: Ngauss = 6.\n");
+		ggpoints.resize(ngauss,2);
 	}
 	else if(nPoly == 5) {
 		ngauss = 7;
@@ -167,8 +207,10 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
 		printf("  Quadrature2DTriangle: Ngauss = 7.\n");
+		ggpoints.resize(ngauss,2);
 	}
 	else { /* npoly == 6 */
+		nPoly = 6;
 		ngauss = 12;
 		a_real gp[][2] = {{0.873821971016996,0.063089014491502},
 							{0.063089014491502,0.873821971016996},
@@ -197,7 +239,11 @@ void Quadrature2DTriangle::initialize(const int n_poly)
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
 		printf("  Quadrature2DTriangle: Ngauss = 12.\n");
+		ggpoints.resize(ngauss,2);
 	}
+	for(int i = 0; i < ggpoints.rows(); i++)
+		for(int j = 0; j < 2; j++)
+			ggpoints(i,j) = gpoints(i,j);
 }
 
 }

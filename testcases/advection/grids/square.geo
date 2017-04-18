@@ -1,7 +1,7 @@
 // Simple square test case for linear advection with DGFEM
 // Aditya Kashi
 
-h = 0.03125;
+h = 0.0234375;
 xstart = -1.5;
 xend = 1.5;
 ystart = -1.0;

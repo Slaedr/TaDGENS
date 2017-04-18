@@ -113,7 +113,6 @@ void writeScalarsVectorToVtu_CellData(std::string fname, const acfd::UMesh2dh& m
 	out << "</UnstructuredGrid>\n";
 	out << "</VTKFile>";
 	out.close();
-	std::cout << "Vtu file written.\n";
 }
 
 void writeScalarsVectorToVtu_PointData(std::string fname, const acfd::UMesh2dh& m, const amat::Array2d<double>& x, std::string scaname[], const amat::Array2d<double>& y, std::string vecname)
@@ -221,7 +220,6 @@ void writeScalarsVectorToVtu_PointData(std::string fname, const acfd::UMesh2dh& 
 	out << "</UnstructuredGrid>\n";
 	out << "</VTKFile>";
 	out.close();
-	std::cout << "Vtu file written.\n";
 }
 
 
@@ -282,5 +280,4 @@ void writeMeshToVtu(std::string fname, acfd::UMesh2dh& m)
 	out << "</UnstructuredGrid>\n";
 	out << "</VTKFile>";
 	out.close();
-	std::cout << "Vtu file written.\n";
 }
