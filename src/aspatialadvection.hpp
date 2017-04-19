@@ -22,6 +22,7 @@ class LinearAdvection : public SpatialBase
 {
 protected:
 	Vector a;								///< Advection velocity
+	a_real amag;							///< Magnitude of advection velocity
 	a_real bval;							///< Value to be imposed at inflow
 	int inoutflow_flag;						///< Boundary flag at faces where inflow or outflow is required
 	int extrapolation_flag;					///< Boundary flag for extrapolation condition
@@ -41,6 +42,9 @@ public:
 	
 	/// Adds face contributions and computes domain contribution to the [right hand side](@ref residual) 
 	void update_residual(std::vector<Matrix>& ustage);
+	
+	/// Adds source term contribution to residual
+	void add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t);
 
 	/// Compute quantities to export
 	void postprocess();

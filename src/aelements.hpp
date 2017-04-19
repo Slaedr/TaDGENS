@@ -257,6 +257,14 @@ public:
 	{
 		values.noalias() = basis * dofs.transpose();
 	}
+	
+	/// Computes values of the specified component at domain quadrature points using DOFs supplied
+	/** \param[in] comp specifies the row to use in the matrix of DOFs
+	 */
+	void interpolateComponent(const int comp, const Matrix& __restrict__ dofs, Vector& __restrict__ values) const
+	{
+		values.noalias() = basis * dofs.row(comp).transpose();
+	}
 
 	/// Read-only access to basis at a given quadrature point
 	const Matrix& bFunc() const {

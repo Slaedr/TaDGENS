@@ -43,6 +43,7 @@ private:
 	amat::Array2d<a_int> bface;				///< Boundary face data: lists nodes belonging to a boundary face and contains boudnary markers
 	amat::Array2d<int> vol_regions;			///< to hold volume region markers, if any
 	amat::Array2d<int> flag_bpoin;			///< Holds 1 or 0 for each point depending on whether or not that point is a boundary point
+	std::vector<a_real> h;					///< Holds squared (approx for high-order) length of each edge of the mesh
 
 	/// List of indices of [esup](@ref esup) corresponding to vertices (vertices = "low order" nodes only)
 	amat::Array2d<a_int> esup_p;
@@ -129,6 +130,7 @@ public:
 	int gnbtag() const{ return nbtag; }
 	int gndtag() const { return ndtag; }
 	a_int gnbpoin() const { return nbpoin; }
+	a_real gedgelengthsquared(const a_int iface) const { return h[iface]; }
 
 	/* Functions to set some mesh data structures. */
 	/// set coordinates of a certain point; 'set' counterpart of the 'get' function [gcoords](@ref gcoords).

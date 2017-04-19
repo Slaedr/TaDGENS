@@ -1,7 +1,7 @@
 // Simple square test case for linear advection with DGFEM
 // Aditya Kashi
 
-h = 0.0234375;
+h = 0.015625;
 xstart = -1.5;
 xend = 1.5;
 ystart = -1.0;
@@ -16,7 +16,8 @@ Line(3) = {3, 4};
 Line(4) = {4, 1};
 Line Loop(6) = {1, 2, 3, 4};
 Plane Surface(6) = {6};
-Physical Line(2) = {1, 2, 3, 4};
+Physical Line(2) = {1, 3};
+Physical Line(1) = {2, 4};
 Physical Surface(7) = {6};
 
 // Comment out for triangular mesh

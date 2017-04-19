@@ -31,15 +31,12 @@ LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, cons
 	std::cout << " LinearAdvection: Velocity is (" << a(0) << ", " << a(1) << ")\n";
 	if(a.rows() != NDIM)
 		printf("! LinearAdvection: The advection velocity vector does not have dimension %d!\n", NDIM);
+	amag = std::sqrt(a[0]*a[0]+a[1]*a[1]);
 }
 
 void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instate, Matrix& bstate)
 {
-	if(m->gintfacbtags(iface, 0) == extrapolation_flag)
-	{
-		bstate = instate;
-	}
-	else if(m->gintfacbtags(iface, 0) == inoutflow_flag)
+	if(m->gintfacbtags(iface, 0) == inoutflow_flag)
 	{
 		// compute normal velocity and decide whether to extrapolate or impose specified boundary value at each quadrature point
 		const std::vector<Vector>& n = map1d[iface].normal();
@@ -49,6 +46,10 @@ void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instat
 			else
 				bstate.row(ig)(0) = bval;
 		}
+	}
+	else
+	{
+		bstate = instate;
 	}
 }
 
@@ -164,6 +165,8 @@ void LinearAdvection::update_residual(std::vector<Matrix>& u)
 			res[iel] -= term;
 		}
 
+		a_real hsize = 0;
+
 		for(int ifa = 0; ifa < m->gnfael(iel); ifa++) {
 			a_int iface = m->gelemface(iel,ifa);
 			a_int nbdelem = m->gesuel(iel,ifa);
@@ -173,7 +176,32 @@ void LinearAdvection::update_residual(std::vector<Matrix>& u)
 			else {
 				res[iel] -= rightfaceterms[iface];
 			}
+
+			if(hsize < m->gedgelengthsquared(iface)) hsize = m->gedgelengthsquared(iface);
 		}
+
+		mets[iel] = std::sqrt(hsize)/amag;
+	}
+}
+
+void LinearAdvection::add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t)
+{
+	for(a_int iel = 0; iel < m->gnelem(); iel++)
+	{
+		int ng = map2d[iel].getQuadrature()->numGauss();
+		int ndofs = elems[iel]->getNumDOFs();
+		const Matrix& bas = elems[iel]->bFunc();
+		const Matrix& pts = elems[iel]->getGeometricMapping()->map();
+		Matrix term = Matrix::Zero(NVARS, ndofs);
+
+		for(int ig = 0; ig < ng; ig++)
+		{
+			a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
+			for(int idof = 0; idof < ndofs; idof++)
+				term(0,idof) += rhs(pts(ig,0),pts(ig,1),0) * bas(ig,idof) * weightjacdet;
+		}
+
+		res[iel] -= term;
 	}
 }
 

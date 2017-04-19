@@ -56,7 +56,7 @@ target_link_libraries(tadgens_advection tadgens_base)
 
 #add_executable(poissonsip poissonSIP.cpp)
 #target_link_libraries(poissonsip tadgens_poisson)
-add_executable(advect ladvection.cpp)
+add_executable(advect ladvection-unsteady.cpp)
 target_link_libraries(advect tadgens_advection)
 #add_executable(poissonc poissonC.cpp)
 #target_link_libraries(poissonc tadgens_poisson)

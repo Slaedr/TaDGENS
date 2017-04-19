@@ -1,23 +1,42 @@
-/** @file ladvection.cpp
+/** @file ladvection-unsteady.cpp
  * @brief Main function for DG linear advection solver
  * @author Aditya Kashi
- * @date 2017 April 18
+ * @date 2017 April 15
  */
 
 #include "aspatialadvection.hpp"
-#include "atimesteady.hpp"
+#include "atimetvdrk.hpp"
 #include "aoutput.hpp"
 
 using namespace amat;
 using namespace std;
 using namespace acfd;
 
-// exact solution - sin in x
-double exactsol(double x, double y, double t) {
-	return sin( 2*PI/3.0*(x+1.5));
+// exact solution - Gaussian bump
+double beta = 200.0, xc = -0.2, yc = 0;
+double a0 = 1.0, a1 = 0.0;
+
+double init(double x, double y) {
+	return std::exp(beta*(-(x-xc)*(x-xc)-(y-yc)*(y-yc)));
 }
-double rhs(double x, double y, double t) {
-	return 2*PI/2.0 * cos( 2*PI/3.0*(x+1.5));
+double initgradx(double x, double y) {
+	return -init(x,y)*beta*2*(x-xc);
+}
+double initgrady(double x, double y) {
+	return -init(x,y)*beta*2*(y-yc);
+}
+double initgradxx(double x, double y) {
+	return 4*beta*beta*init(x,y)*(x-xc)*(x-xc) - 2*beta*init(x,y);
+}
+double initgradyy(double x, double y) {
+	return 4*beta*beta*init(x,y)*(y-yc)*(y-yc) - 2*beta*init(x,y);
+}
+double initgradxy(double x, double y) {
+	return 4*beta*beta*init(x,y)*(x-xc)*(y-yc);
+}
+
+double exactsol(double x, double y, double t) {
+	return init(x-a0*t, y-a1*t);
 }
 
 int main(int argc, char* argv[])

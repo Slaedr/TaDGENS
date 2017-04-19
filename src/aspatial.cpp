@@ -76,6 +76,9 @@ void SpatialBase::computeFEData()
 			map2d[iel].setAll(m->degree(), phynodes, dtquad);
 		}
 
+		/** \note Computation of physical coordinates of domain quadrature points is required separately for Lagrange elements
+		 * only for the purpose of computing source term contributions and errors.
+		 */
 		if(basis_type == 'l')
 			map2d[iel].computePhysicalCoordsOfDomainQuadraturePoints();
 
@@ -157,6 +160,26 @@ a_real SpatialBase::computeElemL2Norm2(const int ielem, const Vector& __restrict
 	return l2error;
 }
 
+a_real SpatialBase::computeL2Norm(const std::vector<Matrix> w, const int comp) const
+{
+	a_real l2norm = 0;
+	for(int ielem = 0; ielem < m->gnelem(); ielem++)
+	{
+		const GeomMapping2D* gmap = elems[ielem]->getGeometricMapping();
+		int ng = gmap->getQuadrature()->numGauss();
+		const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
+		Vector vals(ng);
+		elems[ielem]->interpolateComponent(comp,w[ielem],vals);
+
+		for(int ig = 0; ig < ng; ig++)
+		{
+			l2norm += vals(ig)*vals(ig) * wts(ig) * gmap->jacDet()[ig];
+		}
+	}
+
+	return std::sqrt(l2norm);
+}
+
 a_real SpatialBase::computeElemL2Error2(const int ielem, const int comp, const Matrix& __restrict__ ug, a_real (* const exact)(a_real, a_real, a_real), const double time) const
 {
 	int ndofs = elems[ielem]->getNumDOFs();
@@ -223,5 +246,7 @@ void SpatialBase::setInitialConditionModal(const int comp, double (**const init)
 		}
 	}
 }
+
+void SpatialBase::add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t) { }
 
 }	// end namespace
