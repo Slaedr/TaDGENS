@@ -14,7 +14,7 @@ SteadyBase::SteadyBase(const UMesh2dh *const mesh, SpatialBase* s, a_real cflnum
 	std::cout << " SteadyBase: CFL = " << cfl << ", use source? " << source << std::endl;
 }
 
-SteadyExplicit::SteadyExplicit(const UMesh2dh*const mesh, SpatialBase* s, a_real cflnumber, double toler, int max_iter, bool use_source);
+SteadyExplicit::SteadyExplicit(const UMesh2dh*const mesh, SpatialBase* s, a_real cflnumber, double toler, int max_iter, bool use_source)
 	: SteadyBase(mesh, s, cflnumber, toler, max_iter, use_source)
 {
 }
@@ -22,14 +22,14 @@ SteadyExplicit::SteadyExplicit(const UMesh2dh*const mesh, SpatialBase* s, a_real
 void SteadyExplicit::integrate()
 {
 	int step = 0;
-	double relresnorm = 1.0, resnorm, resnorm0 = 1.0;
+	double relresnorm = 1.0, resnorm0 = 1.0;
 	std::vector<Matrix>& u = spatial->unk();
 
 	std::vector<Matrix>& R = spatial->residual();
 	const std::vector<Matrix>& Mi = spatial->massInv();
 	const std::vector<a_real>& tsl = spatial->maxExplicitTimeStep();
 
-	while(relresnorm > tol && step < maxiter)
+	while((relresnorm > tol && step < maxiter))
 	{
 		for(int iel = 0; iel < m->gnelem(); iel++) {
 			R[iel] = Matrix::Zero(R[iel].rows(), R[iel].cols());
@@ -42,10 +42,10 @@ void SteadyExplicit::integrate()
 		// step
 		for(int iel = 0; iel < m->gnelem(); iel++)
 		{
-			u[iel] = u[iel] - tsl[iel]*R[iel](0,0)*Mi[iel];
+			u[iel] = u[iel] - cfl*tsl[iel]*R[iel]*Mi[iel];
 		}
 
-		double resnorm = s->computeL2Norm(R, 0);
+		double resnorm = spatial->computeL2Norm(R, 0);
 		if(step == 0) resnorm0 = resnorm;
 		else relresnorm = resnorm/resnorm0;
 
@@ -53,6 +53,8 @@ void SteadyExplicit::integrate()
 		if(step % 20 == 0)
 			std::printf("  SteadyExplicit: integrate: Step %d, rel res = %f\n", step, relresnorm);
 	}
+	
+	std::printf(" SteadyExplicit: integrate: Total steps %d, final rel res = %f\n", step, relresnorm);
 }
 
 }

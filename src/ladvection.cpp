@@ -12,12 +12,14 @@ using namespace amat;
 using namespace std;
 using namespace acfd;
 
+double a0 = 1.0, a1 = 0.0;
+
 // exact solution - sin in x
 double exactsol(double x, double y, double t) {
-	return sin( 2*PI/3.0*(x+1.5));
+	return 1.0+sin( 2*PI/3.0*(x+1.5));
 }
 double rhs(double x, double y, double t) {
-	return 2*PI/2.0 * cos( 2*PI/3.0*(x+1.5));
+	return 2*PI/3.0 * cos( 2*PI/3.0*(x+1.5));
 }
 
 int main(int argc, char* argv[])
@@ -32,8 +34,8 @@ int main(int argc, char* argv[])
 	ifstream control(argv[1]);
 
 	string dum, meshprefix, outf;
-	double cfl, tstep, ftime;
-	int sdegree, tdegree, nmesh, extrapflag, inoutflag;
+	double cfl, tol;
+	int sdegree, maxits, nmesh, extrapflag, inoutflag;
 	char btype;
 
 	control >> dum; control >> nmesh;
@@ -41,21 +43,21 @@ int main(int argc, char* argv[])
 	control >> dum; control >> outf;
 	control >> dum; control >> btype;
 	control >> dum; control >> sdegree;
-	control >> dum; control >> tdegree;
-	control >> dum; control >> ftime;
 	control >> dum; control >> cfl;
+	control >> dum; control >> tol;
+	control >> dum; control >> maxits;
 	control >> dum; control >> inoutflag;
 	control >> dum; control >> extrapflag;
 	control.close();
 
 	vector<string> mfiles(nmesh), sfiles(nmesh), exfiles(nmesh);
-	vector<double> h(nmesh,0), l2err(nmesh,0), dt(nmesh,0);
+	vector<double> h(nmesh,0), l2err(nmesh,0);
 	string names[] = {"passive-scalar"};
 
 	for(int i = 0; i < nmesh; i++) {
 		mfiles[i] = meshprefix + to_string(i) + ".msh";
-		sfiles[i] = outf + to_string(i) + "-h"+to_string(sdegree) + "-t"+to_string(tdegree)+".vtu";
-		exfiles[i] = meshprefix + to_string(i) + "-exact.vtu";
+		sfiles[i] = outf + to_string(i) + "-h"+to_string(sdegree)+".vtu";
+		exfiles[i] = outf + to_string(i) + "-exact.vtu";
 	}
 
 	for(int imesh = 0; imesh < nmesh; imesh++)
@@ -65,29 +67,22 @@ int main(int argc, char* argv[])
 		// fixed time step is a constant times mesh size
 		//double hh = sqrt( 1.0/m.gnelem() );
 		double hh = m.meshSizeParameter();
-		tstep = cfl*hh;
-		printf("Mesh %d: h = %f, time step = %f\n", imesh, hh, tstep);
+		printf("Mesh %d: h = %f\n", imesh, hh);
 
 		Vector a(2); a[0] = a0; a[1] = a1;
-		LinearAdvection sd(&m, sdegree, btype, a, 0.0, inoutflag, extrapflag);
+		LinearAdvection sd(&m, sdegree, btype, a, 1.0, inoutflag, extrapflag);
 		
-		double (* inits[6])(double,double);
-		inits[0] = &init; inits[1] = &initgradx; inits[2] = &initgrady; inits[3] = &initgradxx; inits[4] = initgradyy; inits[5] = initgradxy;
-		if(btype == 't')
-			sd.setInitialConditionModal(0, inits);
-		else
-			sd.setInitialConditionNodal(0, inits);
+		SteadyExplicit td(&m, &sd, cfl, tol, maxits, true);
+		td.set_source(rhs);
+		
+		td.integrate();
 
-		TVDRKStepping td(&m, &sd, tdegree, ftime, cfl, 'c', tstep);
-
-		double actual_ftime = td.integrate();
 		sd.postprocess();
-		l2err[imesh] = sd.computeL2Error(exactsol, actual_ftime);
+		l2err[imesh] = sd.computeL2Error(exactsol, 0);
 		
 		l2err[imesh] = log10(l2err[imesh]);
 		h[imesh] = log10(hh);
-		dt[imesh] = log10(tstep);
-		printf("Mesh %d: Log mesh size = %f, log time step = %f, log L2 error = %f\n", imesh, h[imesh], dt[imesh], l2err[imesh]);
+		printf("Mesh %d: Log mesh size = %f, log L2 error = %f\n", imesh, h[imesh], l2err[imesh]);
 
 		const Array2d<a_real>& u = sd.getOutput();
 		Array2d<a_real> vecs;
@@ -95,7 +90,7 @@ int main(int argc, char* argv[])
 
 		/*Array2d<a_real> exactout(m.gnpoin(),1);
 		for(a_int i = 0; i < m.gnpoin(); i++)
-			exactout(i) = exactsol(m.gcoords(i,0),m.gcoords(i,1),actual_ftime);
+			exactout(i) = exactsol(m.gcoords(i,0),m.gcoords(i,1),0);
 		writeScalarsVectorToVtu_PointData(exfiles[imesh], m, exactout, names, vecs, "none");*/
 
 		if(imesh > 0) {
@@ -107,7 +102,7 @@ int main(int argc, char* argv[])
 
 	/*ofstream convf(outf);
 	for(int i = 0; i < nmesh; i++)
-		convf << h[i] << " " << dt[i] << " " << l2err[i] << "\n";
+		convf << h[i] << " " << l2err[i] << "\n";
 	convf.close();*/
 
 	printf("---\n\n");

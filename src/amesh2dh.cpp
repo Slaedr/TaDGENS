@@ -783,7 +783,7 @@ void UMesh2dh::compute_topological()
 		if(isbpflag(i)==1) nbpoin++;
 		
 	// get edge sizes
-	h.resize(m->gnaface());
+	h.resize(gnaface());
 	for(a_int iface = 0; iface < gnaface(); iface++)
 	{
 		a_real length = std::pow(gcoords(gintfac(iface,2),0)-gcoords(gintfac(iface,3),0),2);

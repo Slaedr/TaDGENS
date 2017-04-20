@@ -1,5 +1,5 @@
 -number-of-meshes
-4
+3
 -Mesh-prefix
 ../testcases/advection/grids/square
 -output-file-for-convergence
@@ -7,9 +7,13 @@
 -Basis-type
 t
 -spatial-polynomial-degree-of-computed-solution
-1
+2
 -CFL
-0.01
+0.08
+-Tolerance
+1e-6
+-Max-iterations
+1000
 -Boundary-marker-for-inflow-outflow
 1
 -Boundary-marker-for-extrapolation

@@ -11,10 +11,6 @@
 #include "aspatial.hpp"
 #endif
 
-#ifndef __AODECOEFFS_H
-#include "aodecoeffs.hpp"
-#endif
-
 namespace acfd {
 	
 /// TVD RK explicit time stepping
@@ -30,11 +26,12 @@ protected:
 	double tol;										///< Tolerance for residual
 	int maxiter;									///< Max number of iterations
 	bool source;									///< Whether or not to use source term
-	a_real (*const rhs)(a_real, a_real, a_real);	///< Function describing source term
+	a_real (*rhs)(a_real, a_real, a_real);			///< Function describing source term
 
 public:
 	SteadyBase(const UMesh2dh*const mesh, SpatialBase* s, a_real cflnumber, double toler, int max_iter, bool use_source);
 	
+	/// Sets the forcing function for the source term
 	void set_source( a_real (*const source)(a_real, a_real, a_real)) {
 		rhs = source;
 	}
@@ -47,6 +44,13 @@ public:
 class SteadyExplicit : public SteadyBase
 {
 public:
+	/** \param[in] mesh The mesh context
+	 * \param[in] s The spatial discretization context
+	 * \param[in] cflnumber
+	 * \param[in] toler Tolerance for the relative residual
+	 * \param[in] max_iter Maximum number of iterations
+	 * \param[in] use_source True if source term integration is required
+	 */
 	SteadyExplicit(const UMesh2dh*const mesh, SpatialBase* s, a_real cflnumber, double toler, int max_iter, bool use_source);
 
 	/// Carries out the time stepping process

@@ -16,7 +16,7 @@ void Quadrature1D::initialize(const int n_poly)
 	nPoly = n_poly;
 	shape = LINE;
 
-	if(nPoly == 1) {
+	if(nPoly <= 1) {
 		ngauss = 1;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
@@ -24,7 +24,7 @@ void Quadrature1D::initialize(const int n_poly)
 		gpoints(0) = 0.0;
 		gweights(0) = 2.0;
 	}
-	else if(nPoly == 2){
+	else if(nPoly <= 3){
 		ngauss = 2;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
@@ -32,7 +32,7 @@ void Quadrature1D::initialize(const int n_poly)
 		gpoints(0) = -1.0/sqrt(3); gpoints(1) = 1.0/sqrt(3);
 		gweights(0) = 1.0; gweights(1) = 1.0;
 	}
-	else if(nPoly == 3) {
+	else if(nPoly <= 5) {
 		ngauss = 3;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
@@ -40,7 +40,7 @@ void Quadrature1D::initialize(const int n_poly)
 		gpoints(0) = -sqrt(3.0/5.0); gpoints(1) = 0.0; gpoints(2) = sqrt(3.0/5.0);
 		gweights(0) = 5.0/9.0;  gweights(1) = 8.0/9.0, gweights(2) = 5.0/9.0;
 	}
-	else if(nPoly == 4) {
+	else if(nPoly <= 7) {
 		ngauss = 4;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
@@ -50,7 +50,7 @@ void Quadrature1D::initialize(const int n_poly)
 		gweights(0) = (18.0-sqrt(30))/36.0; gweights(1) = (18.0+sqrt(30))/36.0;
 		gweights(2) = (18.0+sqrt(30))/36.0; gweights(3) = (18.0-sqrt(30))/36.0;
 	}
-	else if(nPoly == 5) {
+	else if(nPoly <= 9) {
 		ngauss = 5;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
@@ -63,12 +63,12 @@ void Quadrature1D::initialize(const int n_poly)
 		gweights(3) = (322.0+13*sqrt(70.0))/900; gweights(4) = (322.0-13*sqrt(70.0))/900;
 	}
 	else {
-		nPoly = 8;
+		nPoly = 15;
 		ngauss = 8;
 		gweights.resize(ngauss,1);
 		gpoints.resize(ngauss,1);
 		ggpoints.resize(ngauss,1);
-		printf("! Quadrature1D: Quadrature with this number of Gauss points is not supported! Setting to 8.\n");
+		printf("! Quadrature1D: Quadrature with this strength is not supported! Setting to 15.\n");
 		
 		a_real gp[][1] = {{-0.960289856497536231684},
 							{-0.796666477413626739592},
@@ -104,14 +104,6 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		ngauss = 1;
 		a_real gp[][2] = {{0.0, 0.0}};
 		a_real gw[][1] = {{4.0}};
-		/*a_real * gp[NDIM] = (a_real*[NDIM])malloc(ngauss*sizeof(a_real));
-		a_real ** gw = (a_real**)malloc(ngauss*sizeof(a_real*));
-		for(int i = 0; i < ngauss; i++) {
-			gp[i] = (a_real*)malloc(NDIM*sizeof(a_real));
-			gw[i] = (a_real*)malloc(sizeof(a_real));
-		}
-		gp = {{0.0, 0.0}};
-		gw = {{4.0}};*/
 		gpoints.initialize(ngauss, 2, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
 		std::printf("  Quadrature2DSquare: Ngauss = 1.\n");
@@ -120,8 +112,7 @@ void Quadrature2DSquare::initialize(const int n_poly)
 			for(int j = 0; j < 2; j++)
 				ggpoints(i,j) = gpoints(i,j);
 	}
-	else {
-		nPoly = 2;	// override argument
+	else if(nPoly <= 3) {
 		ngauss = 4;
 		a_real gp[][2] = {{-1.0/SQRT3, -1.0/SQRT3}, {-1.0/SQRT3, 1.0/SQRT3}, {1.0/SQRT3, -1.0/SQRT3}, {1.0/SQRT3, 1.0/SQRT3}};
 		a_real gw[][1] = {{1.0}, {1.0}, {1.0}, {1.0}};
@@ -132,6 +123,9 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		for(int i = 0; i < ggpoints.rows(); i++)
 			for(int j = 0; j < 2; j++)
 				ggpoints(i,j) = gpoints(i,j);
+	}
+	else {
+		std::printf("!  Quadrature2DSquare: Quadrature strength not supported!\n");
 	}
 }
 

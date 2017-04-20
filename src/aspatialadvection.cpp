@@ -11,14 +11,33 @@ namespace acfd {
 LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, const Vector vel, const a_real b_val, const int inoutflag, const int extrapflag)
 	: SpatialBase(mesh, _p_degree, basis), a(vel), bval(b_val), inoutflow_flag(inoutflag), extrapolation_flag(extrapflag)
 {
+	std::cout << " LinearAdvection: Velocity is (" << a(0) << ", " << a(1) << ")\n";
+	if(a.rows() != NDIM)
+		printf("! LinearAdvection: The advection velocity vector does not have dimension %d!\n", NDIM);
+	amag = std::sqrt(a[0]*a[0]+a[1]*a[1]);
+
 	computeFEData();
 	u.resize(m->gnelem());
 	res.resize(m->gnelem());
 	mets.resize(m->gnelem());
-	for(a_int iel = 0; iel < m->gnelem(); iel++) {
+	for(a_int iel = 0; iel < m->gnelem(); iel++) 
+	{
 		u[iel].resize(NVARS, elems[iel]->getNumDOFs());
 		res[iel].resize(NVARS, elems[iel]->getNumDOFs());
-		mets[iel] = sqrt(1.0/m->gnelem() / (a[0]*a[0]+a[1]*a[1]));
+		for(int i = 0; i < NVARS; i++)
+			for(int j = 0; j < elems[iel]->getNumDOFs(); j++) {
+				u[iel](i,j) = 1.0;
+				res[iel](i,j) = 0;
+			}
+		
+		a_real hsize = 1.0;
+
+		for(int ifa = 0; ifa < m->gnfael(iel); ifa++) {
+			a_int iface = m->gelemface(iel,ifa);
+			if(hsize > m->gedgelengthsquared(iface)) hsize = m->gedgelengthsquared(iface);
+		}
+
+		mets[iel] = std::sqrt(hsize)/amag;
 	}
 
 	leftfaceterms.resize(m->gnaface());
@@ -27,11 +46,6 @@ LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, cons
 		leftfaceterms[iface].resize(NVARS, elems[m->gintfac(iface,0)]->getNumDOFs());
 	for(a_int iface = m->gnbface(); iface < m->gnaface(); iface++)
 		rightfaceterms[iface].resize(NVARS, elems[m->gintfac(iface,1)]->getNumDOFs());
-
-	std::cout << " LinearAdvection: Velocity is (" << a(0) << ", " << a(1) << ")\n";
-	if(a.rows() != NDIM)
-		printf("! LinearAdvection: The advection velocity vector does not have dimension %d!\n", NDIM);
-	amag = std::sqrt(a[0]*a[0]+a[1]*a[1]);
 }
 
 void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instate, Matrix& bstate)
@@ -165,8 +179,6 @@ void LinearAdvection::update_residual(std::vector<Matrix>& u)
 			res[iel] -= term;
 		}
 
-		a_real hsize = 0;
-
 		for(int ifa = 0; ifa < m->gnfael(iel); ifa++) {
 			a_int iface = m->gelemface(iel,ifa);
 			a_int nbdelem = m->gesuel(iel,ifa);
@@ -176,11 +188,7 @@ void LinearAdvection::update_residual(std::vector<Matrix>& u)
 			else {
 				res[iel] -= rightfaceterms[iface];
 			}
-
-			if(hsize < m->gedgelengthsquared(iface)) hsize = m->gedgelengthsquared(iface);
 		}
-
-		mets[iel] = std::sqrt(hsize)/amag;
 	}
 }
 
@@ -198,7 +206,7 @@ void LinearAdvection::add_source( a_real (*const rhs)(a_real, a_real, a_real), a
 		{
 			a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
 			for(int idof = 0; idof < ndofs; idof++)
-				term(0,idof) += rhs(pts(ig,0),pts(ig,1),0) * bas(ig,idof) * weightjacdet;
+				term(0,idof) += rhs(pts(ig,0),pts(ig,1),t) * bas(ig,idof) * weightjacdet;
 		}
 
 		res[iel] -= term;

@@ -42,7 +42,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 #set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 # libraries to be compiled
-add_library(tadgens_base aoutput.cpp aspatial.cpp aelements.cpp aquadrature.cpp amesh2dh.cpp adatastructures.cpp)
+add_library(tadgens_base aoutput.cpp atimesteady.cpp aspatial.cpp aelements.cpp aquadrature.cpp amesh2dh.cpp adatastructures.cpp)
 
 #add_library(tadgens_poisson aspatialpoisson.cpp)
 #target_link_libraries(tadgens_poisson tadgens_base)
@@ -56,7 +56,7 @@ target_link_libraries(tadgens_advection tadgens_base)
 
 #add_executable(poissonsip poissonSIP.cpp)
 #target_link_libraries(poissonsip tadgens_poisson)
-add_executable(advect ladvection-unsteady.cpp)
+add_executable(advect ladvection.cpp)
 target_link_libraries(advect tadgens_advection)
 #add_executable(poissonc poissonC.cpp)
 #target_link_libraries(poissonc tadgens_poisson)
