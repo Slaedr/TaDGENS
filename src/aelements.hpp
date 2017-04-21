@@ -402,8 +402,9 @@ class FaceElement
 	 * \param[in] lfn Local face number of this face in element elem
 	 * \param[in] isright A flag that's 1 if elem is the left element and -1 if it's the right.
 	 * \praram[in|out] lpoints Contains 2D reference coordinates of face quadrature points in element elem on output.
+	 * \return Returns the magnitude of the speed of the face of the  reference element w.r.t. the reference face.
 	 */
-	void getElementRefCoords(const Matrix& facepoints, const Element *const elem,
+	a_real getElementRefCoords(const Matrix& facepoints, const Element *const elem,
 		const int lfn, const int isright, Matrix& lpoints);
 public:
 	/// Sets data; computes basis function values of left and right element at each quadrature point
@@ -416,6 +417,7 @@ public:
 	
 	/// Computes gradients of the left- and right-elements' basis functions at face quadrature points
 	/** To be called only after [initializing](@ref initialize) the face element.
+	 * TODO: Should probably merge this with initialize.
 	 */
 	void computeBasisGrads();
 

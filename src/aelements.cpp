@@ -528,11 +528,24 @@ void FaceElement::initialize(const Element*const lelem, const Element*const rele
 		// compute element reference coordinates of face quadrature points from their face reference coordinates
 		Matrix lpoints(ng,NDIM);
 		const Matrix& facepoints = gmap->getQuadrature()->points();
-		getElementRefCoords(facepoints, leftel, llfn, 1, lpoints);
+		a_real fspeed = getElementRefCoords(facepoints, leftel, llfn, 1, lpoints);
+
+		std::vector<MatrixDim> jacinv(ng); std::vector<a_real> jacdet(ng);
+		const std::vector<a_real> facedet = gmap->speed();
+		leftel->getGeometricMapping()->calculateJacobianDetAndInverse(lpoints, jacinv, jacdet);
+		/*for(int ig = 0; ig < ng; ig++) {
+			a_real diff = std::fabs(jacdet[ig]*fspeed - facedet[ig]);
+			std::cout << "  Leftel: Diff = " << diff;
+			if(diff > ZERO_TOL) std::cout << "!! --- !!";
+			std::cout << std::endl;
+		}*/
 	
 		// now compute basis function values
 		leftbasis.resize(ng,lelem->getNumDOFs());
 		lelem->computeBasis(lpoints, leftbasis);
+
+		for(int ig = 0; ig < ng; ig++)
+			leftbasis.row(ig) *= jacdet[ig]*fspeed/facedet[ig];
 	}
 
 	if(relem->getType() == PHYSICAL) {
@@ -545,11 +558,24 @@ void FaceElement::initialize(const Element*const lelem, const Element*const rele
 		// compute element reference coordinates of face quadrature points from their face reference coordinates
 		Matrix rpoints(ng,NDIM);
 		const Matrix& facepoints = gmap->getQuadrature()->points();
-		getElementRefCoords(facepoints, rightel, rlfn, -1, rpoints);
+		a_real fspeed = getElementRefCoords(facepoints, rightel, rlfn, -1, rpoints);
+
+		std::vector<MatrixDim> jacinv(ng); std::vector<a_real> jacdet(ng);
+		const std::vector<a_real> facedet = gmap->speed();
+		rightel->getGeometricMapping()->calculateJacobianDetAndInverse(rpoints, jacinv, jacdet);
+		/*for(int ig = 0; ig < ng; ig++) {
+			a_real diff = std::fabs(jacdet[ig]*fspeed - facedet[ig]);
+			std::cout << "  Rightel: Diff = " << diff;
+			if(diff > ZERO_TOL) std::cout << "!! --- !!";
+			std::cout << std::endl;
+		}*/
 	
 		// now compute basis function values
 		rightbasis.resize(ng,relem->getNumDOFs());
 		relem->computeBasis(rpoints, rightbasis);
+
+		for(int ig = 0; ig < ng; ig++)
+			rightbasis.row(ig) *= jacdet[ig]*fspeed/facedet[ig];
 	}
 }
 
@@ -601,7 +627,7 @@ void FaceElement::computeBasisGrads()
 /** Note that the order of points has to be reversed for the right element.
  * We use lr for this.
  */
-void FaceElement::getElementRefCoords(const Matrix& __restrict__ facepoints, const Element *const __restrict__ elem, 
+a_real FaceElement::getElementRefCoords(const Matrix& __restrict__ facepoints, const Element *const __restrict__ elem, 
 		const int llfn, const int lr, Matrix& __restrict__ dompoints)
 {
 	int ng = facepoints.rows();
@@ -616,6 +642,7 @@ void FaceElement::getElementRefCoords(const Matrix& __restrict__ facepoints, con
 				dompoints(ig,0) = 0.5*(1.0 + lr*facepoints(ig));
 				dompoints(ig,1) = 0;
 			}
+			return 0.5;
 		}
 		else if(llfn == 1)
 		{
@@ -623,6 +650,7 @@ void FaceElement::getElementRefCoords(const Matrix& __restrict__ facepoints, con
 				dompoints(ig,0) = 0.5*(1.0 - lr*facepoints(ig));
 				dompoints(ig,1) = 0.5*(1.0 + lr*facepoints(ig));
 			}
+			return 1/SQRT2;
 		}
 		else
 		{
@@ -630,6 +658,7 @@ void FaceElement::getElementRefCoords(const Matrix& __restrict__ facepoints, con
 				dompoints(ig,0) = 0;
 				dompoints(ig,1) = 0.5*(1.0 - lr*facepoints(ig));
 			}
+			return 0.5;
 		}
 	}
 	else if(elem->getGeometricMapping()->getShape() == QUADRANGLE) {
@@ -661,7 +690,10 @@ void FaceElement::getElementRefCoords(const Matrix& __restrict__ facepoints, con
 				dompoints(ig,1) = lr*(-facepoints(ig));
 			}
 		}
+		return 1.0;
 	}
+	
+	else return 0;
 }
 
 }
