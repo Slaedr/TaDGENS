@@ -73,7 +73,10 @@ protected:
 	a_real dirichlet_value;								///< Dirichlet boundary value
 	std::vector<a_int> dirdofflags;						///< Binary flag for each DOF, identifying as lying on a Dirichlet boundary or not
 	a_int ndirdofs;										///< Number of Dirichlet DOFs
+	a_int ntotaldofs;									///< Total number of DOFs
 	a_real cbig;										///< Penalty for Dirichlet condition
+	Matrix dofmap;										///< Identifies global dof index with local dofs and element index
+	Vector bflag;										///< Marks whether a DOF lies on a boundary or not
 
 	Eigen::SparseMatrix<a_real> Ag;						///< Global left hand side matrix
 	Vector bg;											///< Global load vector
@@ -95,7 +98,7 @@ public:
 	const amat::Array2d<a_real>& getOutput() const {
 		return output;
 	}
-	void update_residual() {};
+	void update_residual(const std::vector<Matrix>& x) {};
 };
 
 }	// end namespace

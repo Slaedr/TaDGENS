@@ -10,66 +10,10 @@ namespace acfd {
 
 using namespace amat;
 
-/** Currently, Lagrange mappings upto polynomial degree 2 are implemented.
- */
-void LagrangeMapping1D::computeAll()
-{
-	const Matrix& points = quadrature->points();
-	int npoin = points.rows();
-	speeds.resize(npoin);
-	normals.resize(npoin);
-	for(int i = 0; i < npoin; i++)
-		normals[i].resize(NDIM);
-	mapping.resize(npoin,NDIM);
-
-	a_real vel[NDIM];
-
-	if(degree == 1) {
-		for(int i = 0; i < npoin; i++)
-		{
-			for(int idim = 0; idim < NDIM; idim++) {
-				// mapping - sum of Lagrange shape functions multiplied by resp coeffs
-				mapping(i,idim) = phyNodes(0,idim)*(1.0-points(i))*0.5 + phyNodes(1,idim)*(1.0+points(i))*0.5;
-				// get sum Lagrange derivatives multiplied by coeffs
-				vel[idim] = (phyNodes(1,idim) - phyNodes(0,idim))/2.0;
-			}
-			
-			speeds[i] = std::sqrt(vel[0]*vel[0] + vel[1]*vel[1]);
-			
-			// normalize tangent to get unit tangent and thus unit normal
-			for(int idim = 0; idim < NDIM; idim++)
-				vel[idim] /= speeds[i];
-			normals[i][0] = vel[1]; normals[i][1] = -vel[0];
-			//std::printf("%d: %f, (%f,%f); ", i, speeds[i], normals[i][0], normals[i][1]);
-		}
-	}
-	else if(degree == 2) {
-		for(int i = 0; i < npoin; i++)
-		{
-			for(int idim = 0; idim < NDIM; idim++) {
-				mapping(i,idim) = phyNodes(0,idim)*points(i)*(points(i)-1.0)/2 + phyNodes(1,idim)*points(i)*(points(i)+1.0)/2 + phyNodes(2,idim)*(1.0-points(i)*points(i));
-				vel[idim] = phyNodes(0,idim)*(points(i)-0.5) + phyNodes(1,idim)*(points(i)+0.5) + phyNodes(2,idim)*(-2.0*points(i));
-			}
-			
-			speeds[i] = std::sqrt(vel[0]*vel[0] + vel[1]*vel[1]);
-
-			// normalize tangent to get unit tangent and thus unit normal
-			for(int idim = 0; idim < NDIM; idim++)
-				vel[idim] /= speeds[i];
-			normals[i][0] = vel[1]; normals[i][1] = -vel[0];
-		}
-	}
-	/* Add another else-if block above this line to add a higher-order map.
-	 */
-	else
-		std::cout << "! LagrangeMapping1D: Chosen geometric order not available!\n";
-}
-
 /// A global function for computing 2D Lagrange mapping derivatives
 /** Mappings upto P2 are implemented.
  */
-void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape shape, 
-		const int degree, const Matrix& __restrict__ phyNodes,
+void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape shape, const int degree, const Matrix& __restrict__ phyNodes,
 		std::vector<MatrixDim>& __restrict__ jacoi, std::vector<a_real>& __restrict__ jacod)
 {
 	std::vector<MatrixDim> jac(po.rows());
@@ -147,6 +91,134 @@ void getLagrangeMap(const Matrix& __restrict__ points, const Shape shape,
 	}
 }
 
+/** Computes Lagrange basis function values at given points in the reference element.
+ * \note NOTE: For efficiency, we would want to able to request computation of only certain basis functions.
+ */
+void getLagrangeBasis(const Matrix& __restrict__ gp, const Shape shape, const int degree,  Matrix& __restrict__ basisv)
+{
+	if(shape == TRIANGLE) {
+		if(degree == 1) {
+			for(int ip = 0; ip < gp.rows(); ip++)
+			{
+				basisv(ip,0) = (1.0-gp(ip,0)-gp(ip,1));
+				basisv(ip,1) = gp(ip,0);
+				basisv(ip,2) = gp(ip,1);
+			}
+		}
+		if(degree == 2) {
+			for(int ip = 0; ip < gp.rows(); ip++)
+			{
+				basisv(ip,0) = 1.0 - 3*gp(ip,0) - 3*gp(ip,1) + 2*gp(ip,0)*gp(ip,0) + 2*gp(ip,1)*gp(ip,1) + 4*gp(ip,0)*gp(ip,1);
+				basisv(ip,1) = 2.0*gp(ip,0)*gp(ip,0) - gp(ip,0);
+				basisv(ip,2) = 2.0*gp(ip,1)*gp(ip,1) - gp(ip,1);
+				basisv(ip,3) = 4.0*(gp(ip,0) - gp(ip,0)*gp(ip,0) - gp(ip,0)*gp(ip,1));
+				basisv(ip,4) = 4.0*gp(ip,0)*gp(ip,1);
+				basisv(ip,5) = 4.0*(gp(ip,1) - gp(ip,1)*gp(ip,1) - gp(ip,0)*gp(ip,1));
+			}
+		}
+	}
+	else {
+		//TODO: Add quad lagrange basis
+	}
+}
+
+/** Computes Lagrange basis function gradients at given points in the reference element.
+ * \note NOTE: For efficiency, we would want to able to request computation of gradients of only certain basis functions.
+ */
+void getLagrangeBasisGrads(const Matrix& __restrict__ gp, const std::vector<MatrixDim>& __restrict__ jinv, const Shape shape, const int degree,
+		std::vector<Matrix>& __restrict__ basisG)
+{
+	if(shape == TRIANGLE) {
+		if(degree == 1) {
+			for(int ip = 0; ip < gp.rows(); ip++)
+			{
+				basisG[ip](0,0) = -1.0; basisG[ip](0,1) = -1.0;
+				basisG[ip](1,0) = 1.0;  basisG[ip](1,1) = 0.0;
+				basisG[ip](2,0) = 0.0;  basisG[ip](2,1) = 1.0;
+			}
+		}
+		if(degree == 2) {
+			for(int ip = 0; ip < gp.rows(); ip++)
+			{
+				basisG[ip](0,0) = -3.0+4*gp(ip,0)+4*gp(ip,1);    basisG[ip](0,1) = -3.0+4*gp(ip,0)+4*gp(ip,1);
+				basisG[ip](1,0) = 4.0*gp(ip,0)-1.0;              basisG[ip](1,1) = 0;
+				basisG[ip](2,0) = 0;                             basisG[ip](2,1) = 4.0*gp(ip,1)-1.0;
+				basisG[ip](3,0) = 4.0*(1.0-2*gp(ip,0)-gp(ip,1)); basisG[ip](3,1) = -4.0*gp(ip,0);
+				basisG[ip](4,0) = 4.0*gp(ip,1);                  basisG[ip](4,1) = 4.0*gp(ip,0);
+				basisG[ip](5,0) = -4.0*gp(ip,1);                 basisG[ip](5,1) = 4.0*(1.0-2*gp(ip,1)-gp(ip,0));
+			}
+		}	
+	}
+	else {
+		//TODO: Add quad lagrange basis
+	}
+	
+	for(int ip = 0; ip < gp.rows(); ip++)
+	{
+		/** To compute gradients in physical space, we use the following.
+		 * Let \f$ a := \nabla_x B(x(\xi)) \f$ and \f$ b = \nabla_\xi B(x(\xi)) \f$. Then,
+		 * we need \f$ a = J^{-T} b \f$. Instead, we can compute \f$ a^T = b^T J^{-1} \f$,
+		 * for efficiency reasons since we have a row-major storage. This latter equation is used.
+		 */
+		basisG[ip] = (basisG[ip]*jinv[ip]).eval();
+	}
+}
+
+/** Currently, Lagrange mappings upto polynomial degree 2 are implemented.
+ */
+void LagrangeMapping1D::computeAll()
+{
+	const Matrix& points = quadrature->points();
+	int npoin = points.rows();
+	speeds.resize(npoin);
+	normals.resize(npoin);
+	for(int i = 0; i < npoin; i++)
+		normals[i].resize(NDIM);
+	mapping.resize(npoin,NDIM);
+
+	a_real vel[NDIM];
+
+	if(degree == 1) {
+		for(int i = 0; i < npoin; i++)
+		{
+			for(int idim = 0; idim < NDIM; idim++) {
+				// mapping - sum of Lagrange shape functions multiplied by resp coeffs
+				mapping(i,idim) = phyNodes(0,idim)*(1.0-points(i))*0.5 + phyNodes(1,idim)*(1.0+points(i))*0.5;
+				// get sum Lagrange derivatives multiplied by coeffs
+				vel[idim] = (phyNodes(1,idim) - phyNodes(0,idim))/2.0;
+			}
+			
+			speeds[i] = std::sqrt(vel[0]*vel[0] + vel[1]*vel[1]);
+			
+			// normalize tangent to get unit tangent and thus unit normal
+			for(int idim = 0; idim < NDIM; idim++)
+				vel[idim] /= speeds[i];
+			normals[i][0] = vel[1]; normals[i][1] = -vel[0];
+			//std::printf("%d: %f, (%f,%f); ", i, speeds[i], normals[i][0], normals[i][1]);
+		}
+	}
+	else if(degree == 2) {
+		for(int i = 0; i < npoin; i++)
+		{
+			for(int idim = 0; idim < NDIM; idim++) {
+				mapping(i,idim) = phyNodes(0,idim)*points(i)*(points(i)-1.0)/2 + phyNodes(1,idim)*points(i)*(points(i)+1.0)/2 + phyNodes(2,idim)*(1.0-points(i)*points(i));
+				vel[idim] = phyNodes(0,idim)*(points(i)-0.5) + phyNodes(1,idim)*(points(i)+0.5) + phyNodes(2,idim)*(-2.0*points(i));
+			}
+			
+			speeds[i] = std::sqrt(vel[0]*vel[0] + vel[1]*vel[1]);
+
+			// normalize tangent to get unit tangent and thus unit normal
+			for(int idim = 0; idim < NDIM; idim++)
+				vel[idim] /= speeds[i];
+			normals[i][0] = vel[1]; normals[i][1] = -vel[0];
+		}
+	}
+	/* Add another else-if block above this line to add a higher-order map.
+	 */
+	else
+		std::cout << "! LagrangeMapping1D: Chosen geometric order not available!\n";
+}
+
 void LagrangeMapping2D::calculateMap(const Matrix& __restrict__ points, Matrix& __restrict__ maps) const
 {
 	getLagrangeMap(points, shape, degree, phyNodes, maps);
@@ -165,7 +237,6 @@ void LagrangeMapping2D::computeForReferenceElement()
 	int npoin = points.rows();
 	jacoinv.resize(npoin);
 	jacodet.resize(npoin);
-	//mapping.resize(npoin,NDIM);
 
 	getLagrangeJacobianDetAndInverse(points, shape, degree, phyNodes, jacoinv, jacodet);
 }
@@ -298,7 +369,8 @@ void TaylorElement::initialize(int degr, GeomMapping2D* geommap)
 	// Compute basis functions and gradients
 	const Matrix& gp = gmap->map();
 	computeBasis(gp, basis);
-	computeBasisGrads(gp, basisGrad);
+	std::vector<MatrixDim> dummy;
+	computeBasisGrads(gp, dummy, basisGrad);
 }
 
 void TaylorElement::computeBasis(const Matrix& __restrict__ gp, Matrix& __restrict__ basiss) const
@@ -324,7 +396,7 @@ void TaylorElement::computeBasis(const Matrix& __restrict__ gp, Matrix& __restri
 	}
 }
 
-void TaylorElement::computeBasisGrads(const Matrix& __restrict__ gp, std::vector<Matrix>& __restrict__ basisG) const
+void TaylorElement::computeBasisGrads(const Matrix& __restrict__ gp, const std::vector<MatrixDim>& jinv, std::vector<Matrix>& __restrict__ basisG) const
 {
 	for(int ip = 0; ip < gp.rows(); ip++)
 		basisG[ip](0,0) = basisG[ip](0,1) = 0.0;
@@ -347,7 +419,6 @@ void TaylorElement::computeBasisGrads(const Matrix& __restrict__ gp, std::vector
 	}
 }
 
-/// \todo FIXME: We're doing redundant computation of Jacobian at domain quadrature points! \sa computeBasisGrads
 void LagrangeElement::initialize(int degr, GeomMapping2D* geommap)
 {
 	type = REFERENTIAL;
@@ -372,9 +443,9 @@ void LagrangeElement::initialize(int degr, GeomMapping2D* geommap)
 	
 	// Compute basis functions and gradients
 	const Matrix& gp = gmap->getQuadrature()->points();
-	//const std::vector<MatrixDim>& jinv = gmap->jacInv();
-	computeBasis(gp, basis);
-	computeBasisGrads(gp, basisGrad);
+	const std::vector<MatrixDim>& jinv = gmap->jacInv();
+	getLagrangeBasis(gp, gmap->getShape(), degree, basis);
+	getLagrangeBasisGrads(gp, jinv, gmap->getShape(), degree, basisGrad);
 }
 
 Matrix LagrangeElement::getReferenceNodes() const
@@ -414,73 +485,12 @@ Matrix LagrangeElement::getReferenceNodes() const
 
 void LagrangeElement::computeBasis(const Matrix& __restrict__ gp, Matrix& __restrict__ basisv) const
 {
-	if(gmap->getShape() == TRIANGLE) {
-		if(degree == 1) {
-			for(int ip = 0; ip < gp.rows(); ip++)
-			{
-				basisv(ip,0) = (1.0-gp(ip,0)-gp(ip,1));
-				basisv(ip,1) = gp(ip,0);
-				basisv(ip,2) = gp(ip,1);
-			}
-		}
-		if(degree == 2) {
-			for(int ip = 0; ip < gp.rows(); ip++)
-			{
-				basisv(ip,0) = 1.0-3*gp(ip,0)-3*gp(ip,1)+2*gp(ip,0)*gp(ip,0)+2*gp(ip,1)*gp(ip,1)+4*gp(ip,0)*gp(ip,1);
-				basisv(ip,1) = 2.0*gp(ip,0)*gp(ip,0)-gp(ip,0);
-				basisv(ip,2) = 2.0*gp(ip,1)*gp(ip,1)-gp(ip,1);
-				basisv(ip,3) = 4.0*(gp(ip,0)-gp(ip,0)*gp(ip,0)-gp(ip,0)*gp(ip,1));
-				basisv(ip,4) = 4.0*gp(ip,0)*gp(ip,1);
-				basisv(ip,5) = 4.0*(gp(ip,1)-gp(ip,1)*gp(ip,1)-gp(ip,0)*gp(ip,1));
-			}
-		}
-	}
-	else {
-		//TODO: Add quad lagrange basis
-	}
+	getLagrangeBasis(gp, gmap->getShape(), degree, basisv);
 }
 
-void LagrangeElement::computeBasisGrads(const Matrix& __restrict__ gp, std::vector<Matrix>& __restrict__ basisG) const
+void LagrangeElement::computeBasisGrads(const Matrix& __restrict__ gp, const std::vector<MatrixDim>& __restrict__ jinv, std::vector<Matrix>& __restrict__ basisG) const
 {
-	// evaluate Jacobian inverse at the given points
-	std::vector<MatrixDim> jinv(gp.rows());
-	std::vector<a_real> jdet(gp.rows());
-	gmap->calculateJacobianDetAndInverse(gp, jinv, jdet);
-	
-	if(gmap->getShape() == TRIANGLE) {
-		if(degree == 1) {
-			for(int ip = 0; ip < gp.rows(); ip++)
-			{
-				basisG[ip](0,0) = -1.0; basisG[ip](0,1) = -1.0;
-				basisG[ip](1,0) = 1.0;  basisG[ip](1,1) = 0.0;
-				basisG[ip](2,0) = 0.0;  basisG[ip](2,1) = 1.0;
-			}
-		}
-		if(degree == 2) {
-			for(int ip = 0; ip < gp.rows(); ip++)
-			{
-				basisG[ip](0,0) = -3.0+4*gp(ip,0)+4*gp(ip,1);    basisG[ip](0,1) = -3.0+4*gp(ip,0)+4*gp(ip,1);
-				basisG[ip](1,0) = 4.0*gp(ip,0)-1.0;              basisG[ip](1,1) = 0;
-				basisG[ip](2,0) = 0;                             basisG[ip](2,1) = 4.0*gp(ip,1)-1.0;
-				basisG[ip](3,0) = 4.0*(1.0-2*gp(ip,0)-gp(ip,1)); basisG[ip](3,1) = -4.0*gp(ip,0);
-				basisG[ip](4,0) = 4.0*gp(ip,1);                  basisG[ip](4,1) = 4.0*gp(ip,0);
-				basisG[ip](5,0) = -4.0*gp(ip,1);                 basisG[ip](5,1) = 4.0*(1.0-2*gp(ip,1)-gp(ip,0));
-			}
-		}	
-	}
-	else {
-		//TODO: Add quad lagrange basis
-	}
-	
-	for(int ip = 0; ip < gp.rows(); ip++)
-	{
-		/** To compute gradients in physical space, we use the following.
-		 * Let \f$ a := \nabla_x B(x(\xi)) \f$ and \f$ b = \nabla_\xi B(x(\xi)) \f$. Then,
-		 * we need \f$ a = J^{-T} b \f$. Instead, we can compute \f$ a^T = b^T J^{-1} \f$,
-		 * for efficiency reasons since we have a row-major storage. This latter equation is used.
-		 */
-		basisG[ip] = basisG[ip]*jinv[ip];
-	}
+	getLagrangeBasisGrads(gp, jinv, gmap->getShape(), degree, basisG);
 }
 
 /** If the elements' basis functions are defined in physical space, we just compute the physical coordinates of the face quadrature points,
@@ -516,7 +526,7 @@ void FaceElement::initialize(const Element*const lelem, const Element*const rele
 {
 	gmap = gmapping; leftel = lelem; rightel = relem; llfn = l_lfn; rlfn = r_lfn;
 
-	int ng = gmap->getQuadrature()->numGauss();
+	const int ng = gmap->getQuadrature()->numGauss();
 
 	if(lelem->getType() == PHYSICAL) {
 		leftbasis.resize(ng,lelem->getNumDOFs());
@@ -528,24 +538,11 @@ void FaceElement::initialize(const Element*const lelem, const Element*const rele
 		// compute element reference coordinates of face quadrature points from their face reference coordinates
 		Matrix lpoints(ng,NDIM);
 		const Matrix& facepoints = gmap->getQuadrature()->points();
-		a_real fspeed = getElementRefCoords(facepoints, leftel, llfn, 1, lpoints);
-
-		std::vector<MatrixDim> jacinv(ng); std::vector<a_real> jacdet(ng);
-		const std::vector<a_real> facedet = gmap->speed();
-		leftel->getGeometricMapping()->calculateJacobianDetAndInverse(lpoints, jacinv, jacdet);
-		/*for(int ig = 0; ig < ng; ig++) {
-			a_real diff = std::fabs(jacdet[ig]*fspeed - facedet[ig]);
-			std::cout << "  Leftel: Diff = " << diff;
-			if(diff > ZERO_TOL) std::cout << "!! --- !!";
-			std::cout << std::endl;
-		}*/
+		getElementRefCoords(facepoints, leftel, llfn, 1, lpoints);
 	
 		// now compute basis function values
 		leftbasis.resize(ng,lelem->getNumDOFs());
 		lelem->computeBasis(lpoints, leftbasis);
-
-		for(int ig = 0; ig < ng; ig++)
-			leftbasis.row(ig) *= jacdet[ig]*fspeed/facedet[ig];
 	}
 
 	if(relem->getType() == PHYSICAL) {
@@ -560,9 +557,9 @@ void FaceElement::initialize(const Element*const lelem, const Element*const rele
 		const Matrix& facepoints = gmap->getQuadrature()->points();
 		a_real fspeed = getElementRefCoords(facepoints, rightel, rlfn, -1, rpoints);
 
-		std::vector<MatrixDim> jacinv(ng); std::vector<a_real> jacdet(ng);
+		/*std::vector<MatrixDim> jacinv(ng); std::vector<a_real> jacdet(ng);
 		const std::vector<a_real> facedet = gmap->speed();
-		rightel->getGeometricMapping()->calculateJacobianDetAndInverse(rpoints, jacinv, jacdet);
+		rightel->getGeometricMapping()->calculateJacobianDetAndInverse(rpoints, jacinv, jacdet);*/
 		/*for(int ig = 0; ig < ng; ig++) {
 			a_real diff = std::fabs(jacdet[ig]*fspeed - facedet[ig]);
 			std::cout << "  Rightel: Diff = " << diff;
@@ -574,8 +571,8 @@ void FaceElement::initialize(const Element*const lelem, const Element*const rele
 		rightbasis.resize(ng,relem->getNumDOFs());
 		relem->computeBasis(rpoints, rightbasis);
 
-		for(int ig = 0; ig < ng; ig++)
-			rightbasis.row(ig) *= jacdet[ig]*fspeed/facedet[ig];
+		/*for(int ig = 0; ig < ng; ig++)
+			rightbasis.row(ig) *= jacdet[ig]*fspeed/facedet[ig];*/
 	}
 }
 
@@ -589,7 +586,8 @@ void FaceElement::computeBasisGrads()
 			leftbgrad[ip].resize(leftel->getNumDOFs(), NDIM);
 
 		const Matrix& gp = gmap->map();
-		leftel->computeBasisGrads(gp, leftbgrad);
+		std::vector<MatrixDim> jacinv; // dummy
+		leftel->computeBasisGrads(gp, jacinv, leftbgrad);
 	}
 	else if(leftel->getType() == REFERENTIAL)
 	{
@@ -600,7 +598,10 @@ void FaceElement::computeBasisGrads()
 		Matrix lpoints(ng,NDIM);
 		const Matrix& facepoints = gmap->getQuadrature()->points();
 		getElementRefCoords(facepoints, leftel, llfn, 1, lpoints);
-		leftel->computeBasisGrads(lpoints, leftbgrad);
+		std::vector<MatrixDim> jacinv(ng); std::vector<a_real> jacdet(ng);
+		leftel->getGeometricMapping()->calculateJacobianDetAndInverse(lpoints, jacinv, jacdet);
+		
+		leftel->computeBasisGrads(lpoints, jacinv, leftbgrad);
 	}
 
 	if(rightel->getType() == PHYSICAL) {
@@ -609,7 +610,8 @@ void FaceElement::computeBasisGrads()
 			rightbgrad[ip].resize(rightel->getNumDOFs(), NDIM);
 
 		const Matrix& gp = gmap->map();
-		rightel->computeBasisGrads(gp, rightbgrad);
+		std::vector<MatrixDim> jacinv; // dummy
+		rightel->computeBasisGrads(gp, jacinv, rightbgrad);
 	}
 	else if(rightel->getType() == REFERENTIAL)
 	{
@@ -620,7 +622,10 @@ void FaceElement::computeBasisGrads()
 		Matrix rpoints(ng,NDIM);
 		const Matrix& facepoints = gmap->getQuadrature()->points();
 		getElementRefCoords(facepoints, rightel, rlfn, -1, rpoints);
-		rightel->computeBasisGrads(rpoints, rightbgrad);
+		std::vector<MatrixDim> jacinv(ng); std::vector<a_real> jacdet(ng);
+		rightel->getGeometricMapping()->calculateJacobianDetAndInverse(rpoints, jacinv, jacdet);
+		
+		rightel->computeBasisGrads(rpoints, jacinv, rightbgrad);
 	}
 }
 

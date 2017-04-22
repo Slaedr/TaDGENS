@@ -233,7 +233,7 @@ public:
 	virtual void computeBasis(const Matrix& points, Matrix& basisvalues) const = 0;
 
 	/// Computes basis functions' gradients at given points in either reference space or physical space
-	virtual void computeBasisGrads(const Matrix& points, std::vector<Matrix>& basisgrads) const = 0;
+	virtual void computeBasisGrads(const Matrix& points, const std::vector<MatrixDim>& jinv, std::vector<Matrix>& basisgrads) const = 0;
 
 	virtual ~Element() { }
 
@@ -320,7 +320,9 @@ public:
 	void computeBasis(const Matrix& points, Matrix& basisvalues) const;
 	
 	/// Computes basis functions' gradients at given points in physical space
-	void computeBasisGrads(const Matrix& points, std::vector<Matrix>& basisgrads) const;
+	/** \param[in] jinv is unneeded here, can be an unallocated dummy variable.
+	 */
+	void computeBasisGrads(const Matrix& points, const std::vector<MatrixDim>& jinv, std::vector<Matrix>& basisgrads) const;
 
 	void printDetails() const {
 		std::printf("  (%f,%f), %f, %f, %f\n", center[0], center[1], delta[0], delta[1], area);
@@ -364,7 +366,7 @@ public:
 	void computeBasis(const Matrix& points, Matrix& basisvalues) const;
 	
 	/// Computes basis functions' gradients at given points in reference space
-	void computeBasisGrads(const Matrix& points, std::vector<Matrix>& basisgrads) const;
+	void computeBasisGrads(const Matrix& points, const std::vector<MatrixDim>& jinv, std::vector<Matrix>& basisgrads) const;
 	
 	/// Returns the locations of nodes in reference space
 	Matrix getReferenceNodes() const;
@@ -378,7 +380,7 @@ class DummyElement : public Element
 public:
 	void initialize(int degr, GeomMapping2D* geommap) { type = NONEXISTENT; }
 	void computeBasis(const Matrix& points, Matrix& basisvalues) const { };
-	void computeBasisGrads(const Matrix& points, std::vector<Matrix>& basisgrads) const { };
+	void computeBasisGrads(const Matrix& points, const std::vector<MatrixDim>& jinv, std::vector<Matrix>& basisgrads) const { };
 };
 
 /// An interface "element" between 2 adjacent finite elements

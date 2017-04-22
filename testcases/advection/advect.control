@@ -9,7 +9,7 @@ l
 -spatial-polynomial-degree-of-computed-solution
 1
 -CFL
-0.05
+0.1
 -Tolerance
 1e-6
 -Max-iterations

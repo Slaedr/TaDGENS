@@ -8,6 +8,9 @@
 
 namespace acfd {
 
+/** Note that Gauss-Legendre quadrature (1D) with n quadrature points integrates
+ * polynomials upto degree 2n-1 exactly.
+ */
 void Quadrature1D::initialize(const int n_poly)
 {
 	using std::sqrt;

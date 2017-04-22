@@ -32,7 +32,7 @@ protected:
 	void computeNumericalFlux(const a_real* const uleft, const a_real* const uright, const a_real* const n, a_real* const flux);
 
 	/// Computes face integrals from flow state described by the parameter
-	void computeFaceTerms(std::vector<Matrix>& ustage);
+	void computeFaceTerms(const std::vector<Matrix>& ustage);
 
 	/// Computes boundary (ghost) states depending on face marker for the face denoted by the first argument
 	void computeBoundaryState(const int iface, const Matrix& instate, Matrix& bstate);
@@ -41,7 +41,7 @@ public:
 	LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, const Vector vel, const a_real b_val, const int inoutflag, const int extrapflag);
 	
 	/// Adds face contributions and computes domain contribution to the [right hand side](@ref residual) 
-	void update_residual(std::vector<Matrix>& ustage);
+	void update_residual(const std::vector<Matrix>& ustage);
 	
 	/// Adds source term contribution to residual
 	void add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t);

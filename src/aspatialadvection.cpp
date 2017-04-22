@@ -76,7 +76,7 @@ void LinearAdvection::computeNumericalFlux(const a_real* const uleft, const a_re
 		flux[0] = adotn*uright[0];
 }
 
-void LinearAdvection::computeFaceTerms(std::vector<Matrix>& u)
+void LinearAdvection::computeFaceTerms(const std::vector<Matrix>& u)
 {
 	for(a_int iface = 0; iface < m->gnbface(); iface++)
 	{
@@ -151,7 +151,7 @@ void LinearAdvection::computeFaceTerms(std::vector<Matrix>& u)
 	}
 }
 
-void LinearAdvection::update_residual(std::vector<Matrix>& u)
+void LinearAdvection::update_residual(const std::vector<Matrix>& u)
 {
 	computeFaceTerms(u);
 

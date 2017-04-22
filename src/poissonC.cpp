@@ -52,12 +52,12 @@ int main(int argc, char* argv[])
 
 	for(int i = 0; i < nmesh; i++) {
 		mfiles[i] = meshprefix + to_string(i) + ".msh";
-		sfiles[i] = meshprefix + to_string(i) + "-C.vtu";
+		sfiles[i] = meshprefix + to_string(i) + "-p" + to_string(degree) + "-C.vtu";
 	}
 
 	for(int imesh = 0; imesh < nmesh; imesh++)
 	{
-		UMesh2dh m; m.readGmsh2(mfiles[imesh], NDIM); m.compute_topological();
+		UMesh2dh m; m.readGmsh2(mfiles[imesh], NDIM); m.compute_topological(); m.compute_boundary_maps();
 		LaplaceC sd(&m, degree, stab, &rhs, &exactsol, &exactgradx, &exactgrady);
 		sd.solve();
 		sd.postprocess();
@@ -70,17 +70,18 @@ int main(int argc, char* argv[])
 		const Array2d<a_real>& u = sd.getOutput();
 		Array2d<a_real> vecs;
 		writeScalarsVectorToVtu_PointData(sfiles[imesh], m, u, names, vecs, "none");
+		if(imesh > 0) {
+			double l2slope = (l2err[imesh]-l2err[imesh-1])/(h[imesh]-h[imesh-1]);
+			double sipslope = (siperr[imesh]-siperr[imesh-1])/(h[imesh]-h[imesh-1]);
+			printf("Mesh %d: L2 slope = %f, H1 slope = %f\n", imesh, l2slope, sipslope);
+		}
+		printf("\n");
 	}
 
 	ofstream convf(outf);
 	for(int i = 0; i < nmesh; i++)
 		convf << h[i] << " " << l2err[i] << " " << siperr[i] << "\n";
 	convf.close();
-	if(nmesh > 1) {
-		double l2slope = (l2err[nmesh-1]-l2err[nmesh-2])/(h[nmesh-1]-h[nmesh-2]);
-		double sipslope = (siperr[nmesh-1]-siperr[nmesh-2])/(h[nmesh-1]-h[nmesh-2]);
-		printf("L2 slope = %f, H1 slope = %f\n", l2slope, sipslope);
-	}
 
 	printf("---\n\n");
 	return 0;

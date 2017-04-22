@@ -135,7 +135,7 @@ public:
 	}
 
 	/// Calls functions to add contribution to the [right hand side](@ref residual), and also compute [time steps](@ref mets)
-	virtual void update_residual(std::vector<Matrix>& ustage) = 0;
+	virtual void update_residual(const std::vector<Matrix>& ustage) = 0;
 
 	/// Adds source term contribution to residual
 	/** As implemented in this class, does nothing.

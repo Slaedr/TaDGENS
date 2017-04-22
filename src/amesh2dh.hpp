@@ -76,7 +76,7 @@ private:
 	 */
 	amat::Array2d<a_int> facelocalnum;
 
-	/// Holds face numbers of faces making up an element
+	/// Holds intfac face numbers of faces making up an element
 	amat::Array2d<a_int> elemface;
 
 	amat::Array2d<a_int> bifmap;				///< relates boundary faces in intfac with bface, ie, bifmap(intfac no.) = bface no.

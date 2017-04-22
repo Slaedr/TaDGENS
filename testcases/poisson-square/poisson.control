@@ -1,11 +1,11 @@
 -number-of-meshes
-1
+4
 -Mesh-prefix
 ../testcases/poisson-square/grids/square
 -output-file-for-convergence
-../testcases/poisson-square/errors-sip.txt
+../testcases/poisson-square/errors.txt
 -polynomial-degree-of-computed-solution
-1
+2
 -stabilization-parameter
 5.0
 
