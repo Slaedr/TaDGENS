@@ -10,10 +10,34 @@ namespace acfd {
 
 using namespace amat;
 
+/// Evaluate the values of functions with a BLAS 3 call
+/** \param[in] dofs The matrix of DOFs - NOTE that each column contains the DOFs of one physical variable (ndof x nvars)
+ * \param[in] basisv Matrix of basis function values at the points at which function values are needed; 
+ * each row has all basis function values corresponding to a given point in space (npoints x ndofs)
+ * \param[in|out] interp Pre-allocated matrix for storing interpolated values (npoints x nvars)
+ */
+inline void evaluateFunctionsColumnWise(const Matrix& __restrict__ dofs, const Matrix& __restrict__ basisv, Matrix& __restrict__ interp)
+{
+	interp.noalias() = basisv*dofs;
+}
+
+/// Evaluate values of gradients of a function using BLAS 3 calls for all points at which evaluation is needed
+/** \param[in] dofs The matrix of DOFs - NOTE that each column contains the DOFs of one physical variable (ndof x nvars)
+ * \param[in] basisg Set of matrices of basis gradient values at the points at which function values are needed; 
+ * each row has the gradient corresponding to a given dof (npoints x (ndofs x ndim))
+ * \param[in|out] interp Pre-allocated set of matrices for storing interpolated values (npoints x (nvars x ndim))
+ */
+template <typename T>
+inline void evaluateGradients(const Matrix& __restrict__ dofs, const std::vector<T>& __restrict__ basisg, std::vector<T>& __restrict__ interp)
+{
+	for(size_t ig = 0; ig < basisg.size(); ig++)
+		interp[ig].transpose().noalias() = basisg[ig].transpose() * dofs;
+}
+
 /// A global function for computing 2D Lagrange mapping derivatives
 /** Mappings upto P2 are implemented.
  */
-void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape shape, const int degree, const Matrix& __restrict__ phyNodes,
+void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape shape, const int degree, const Matrix& __restrict__ phy,
 		std::vector<MatrixDim>& __restrict__ jacoi, std::vector<a_real>& __restrict__ jacod)
 {
 	std::vector<MatrixDim> jac(po.rows());
@@ -24,8 +48,8 @@ void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape
 			for(int ip = 0; ip < po.rows(); ip++) {
 				for(int idim = 0; idim < NDIM; idim++) 
 				{
-					jac[ip](idim,0) = phyNodes(1,idim)-phyNodes(0,idim);
-					jac[ip](idim,1) = phyNodes(2,idim)-phyNodes(0,idim);
+					jac[ip](idim,0) = phy(1,idim)-phy(0,idim);
+					jac[ip](idim,1) = phy(2,idim)-phy(0,idim);
 				}
 			}
 		}
@@ -33,17 +57,35 @@ void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape
 			for(int ip = 0; ip < po.rows(); ip++) {
 				for(int idim = 0; idim < NDIM; idim++) 
 				{
-					jac[ip](idim,0) = phyNodes(0,idim)*(-3+4*po(ip,0)+4*po(ip,1)) +phyNodes(1,idim)*(4*po(ip,0)-1) +phyNodes(3,idim)*4*(1-2*po(ip,0)-po(ip,1)) 
-						+phyNodes(4,idim)*4*po(ip,1) -phyNodes(5,idim)*4.0*po(ip,1);
-					jac[ip](idim,1) = phyNodes(0,idim)*(-3+4*po(ip,1)+4*po(ip,0)) +phyNodes(2,idim)*(4*po(ip,1)-1) -phyNodes(3,idim)*4*po(ip,0) 
-						+ phyNodes(4,idim)*4*po(ip,0) +phyNodes(5,idim)*4*(1-2*po(ip,1)-po(ip,0));
+					jac[ip](idim,0) = phy(0,idim)*(-3+4*po(ip,0)+4*po(ip,1)) +phy(1,idim)*(4*po(ip,0)-1) +phy(3,idim)*4*(1-2*po(ip,0)-po(ip,1)) 
+						+phy(4,idim)*4*po(ip,1) -phy(5,idim)*4.0*po(ip,1);
+					jac[ip](idim,1) = phy(0,idim)*(-3+4*po(ip,1)+4*po(ip,0)) +phy(2,idim)*(4*po(ip,1)-1) -phy(3,idim)*4*po(ip,0) 
+						+ phy(4,idim)*4*po(ip,0) +phy(5,idim)*4*(1-2*po(ip,1)-po(ip,0));
 				}
 			}
 		}
 	}
 	else if (shape == QUADRANGLE)
 	{
-		//TODO: Add bilinear and biquadratic shape functions
+		if(degree == 1) {
+			for(int ip = 0; ip < po.rows(); ip++) {
+				for(int idim = 0; idim < NDIM; idim++) 
+				{
+					jac[ip](idim,0) = ( phy(0,idim)*(po(ip,1)-1) + phy(1,idim)*(1-po(ip,1))
+						              + phy(2,idim)*(1+po(ip,1)) + phy(3,idim)*(-1-po(ip,1)) ) * 0.25;
+					jac[ip](idim,1) = ( phy(0,idim)*(po(ip,0)-1) + phy(1,idim)*(-1-po(ip,0))
+				                      + phy(2,idim)*(1+po(ip,0)) + phy(3,idim)*(1-po(ip,0)) ) * 0.25;
+				}
+			}
+		}
+		else if(degree == 2) {
+			for(int ip = 0; ip < po.rows(); ip++) {
+				for(int idim = 0; idim < NDIM; idim++) 
+				{
+					// TODO
+				}
+			}
+		}
 	}
 
 	for(int ip = 0; ip < po.rows(); ip++) {
@@ -54,10 +96,10 @@ void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape
 }
 
 /// Value of 2D Lagrange mapping at any reference coordinates
-void getLagrangeMap(const Matrix& __restrict__ points, const Shape shape, 
-		const int degree, const Matrix& __restrict__ phyNodes, Matrix& __restrict__ mapping)
+void getLagrangeMap(const Matrix& __restrict__ pts, const Shape shape, 
+		const int degree, const Matrix& __restrict__ phy, Matrix& __restrict__ mapping)
 {
-	int npoin = points.rows();
+	int npoin = pts.rows();
 
 	if(shape == TRIANGLE)
 	{
@@ -66,7 +108,7 @@ void getLagrangeMap(const Matrix& __restrict__ points, const Shape shape,
 			{
 				for(int idim = 0; idim < NDIM; idim++) 
 				{
-					mapping(ip,idim) = phyNodes(0,idim)*(1.0-points(ip,0)-points(ip,1)) + phyNodes(1,idim)*points(ip,0) + phyNodes(2,idim)*points(ip,1);
+					mapping(ip,idim) = phy(0,idim)*(1.0-pts(ip,0)-pts(ip,1)) + phy(1,idim)*pts(ip,0) + phy(2,idim)*pts(ip,1);
 				}
 			}
 		}
@@ -75,19 +117,45 @@ void getLagrangeMap(const Matrix& __restrict__ points, const Shape shape,
 			{
 				for(int idim = 0; idim < NDIM; idim++) 
 				{
-					mapping(ip,idim) = phyNodes(0,idim) * (1.0-3*points(ip,0)-3*points(ip,1)+2*points(ip,0)*points(ip,0)+2*points(ip,1)*points(ip,1)+4*points(ip,0)*points(ip,1)) 
-						+ phyNodes(1,idim)*(2.0*points(ip,0)*points(ip,0)-points(ip,0)) 
-						+ phyNodes(2,idim)*(2.0*points(ip,1)*points(ip,1)-points(ip,1)) 
-						+ phyNodes(3,idim)*4.0*(points(ip,0)-points(ip,0)*points(ip,0)-points(ip,0)*points(ip,1)) 
-						+ phyNodes(4,idim)*4.0*points(ip,0)*points(ip,1) 
-						+ phyNodes(5,idim)*4.0*(points(ip,1)-points(ip,1)*points(ip,1)-points(ip,0)*points(ip,1));
+					mapping(ip,idim) = phy(0,idim) * (1.0-3*pts(ip,0)-3*pts(ip,1)+2*pts(ip,0)*pts(ip,0)+2*pts(ip,1)*pts(ip,1)+4*pts(ip,0)*pts(ip,1)) 
+						+ phy(1,idim)*(2.0*pts(ip,0)*pts(ip,0)-pts(ip,0)) 
+						+ phy(2,idim)*(2.0*pts(ip,1)*pts(ip,1)-pts(ip,1)) 
+						+ phy(3,idim)*4.0*(pts(ip,0)-pts(ip,0)*pts(ip,0)-pts(ip,0)*pts(ip,1)) 
+						+ phy(4,idim)*4.0*pts(ip,0)*pts(ip,1) 
+						+ phy(5,idim)*4.0*(pts(ip,1)-pts(ip,1)*pts(ip,1)-pts(ip,0)*pts(ip,1));
 				}
 			}
 		}
 	}
 	else if (shape == QUADRANGLE)
 	{
-		//TODO: Add bilinear and biquadratic shape functions
+		if(degree == 1) {
+			for(int ip = 0; ip < npoin; ip++)
+			{
+				for(int idim = 0; idim < NDIM; idim++) {
+					mapping(ip,idim) = ( phy(0,idim)*(1-pts(ip,0))*(1-pts(ip,1))
+						               + phy(1,idim)*(1+pts(ip,0))*(1-pts(ip,1))
+									   + phy(2,idim)*(1+pts(ip,0))*(1+pts(ip,1))
+									   + phy(3,idim)*(1-pts(ip,0))*(1+pts(ip,1)) ) * 0.25;
+				}
+			}
+		}
+		else if(degree == 2) {
+			for(int ip = 0; ip < npoin; ip++)
+			{
+				for(int idim = 0; idim < NDIM; idim++) {
+					mapping(ip,idim) =   phy(0,idim)* (pts(ip,0)*pts(ip,0)-pts(ip,0)) * (pts(ip,1)*pts(ip,1)-pts(ip,1)) * 0.25
+						               + phy(1,idim)* (pts(ip,0)*pts(ip,0)+pts(ip,0)) * (pts(ip,1)*pts(ip,1)-pts(ip,1)) * 0.25
+									   + phy(2,idim)* (pts(ip,0)*pts(ip,0)+pts(ip,0)) * (pts(ip,1)*pts(ip,1)+pts(ip,1)) * 0.25
+									   + phy(3,idim)* (pts(ip,0)*pts(ip,0)-pts(ip,0)) * (pts(ip,1)*pts(ip,1)+pts(ip,1)) * 0.25
+									   + phy(4,idim)* (1-pts(ip,0)*pts(ip,0))   * (pts(ip,1)*pts(ip,1)-pts(ip,1)) * 0.5
+									   + phy(5,idim)* (pts(ip,0)*pts(ip,0)+phi(ip,0)) * (1-pts(ip,1)*pts(ip,1))   * 0.5
+									   + phy(6,idim)* (1-pts(ip,0)*pts(ip,0))   * (pts(ip,1)*pts(ip,1)+pts(ip,1)) * 0.5
+									   + phy(7,idim)* (pts(ip,0)*pts(ip,0)-phi(ip,0)) * (1-pts(ip,1)*pts(ip,1))   * 0.5
+									   + phy(8,idim)* (1-pts(ip,0)*pts(ip,0))*(1-pts(ip,1)*pts(ip,1));
+				}
+			}
+		}
 	}
 }
 
