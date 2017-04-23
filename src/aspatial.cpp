@@ -13,8 +13,10 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char basisty
 	std::cout << " SpatialBase: Setting up spaital integrator for FE polynomial degree " << p_degree << std::endl;
 	
 	// set quadrature strength
-	int dom_quaddegree = 2*p_degree + m->degree()-1;
-	int boun_quaddegree = 2*p_degree + m->degree()-1;
+	//int dom_quaddegree = 2*p_degree + m->degree()-1;
+	//int boun_quaddegree = 2*p_degree + m->degree()-1;
+	int dom_quaddegree = 2*p_degree;
+	int boun_quaddegree = 2*p_degree;
 	if(dom_quaddegree == 0) dom_quaddegree = 1;
 	if(boun_quaddegree == 0) boun_quaddegree = 1;
 	std::cout << " SpatialBase: Quadrature strengths for domain and boundary integrals set at " << dom_quaddegree << ", " << boun_quaddegree << std::endl;
@@ -65,10 +67,10 @@ void SpatialBase::computeFEData()
 	// loop over elements to setup maps and elements and compute mass matrices
 	for(int iel = 0; iel < m->gnelem(); iel++)
 	{
-		Matrix phynodes(m->gnnode(iel),NDIM);
+		Matrix phynodes(NDIM,m->gnnode(iel));
 		for(int i = 0; i < m->gnnode(iel); i++)
 			for(int j = 0; j < NDIM; j++)
-				phynodes(i,j) = m->gcoords(m->ginpoel(iel,i),j);
+				phynodes(j,i) = m->gcoords(m->ginpoel(iel,i),j);
 
 		if(m->gnnode(iel) == 4 || m->gnnode(iel) == 9 || m->gnnode(iel) == 16)
 			map2d[iel].setAll(m->degree(), phynodes, dsquad);
@@ -108,10 +110,10 @@ void SpatialBase::computeFEData()
 	for(int iface = 0; iface < m->gnbface(); iface++)
 	{
 		int lelem = m->gintfac(iface,0);
-		Matrix phynodes(m->gnnofa(iface),NDIM);
+		Matrix phynodes(NDIM, m->gnnofa(iface));
 		for(int i = 0; i < m->gnnofa(iface); i++)
 			for(int j = 0; j < NDIM; j++)
-				phynodes(i,j) = m->gcoords(m->gintfac(iface,2+i),j);
+				phynodes(j,i) = m->gcoords(m->gintfac(iface,2+i),j);
 
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
 		map1d[iface].computeAll();
@@ -123,10 +125,10 @@ void SpatialBase::computeFEData()
 	{
 		int lelem = m->gintfac(iface,0);
 		int relem = m->gintfac(iface,1);
-		Matrix phynodes(m->gnnofa(iface),NDIM);
+		Matrix phynodes(NDIM, m->gnnofa(iface));
 		for(int i = 0; i < m->gnnofa(iface); i++)
 			for(int j = 0; j < NDIM; j++)
-				phynodes(i,j) = m->gcoords(m->gintfac(iface,2+i),j);
+				phynodes(j,i) = m->gcoords(m->gintfac(iface,2+i),j);
 
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
 		map1d[iface].computeAll();

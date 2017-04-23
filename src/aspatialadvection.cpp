@@ -223,23 +223,40 @@ a_real LinearAdvection::computeL2Error(double (*const exact)(double,double,doubl
 	return sqrt(l2error);
 }
 
+// very crude
 void LinearAdvection::postprocess()
 {
 	output.resize(m->gnpoin(),1);
 	output.zeros();
 	std::vector<int> surelems(m->gnpoin(),0);
-	//int ndofs = elems[0].getNumDOFs();
 
 	for(int iel = 0; iel < m->gnelem(); iel++)
 	{
-		// iterate over vertices of element
 		if(basis_type == 'l')
+		{
+			int ndofs = elems[iel]->getNumDOFs();
 			for(int ino = 0; ino < m->gnfael(iel); ino++) {
 				output(m->ginpoel(iel,ino)) += u[iel](0,ino);
 				surelems[m->ginpoel(iel,ino)] += 1;
 			}
+			if(m->gnnode(iel) > m->gnfael(iel)) {
+				for(int ino = m->gnfael(iel); ino < 2*m->gnfael(iel); ino++) {
+					output(m->ginpoel(iel,ino)) += (u[iel](0,ino-m->gnfael(iel)) + u[iel](0, (ino-m->gnfael(iel)+1) % m->gnfael(iel)))/2.0;
+					surelems[m->ginpoel(iel,ino)] += 1;
+				}
+				// for interior nodes, just use average of vertices
+				for(int ino = 2*m->gnfael(iel); ino < m->gnnode(iel); ino++) {
+					for(int jno = 0; jno < m->gnfael(iel); jno++)
+						output(m->ginpoel(iel,ino)) += u[iel](0,jno);
+					output(m->ginpoel(iel,ino)) /= m->gnfael(iel);
+					surelems[m->ginpoel(iel,ino)] += 1;
+				}
+			}
+		}
+		
+		// for Taylor, use only average values
 		else
-			for(int ino = 0; ino < m->gnfael(iel); ino++) {
+			for(int ino = 0; ino < m->gnnode(iel); ino++) {
 				output(m->ginpoel(iel,ino)) += u[iel](0,0);
 				surelems[m->ginpoel(iel,ino)] += 1;
 			}

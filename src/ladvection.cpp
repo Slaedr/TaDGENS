@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 	// Read control file
 	ifstream control(argv[1]);
 
-	string dum, meshprefix, outf;
+	string dum, meshprefix, outf, outerr;
 	double cfl, tol;
 	int sdegree, maxits, nmesh, extrapflag, inoutflag;
 	char btype;
@@ -56,9 +56,10 @@ int main(int argc, char* argv[])
 
 	for(int i = 0; i < nmesh; i++) {
 		mfiles[i] = meshprefix + to_string(i) + ".msh";
-		sfiles[i] = outf + to_string(i) + "-h"+to_string(sdegree)+".vtu";
+		sfiles[i] = outf + to_string(i) + "-p"+to_string(sdegree)+".vtu";
 		exfiles[i] = outf + to_string(i) + "-exact.vtu";
 	}
+	outerr = outf + "-p" + to_string(sdegree)+".txt";
 
 	for(int imesh = 0; imesh < nmesh; imesh++)
 	{
@@ -100,10 +101,10 @@ int main(int argc, char* argv[])
 		cout << endl;
 	}
 
-	/*ofstream convf(outf);
+	ofstream convf(outerr);
 	for(int i = 0; i < nmesh; i++)
 		convf << h[i] << " " << l2err[i] << "\n";
-	convf.close();*/
+	convf.close();
 
 	printf("---\n\n");
 	return 0;

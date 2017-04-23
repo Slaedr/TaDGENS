@@ -36,7 +36,7 @@ class GeomMapping1D
 {
 protected:
 	int degree;								///< Polynomial degree of the mapping
-	Matrix phyNodes;						///< Physical locations of the nodes
+	Matrix phyNodes;						///< Physical locations of the nodes (ndim x ndofs)
 	std::vector<Vector> normals;			///< Unit normals at quadrature points
 	std::vector<a_real> speeds;				///< Magnitude of tangent vectors to the curve at quadrature points
 	Matrix mapping;							///< Physical coordinates of the quadrature points, ie the mapping evaluated at the quadrature points
@@ -107,7 +107,7 @@ class GeomMapping2D
 protected:
 	Shape shape;								///< Shape of the element
 	int degree;									///< Polynomial degree of the map
-	Matrix phyNodes;							///< Physical coordinates of the nodes
+	Matrix phyNodes;							///< Physical coordinates of the nodes (ndim x ndofs)
 	std::vector<MatrixDim> jaco;				///< Jacobian matrix of the mapping
 	std::vector<MatrixDim> jacoinv;				///< Inverse of the Jacobian matrix
 	std::vector<a_real> jacodet;				///< Determinant of the Jacobian matrix

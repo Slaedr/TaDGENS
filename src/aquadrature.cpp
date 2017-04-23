@@ -109,7 +109,7 @@ void Quadrature2DSquare::initialize(const int n_poly)
 	int ngaussdim;
 
 	if(nPoly <= 1) {
-		ngaussfim = 1;
+		ngaussdim = 1;
 		ngauss = 1;
 		a_real gp[] = {0.0};
 		a_real gw[] = {2.0};
@@ -145,9 +145,9 @@ void Quadrature2DSquare::initialize(const int n_poly)
 	else if(nPoly <= 9) {
 		ngaussdim = 5;
 		ngauss = 25;
-		a_real gp[] = { -1.0/3*sqrt(5.0 + 2.0*sqrt(10.0/7)), -1.0/3*sqrt(5.0 - 2.0*sqrt(10.0/7)), 0.0;
+		a_real gp[] = { -1.0/3*sqrt(5.0 + 2.0*sqrt(10.0/7)), -1.0/3*sqrt(5.0 - 2.0*sqrt(10.0/7)), 0.0,
 		                1.0/3*sqrt(5.0 - 2.0*sqrt(10.0/7)), 1.0/3*sqrt(5.0 + 2.0*sqrt(10.0/7)) };
-		a_real gw[] = {(322.0-13*sqrt(70.0))/900, (322.0+13*sqrt(70.0))/900, 128.0/225;
+		a_real gw[] = {(322.0-13*sqrt(70.0))/900, (322.0+13*sqrt(70.0))/900, 128.0/225,
 		               (322.0+13*sqrt(70.0))/900, (322.0-13*sqrt(70.0))/900 };
 		gptemp.initialize(ngaussdim, 1, gp);
 		gwtemp.initialize(ngaussdim, 1, gw);
