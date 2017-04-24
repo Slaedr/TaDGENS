@@ -23,6 +23,10 @@
 #include "aelements.hpp"
 #endif
 
+#ifndef __ARECONSTRUCTION_H
+#include "areconstruction.hpp"
+#endif
+
 #include <Eigen/LU>
 
 namespace acfd {
@@ -42,6 +46,7 @@ protected:
 	int p_degree;									///< Polynomial degree of trial/test functions
 	a_int ntotaldofs;								///< Total number of DOFs in the discretization (for 1 physical variable)
 	char basis_type;								///< Type of basis to use - Lagrange ('l') or Taylor ('t')
+	bool reconstruct;								///< Use reconstruction or not
 
 	/// Maximum allowable explicit time step for each element
 	/** stores (for each elem i) Vol(i) / \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, 

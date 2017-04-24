@@ -116,30 +116,6 @@ void getLagrangeBasisGrads(const Matrix& __restrict__ gp, const Shape shape, con
 	}
 }
 
-/// Evaluate the values of functions with a BLAS 3 call
-/** \param[in] dofs The matrix of DOFs - each row contains the DOFs of one physical variable (nvars x ndofs)
- * \param[in] basisv Matrix of basis function values at the points at which function values are needed; 
- * each row has all basis function values corresponding to a given point in space (npoints x ndofs)
- * \param[in|out] interp Pre-allocated matrix for storing interpolated values (npoints x nvars)
- */
-inline void evaluateFunctions(const Matrix& __restrict__ dofs, const Matrix& __restrict__ basisv, Matrix& __restrict__ interp)
-{
-	interp.noalias() = basisv * dofs.transpose();
-}
-
-/// Evaluate values of gradients of a function using BLAS 3 calls for all points at which evaluation is needed
-/** \param[in] dofs The matrix of DOFs - each row contains the DOFs of one physical variable (nvars x ndofs)
- * \param[in] basisg Set of matrices of basis gradient values at the points at which function values are needed; 
- * each row has the gradient corresponding to a given dof (npoints x (ndofs x ndim))
- * \param[in|out] interp Pre-allocated set of matrices for storing interpolated values (npoints x (nvars x ndim))
- */
-template <typename T>
-inline void evaluateGradients(const Matrix& __restrict__ dofs, const std::vector<Matrix>& __restrict__ basisg, std::vector<T>& __restrict__ interp)
-{
-	for(size_t ig = 0; ig < basisg.size(); ig++)
-		interp[ig].noalias() = dofs * basisg[ig];
-}
-
 /// A global function for computing 2D Lagrange mapping derivatives
 /** Mappings upto P2 are implemented.
  */
@@ -157,17 +133,6 @@ void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape
 				bgrad[i].resize(3,NDIM);
 			getLagrangeBasisGrads(po, shape, degree, bgrad);
 			evaluateGradients<MatrixDim>(phy, bgrad, jac);
-
-			/*std::vector<MatrixDim> jact(np);
-			for(int ip = 0; ip < np; ip++) {
-				for(int idim = 0; idim < NDIM; idim++) 
-				{
-					jact[ip](idim,0) = phy(idim,1)-phy(idim,0);
-					jact[ip](idim,1) = phy(idim,2)-phy(idim,0);
-				}
-				std::cout << jac[ip] << "\n\n";
-				std::cout << jact[ip] << "\n**\n";
-			}*/
 		}
 		else if(degree == 2) {
 			std::vector<Matrix> bgrad(np);
@@ -175,16 +140,6 @@ void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape
 				bgrad[i].resize(6,NDIM);
 			getLagrangeBasisGrads(po, shape, degree, bgrad);
 			evaluateGradients<MatrixDim>(phy, bgrad, jac);
-			
-			/*for(int ip = 0; ip < np; ip++) {
-				for(int idim = 0; idim < NDIM; idim++) 
-				{
-					jac[ip](idim,0) = phy(0,idim)*(-3+4*po(ip,0)+4*po(ip,1)) +phy(1,idim)*(4*po(ip,0)-1) +phy(3,idim)*4*(1-2*po(ip,0)-po(ip,1)) 
-						+phy(4,idim)*4*po(ip,1) -phy(5,idim)*4.0*po(ip,1);
-					jac[ip](idim,1) = phy(0,idim)*(-3+4*po(ip,1)+4*po(ip,0)) +phy(2,idim)*(4*po(ip,1)-1) -phy(3,idim)*4*po(ip,0) 
-						+ phy(4,idim)*4*po(ip,0) +phy(5,idim)*4*(1-2*po(ip,1)-po(ip,0));
-				}
-			}*/
 		}
 	}
 	else if (shape == QUADRANGLE)
@@ -195,15 +150,6 @@ void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape
 				bgrad[i].resize(4,NDIM);
 			getLagrangeBasisGrads(po, shape, degree, bgrad);
 			evaluateGradients<MatrixDim>(phy, bgrad, jac);
-			/*for(int ip = 0; ip < np; ip++) {
-				for(int idim = 0; idim < NDIM; idim++) 
-				{
-					jac[ip](idim,0) = ( phy(0,idim)*(po(ip,1)-1) + phy(1,idim)*(1-po(ip,1))
-						              + phy(2,idim)*(1+po(ip,1)) + phy(3,idim)*(-1-po(ip,1)) ) * 0.25;
-					jac[ip](idim,1) = ( phy(0,idim)*(po(ip,0)-1) + phy(1,idim)*(-1-po(ip,0))
-				                      + phy(2,idim)*(1+po(ip,0)) + phy(3,idim)*(1-po(ip,0)) ) * 0.25;
-				}
-			}*/
 		}
 		else if(degree == 2) {
 			std::vector<Matrix> bgrad(np);
@@ -231,30 +177,11 @@ void getLagrangeMap(const Matrix& __restrict__ pts, const Shape shape,
 			Matrix bas(pts.rows(), 3);
 			getLagrangeBasis(pts, shape, degree, bas);
 			evaluateFunctions(phy, bas, mapping);
-			/*for(int ip = 0; ip < npoin; ip++)
-			{
-				for(int idim = 0; idim < NDIM; idim++) 
-				{
-					mapping(ip,idim) = phy(0,idim)*(1.0-pts(ip,0)-pts(ip,1)) + phy(1,idim)*pts(ip,0) + phy(2,idim)*pts(ip,1);
-				}
-			}*/
 		}
 		else if(degree == 2) {
 			Matrix bas(pts.rows(), 6);
 			getLagrangeBasis(pts, shape, degree, bas);
 			evaluateFunctions(phy, bas, mapping);
-			/*for(int ip = 0; ip < npoin; ip++)
-			{
-				for(int idim = 0; idim < NDIM; idim++) 
-				{
-					mapping(ip,idim) = phy(0,idim) * (1.0-3*pts(ip,0)-3*pts(ip,1)+2*pts(ip,0)*pts(ip,0)+2*pts(ip,1)*pts(ip,1)+4*pts(ip,0)*pts(ip,1)) 
-						+ phy(1,idim)*(2.0*pts(ip,0)*pts(ip,0)-pts(ip,0)) 
-						+ phy(2,idim)*(2.0*pts(ip,1)*pts(ip,1)-pts(ip,1)) 
-						+ phy(3,idim)*4.0*(pts(ip,0)-pts(ip,0)*pts(ip,0)-pts(ip,0)*pts(ip,1)) 
-						+ phy(4,idim)*4.0*pts(ip,0)*pts(ip,1) 
-						+ phy(5,idim)*4.0*(pts(ip,1)-pts(ip,1)*pts(ip,1)-pts(ip,0)*pts(ip,1));
-				}
-			}*/
 		}
 	}
 	else if (shape == QUADRANGLE)
@@ -263,34 +190,59 @@ void getLagrangeMap(const Matrix& __restrict__ pts, const Shape shape,
 			Matrix bas(pts.rows(), 4);
 			getLagrangeBasis(pts, shape, degree, bas);
 			evaluateFunctions(phy, bas, mapping);
-			/*for(int ip = 0; ip < npoin; ip++)
-			{
-				for(int idim = 0; idim < NDIM; idim++) {
-					mapping(ip,idim) = ( phy(0,idim)*(1-pts(ip,0))*(1-pts(ip,1))
-						               + phy(1,idim)*(1+pts(ip,0))*(1-pts(ip,1))
-									   + phy(2,idim)*(1+pts(ip,0))*(1+pts(ip,1))
-									   + phy(3,idim)*(1-pts(ip,0))*(1+pts(ip,1)) ) * 0.25;
-				}
-			}*/
 		}
 		else if(degree == 2) {
 			Matrix bas(pts.rows(), 9);
 			getLagrangeBasis(pts, shape, degree, bas);
 			evaluateFunctions(phy, bas, mapping);
-			/*for(int ip = 0; ip < npoin; ip++)
-			{
-				for(int idim = 0; idim < NDIM; idim++) {
-					mapping(ip,idim) =   phy(0,idim)* (pts(ip,0)*pts(ip,0)-pts(ip,0)) * (pts(ip,1)*pts(ip,1)-pts(ip,1)) * 0.25
-						               + phy(1,idim)* (pts(ip,0)*pts(ip,0)+pts(ip,0)) * (pts(ip,1)*pts(ip,1)-pts(ip,1)) * 0.25
-									   + phy(2,idim)* (pts(ip,0)*pts(ip,0)+pts(ip,0)) * (pts(ip,1)*pts(ip,1)+pts(ip,1)) * 0.25
-									   + phy(3,idim)* (pts(ip,0)*pts(ip,0)-pts(ip,0)) * (pts(ip,1)*pts(ip,1)+pts(ip,1)) * 0.25
-									   + phy(4,idim)* (1-pts(ip,0)*pts(ip,0))   * (pts(ip,1)*pts(ip,1)-pts(ip,1)) * 0.5
-									   + phy(5,idim)* (pts(ip,0)*pts(ip,0)+phi(ip,0)) * (1-pts(ip,1)*pts(ip,1))   * 0.5
-									   + phy(6,idim)* (1-pts(ip,0)*pts(ip,0))   * (pts(ip,1)*pts(ip,1)+pts(ip,1)) * 0.5
-									   + phy(7,idim)* (pts(ip,0)*pts(ip,0)-phi(ip,0)) * (1-pts(ip,1)*pts(ip,1))   * 0.5
-									   + phy(8,idim)* (1-pts(ip,0)*pts(ip,0))*(1-pts(ip,1)*pts(ip,1));
-				}
-			}*/
+		}
+	}
+}
+
+void getTaylorBasis(const Matrix& __restrict__ gp, const int degree, const a_real* __restrict__ center, const a_real* __restrict__ delta, 
+		const std::vector<std::vector<a_real>>& __restrict__ basisOffset, Matrix& __restrict__ basiss)
+{
+	for(int ip = 0; ip < gp.rows(); ip++) 
+		basiss(ip,0) = 1.0;
+
+	if(degree >= 1) {
+		for(int ip = 0; ip < gp.rows(); ip++) 
+		{
+			basiss(ip,1) = (gp(ip,0)-center[0])/delta[0];
+			basiss(ip,2) = (gp(ip,1)-center[1])/delta[1];
+		}
+	}
+
+	if(degree >= 2) {
+		for(int ip = 0; ip < gp.rows(); ip++) 
+		{
+			basiss(ip,3) = (gp(ip,0)-center[0])*(gp(ip,0)-center[0])/(2.0*delta[0]*delta[0]) - basisOffset[0][0];
+			basiss(ip,4) = (gp(ip,0)-center[0])*(gp(ip,1)-center[1])/(delta[0]*delta[1]) - basisOffset[0][2];
+			basiss(ip,5) = (gp(ip,1)-center[1])*(gp(ip,1)-center[1])/(2.0*delta[1]*delta[1]) - basisOffset[0][1];
+		}
+	}
+}
+
+void getTaylorBasisGrads(const Matrix& __restrict__ gp, const int degree, const a_real* __restrict__ center, const a_real* __restrict__ delta,
+		std::vector<Matrix>& __restrict__ basisG)
+{
+	for(int ip = 0; ip < gp.rows(); ip++)
+		basisG[ip](0,0) = basisG[ip](0,1) = 0.0;
+
+	if(degree >= 1) {
+		for(int ip = 0; ip < gp.rows(); ip++) 
+		{
+			basisG[ip](1,0) = 1.0/delta[0]; basisG[ip](1,1) = 0.0;
+			basisG[ip](2,0) = 0.0;          basisG[ip](2,1) = 1.0/delta[1];
+		}
+	}
+
+	if(degree >= 2) {
+		for(int ip = 0; ip < gp.rows(); ip++) 
+		{
+			basisG[ip](3,0) = (gp(ip,0)-center[0])/(delta[0]*delta[0]); basisG[ip](3,1) = 0.0;
+			basisG[ip](4,0) = (gp(ip,1)-center[1])/(delta[0]*delta[1]); basisG[ip](4,1) = (gp(ip,0)-center[0])/(delta[0]*delta[1]);
+			basisG[ip](5,0) = 0.0;                                      basisG[ip](5,1) = (gp(ip,1)-center[1])/(delta[1]*delta[1]);
 		}
 	}
 }
@@ -487,24 +439,24 @@ void TaylorElement::initialize(int degr, GeomMapping2D* geommap)
 		for(int ig = 0; ig < ng; ig++)
 		{
 			basisOffset[0][0] += (gmap->map()(ig,0)-center[0])*(gmap->map()(ig,0)-center[0]) * gmap->jacDet()[ig] * gw(ig);
-			basisOffset[0][1] += (gmap->map()(ig,1)-center[1])*(gmap->map()(ig,1)-center[1]) * gmap->jacDet()[ig] * gw(ig);
-			basisOffset[0][2] += (gmap->map()(ig,0)-center[0])*(gmap->map()(ig,1)-center[1]) * gmap->jacDet()[ig] * gw(ig);
+			basisOffset[0][2] += (gmap->map()(ig,1)-center[1])*(gmap->map()(ig,1)-center[1]) * gmap->jacDet()[ig] * gw(ig);
+			basisOffset[0][1] += (gmap->map()(ig,0)-center[0])*(gmap->map()(ig,1)-center[1]) * gmap->jacDet()[ig] * gw(ig);
 		}
 		basisOffset[0][0] *= 1.0/(area*2*delta[0]*delta[0]);
-		basisOffset[0][1] *= 1.0/(area*2*delta[1]*delta[1]);
-		basisOffset[0][2] *= 1.0/(area*delta[0]*delta[1]);
+		basisOffset[0][2] *= 1.0/(area*2*delta[1]*delta[1]);
+		basisOffset[0][1] *= 1.0/(area*delta[0]*delta[1]);
 	}
 	
 	// Compute basis functions and gradients
 	const Matrix& gp = gmap->map();
-	computeBasis(gp, basis);
-	std::vector<MatrixDim> dummy;
-	computeBasisGrads(gp, dummy, basisGrad);
+	getTaylorBasis(gp, degree, center, delta, basisOffset, basis);
+	getTaylorBasisGrads(gp, degree, center, delta, basisGrad);
 }
 
 void TaylorElement::computeBasis(const Matrix& __restrict__ gp, Matrix& __restrict__ basiss) const
 {
-	for(int ip = 0; ip < gp.rows(); ip++) 
+	getTaylorBasis(gp, degree, center, delta, basisOffset, basiss);
+	/*for(int ip = 0; ip < gp.rows(); ip++) 
 		basiss(ip,0) = 1.0;
 
 	if(degree >= 1) {
@@ -522,12 +474,13 @@ void TaylorElement::computeBasis(const Matrix& __restrict__ gp, Matrix& __restri
 			basiss(ip,4) = (gp(ip,1)-center[1])*(gp(ip,1)-center[1])/(2.0*delta[1]*delta[1]) - basisOffset[0][1];
 			basiss(ip,5) = (gp(ip,0)-center[0])*(gp(ip,1)-center[1])/(delta[0]*delta[1]) - basisOffset[0][2];
 		}
-	}
+	}*/
 }
 
 void TaylorElement::computeBasisGrads(const Matrix& __restrict__ gp, const std::vector<MatrixDim>& jinv, std::vector<Matrix>& __restrict__ basisG) const
 {
-	for(int ip = 0; ip < gp.rows(); ip++)
+	getTaylorBasisGrads(gp, degree, center, delta, basisG);
+	/*for(int ip = 0; ip < gp.rows(); ip++)
 		basisG[ip](0,0) = basisG[ip](0,1) = 0.0;
 
 	if(degree >= 1) {
@@ -545,7 +498,7 @@ void TaylorElement::computeBasisGrads(const Matrix& __restrict__ gp, const std::
 			basisG[ip](4,0) = 0.0;                                      basisG[ip](4,1) = (gp(ip,1)-center[1])/(delta[1]*delta[1]);
 			basisG[ip](5,0) = (gp(ip,1)-center[1])/(delta[0]*delta[1]); basisG[ip](5,1) = (gp(ip,0)-center[0])/(delta[0]*delta[1]);
 		}
-	}
+	}*/
 }
 
 void LagrangeElement::initialize(int degr, GeomMapping2D* geommap)

@@ -1,12 +1,8 @@
 /** @file elements.hpp
  * @brief Classes for geometric mappings and finite elements.
  *
- * Note that the geometric mapping classes do not let one compute the Jacobian etc. at any point;
- * in other words, they do not provide functions into which reference/physical coordinates can be plugged in.
- * Rather, they compute and store values of these functions at the quadrature points.
- *
- * TODO: Verify P2 geometric map for triangles, P1 and P2 map for quads
- * TODO: Verify P1 Taylor basis on P2 triangles, P2 Taylor basis for triangles, P1 and P2 for quads
+ * TODO: Verify P2 geometric map for triangles, P2 map for quads
+ * TODO: Verify P1 Taylor basis on P2 triangles
  *
  * @author Aditya Kashi
  * @date 2017 March 1
@@ -212,6 +208,11 @@ public:
 enum BasisType {REFERENTIAL, PHYSICAL, NONEXISTENT};
 
 /// Abstract finite element
+/** \todo Note that this implementation is not very good for elements with basis functions defined on the reference element.
+ * Such elements would only need to store 1 set of basis function values for all elements of a given polynomial order.
+ * In contrast, elements defined in physical coordinates need to hold different basis function values for different elements.
+ * So a better option is to leave storage of basis and basis gradients to child classes and have pure virtual accessors here.
+ */
 class Element
 {
 protected:
@@ -469,6 +470,36 @@ public:
 		values.noalias() = rightbasis*dofs.transpose();
 	}
 };
+
+/// Evaluate the values of functions with a BLAS 3 call
+/** \param[in] dofs The matrix of DOFs - each row contains the DOFs of one physical variable (nvars x ndofs)
+ * \param[in] basisv Matrix of basis function values at the points at which function values are needed; 
+ * each row has all basis function values corresponding to a given point in space (npoints x ndofs)
+ * \param[in|out] interp Pre-allocated matrix for storing interpolated values (npoints x nvars)
+ */
+inline void evaluateFunctions(const Matrix& __restrict__ dofs, const Matrix& __restrict__ basisv, Matrix& __restrict__ interp)
+{
+	interp.noalias() = basisv * dofs.transpose();
+}
+
+/// Evaluate values of gradients of a function using BLAS 3 calls for all points at which evaluation is needed
+/** \param[in] dofs The matrix of DOFs - each row contains the DOFs of one physical variable (nvars x ndofs)
+ * \param[in] basisg Set of matrices of basis gradient values at the points at which function values are needed; 
+ * each row has the gradient corresponding to a given dof (npoints x (ndofs x ndim))
+ * \param[in|out] interp Pre-allocated set of matrices for storing interpolated values (npoints x (nvars x ndim))
+ */
+template <typename T>
+inline void evaluateGradients(const Matrix& __restrict__ dofs, const std::vector<Matrix>& __restrict__ basisg, std::vector<T>& __restrict__ interp)
+{
+	for(size_t ig = 0; ig < basisg.size(); ig++)
+		interp[ig].noalias() = dofs * basisg[ig];
+}
+
+void getTaylorBasis(const Matrix& __restrict__ gp, const int degree, const a_real* __restrict__ center, const a_real* __restrict__ delta, 
+		const std::vector<std::vector<a_real>>& __restrict__ basisOffset, Matrix& __restrict__ basiss);
+
+void getTaylorBasisGrads(const Matrix& __restrict__ gp, const int degree, const a_real* __restrict__ center, const a_real* __restrict__ delta,
+		std::vector<Matrix>& __restrict__ basisG);
 
 }
 #endif

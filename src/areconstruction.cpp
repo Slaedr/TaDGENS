@@ -1,7 +1,7 @@
 /** @file areconstruction.cpp
- * @brief Implementations for different gradient reconstruction schemes.
+ * @brief Implementations for reconstruction schemes
  * @author Aditya Kashi
- * @date February 3, 2016
+ * @date April 23, 2017
  */
 
 #include <areconstruction.hpp>
@@ -9,235 +9,89 @@
 namespace acfd
 {
 
-Reconstruction::~Reconstruction()
+Reconstructor::Reconstructor(int n_sur, const Element** sur_elems, const Matrix* sur_dofs) : nsur(n_sur), selms(sur_elems), sdofs(sur_dofs)
 { }
 
-void Reconstruction::setup(const UMesh2dh* mesh, const amat::Matrix<acfd_real>* unk, const amat::Matrix<acfd_real>* unkg, amat::Matrix<acfd_real>* gradx, amat::Matrix<acfd_real>* grady, 
-		const amat::Matrix<acfd_real>* _rc, const amat::Matrix<acfd_real>* const _rcg)
+LeastSquaresReconstructor::LeastSquaresReconstructor(int n_sur, const Element** sur_elems, const Matrix* sur_dofs) : Reconstructor(n_sur, sur_elems, sur_dofs)
 {
-	m = mesh;
-	u = unk;
-	ug = unkg;
-	dudx = gradx;
-	dudy = grady;
-	rc = _rc;
-	rcg = _rcg;
+	const int reclevel = 1;
+	// get degree before reconstruction
+	int pdegree = selms[0]->getDegree() - 1;
+	
+	numknowndofs = 0; ntotaldofs = 0
+	for(int i = 0; i <= pdegree; i++)
+		numknowndofs += i+1;			// in 2D
+	for(int i = 0; i <= pdegree+1; i++)	
+		ntotaldofs += i+1;				// in 2D
+
+	numders = 0;
+	for(int i = 0; i < reclevel; i++)
+		numders += pdegree + i+2;		// in 2D
+	std::cout << " LeastSquaresReconstructor: Num known DOFs = " << numknowndofs << ", num total DOFs = " << ntotaldofs << ", num DOFs to reconstruct = " << numders << std::endl;
+	if(numknowndofs != sdofs[0].cols()) std::cout << "! LeastSquaresReconstructor: No. of known DOFs and size of DOF input don't match!!\n";
+	
+	int nvars = sdofs[0].rows();
+	
+	if(pdegree == 0)
+	A.resize(numknowndofs*nsur, numders);
+	R.resize(numders,numders);
+
+	// get center element's basis function values at center of each element
+	// we need all basis functions, corresponding to both known and to-be-reconstructed DOFs
+	cbasis.resize(nsur);
+	const a_real* center = reinterpret_cast<TaylorElement*>(selms[0])->getCenter();
+	const a_real* delta = reinterpret_cast<TaylorElement*>(selms[0])->getDelta();
+	const std::vector<std::vector<a_real>>& bo = reinterpret_cast<TaylorElement*>(selms[0])->getBasisOffsets();
+	for(int i = 0; i < nsur; i++) 
+	{
+		cbasis[i].resize(1, ntotaldofs);
+		Matrix cc(1,NDIM);
+		const a_real* centeri = reinterpret_cast<TaylorElement*>(selms[i+1])->getCenter();
+		cc(0,0) = centeri[0]; cc(0,1) = centeri[1];
+		getTaylorBasis(cc, pdegree+1, center, delta, bo, cbasis[i]);
+	}
+
+	// assemble
+	for(int isur = 0; isur < nsur; isur++)
+	{
+		for(int i = 0; i < numders; i++)
+			A(isur*numknowndofs,i) = cbasis[isur](0,i+numknowndofs);
+		if(pdegree == 1) {
+			A(isur*numknowndofs+1, 0) = cbasis[isur](0,1);
+			A(isur*numknowndofs+1, 1) = cbasis[isur](0,2);
+			A(isur*numknowndofs+1, 2) = 0;
+			A(isur*numknowndofs+2, 0) = 0;
+			A(isur*numknowndofs+2, 1) = cbasis[isur](0,1);
+			A(isur*numknowndofs+2, 2) = cbasis[isur](0,2);
+		}
+	}
+
+	R = A.transpose()*A;
+	R = (R.inverse()).eval();
 }
 
-/* The state at the face is approximated as an inverse-distance-weighted average.
- */
-void GreenGaussReconstruction::compute_gradients()
+void LeastSquaresReconstructor::compute()
 {
-#pragma omp parallel default(shared)
+	int nvars = sdofs[0].rows();
+	Matrix b = Matrix::Zero(numknowndofs*nsur, nvars);
+	for(int isur = 0; isur < nsur; isur++)
 	{
-#pragma omp for simd
-		for(acfd_int iel = 0; iel < m->gnelem(); iel++)
-		{
-			for(int i = 0; i < NVARS; i++)
-			{
-				(*dudx)(iel,i) = 0;
-				(*dudy)(iel,i) = 0;
+		for(int ivar = 0; ivar < nvars; ivar++) {
+			// first row of the block
+			for(int j = 0; j < pdegree+1; j++)
+				b(isur*numknowndofs, ivar) -= sdofs[0].row(ivar) * cbasis[isur].block(0,0,1,numknowndofs).transpose();
+			b(isur*numknowndofs, ivar) += sdofs[isur+1](ivar,0);
+
+			// other rows
+			if(pdegree == 1) {
+				b(isur*numknowndofs+1, ivar) = selms[0]->getDelta()[0]/selms[isur+1]->getDelta()[0]*sdofs[isur+1](1,ivar) - sdofs[0](1,ivar);
+				b(isur*numknowndofs+2. ivar) = selms[0]->getDelta()[1]/selms[isur+1]->getDelta()[1]*sdofs[isur+1](2,ivar) - sdofs[0](2,ivar);
 			}
 		}
-		
-#pragma omp for
-		for(acfd_int iface = 0; iface < m->gnbface(); iface++)
-		{
-			acfd_int ielem, ip1, ip2;
-			acfd_real areainv1;
-			acfd_real ut[NVARS];
-			acfd_real dL, dR, mid[NDIM];
-		
-			ielem = m->gintfac(iface,0);
-			ip1 = m->gintfac(iface,2);
-			ip2 = m->gintfac(iface,3);
-			dL = 0; dR = 0;
-			for(int idim = 0; idim < NDIM; idim++)
-			{
-				mid[idim] = (m->gcoords(ip1,idim) + m->gcoords(ip2,idim)) * 0.5;
-				dL += (mid[idim]-rc->get(ielem,idim))*(mid[idim]-rc->get(ielem,idim));
-				dR += (mid[idim]-rcg->get(iface,idim))*(mid[idim]-rcg->get(iface,idim));
-			}
-			dL = sqrt(dL);
-			dR = sqrt(dR);
-			areainv1 = 1.0/m->garea(ielem);
-			
-			for(int ivar = 0; ivar < NVARS; ivar++)
-			{
-				ut[ivar] = (u->get(ielem,ivar)*dL + ug->get(iface,ivar)*dR)/(dL+dR) * m->ggallfa(iface,2);
-				(*dudx)(ielem,ivar) += (ut[ivar] * m->ggallfa(iface,0))*areainv1;
-				(*dudy)(ielem,ivar) += (ut[ivar] * m->ggallfa(iface,1))*areainv1;
-			}
-		}
-
-#pragma omp for
-		for(acfd_int iface = m->gnbface(); iface < m->gnaface(); iface++)
-		{
-			acfd_int ielem, jelem, ip1, ip2;
-			acfd_real areainv1, areainv2;
-			acfd_real ut[NVARS];
-			acfd_real dL, dR, mid[NDIM];
-		
-			ielem = m->gintfac(iface,0);
-			jelem = m->gintfac(iface,1);
-			ip1 = m->gintfac(iface,2);
-			ip2 = m->gintfac(iface,3);
-			dL = 0; dR = 0;
-			for(int idim = 0; idim < NDIM; idim++)
-			{
-				mid[idim] = (m->gcoords(ip1,idim) + m->gcoords(ip2,idim)) * 0.5;
-				dL += (mid[idim]-rc->get(ielem,idim))*(mid[idim]-rc->get(ielem,idim));
-				dR += (mid[idim]-rc->get(jelem,idim))*(mid[idim]-rc->get(jelem,idim));
-			}
-			dL = sqrt(dL);
-			dR = sqrt(dR);
-			areainv1 = 1.0/m->garea(ielem);
-			areainv2 = 1.0/m->garea(jelem);
-			
-			for(int ivar = 0; ivar < NVARS; ivar++)
-			{
-				ut[ivar] = (u->get(ielem,ivar)*dL + u->get(jelem,ivar)*dR)/(dL+dR) * m->ggallfa(iface,2);
-#pragma omp atomic update
-				(*dudx)(ielem,ivar) += (ut[ivar] * m->ggallfa(iface,0))*areainv1;
-#pragma omp atomic update
-				(*dudy)(ielem,ivar) += (ut[ivar] * m->ggallfa(iface,1))*areainv1;
-#pragma omp atomic update
-				(*dudx)(jelem,ivar) -= (ut[ivar] * m->ggallfa(iface,0))*areainv2;
-#pragma omp atomic update
-				(*dudy)(jelem,ivar) -= (ut[ivar] * m->ggallfa(iface,1))*areainv2;
-			}
-		}
-	} // end parallel region
-}
-
-
-void WeightedLeastSquaresReconstruction::setup(const UMesh2dh* mesh, const amat::Matrix<acfd_real>* unk, const amat::Matrix<acfd_real>* unkg, amat::Matrix<acfd_real>* gradx, amat::Matrix<acfd_real>* grady, 
-		const amat::Matrix<acfd_real>* _rc, const amat::Matrix<acfd_real>* const _rcg)
-{
-	Reconstruction::setup(mesh, unk, unkg, gradx, grady, _rc, _rcg);
-	std::cout << "WeightedLeastSquaresReconstruction: Setting up leastsquares; num vars = " << NVARS << std::endl;
-
-	V.resize(m->gnelem());
-	f.resize(m->gnelem());
-	for(int i = 0; i < m->gnelem(); i++)
-	{
-		V[i].setup(2,2);
-		V[i].zeros();
-		f[i].setup(2,NVARS);
-	}
-	d.setup(2,NVARS);
-	idets.setup(m->gnelem(),1);
-	du.setup(NVARS,1);
-
-	// compute LHS of least-squares problem
-	int iface, ielem, jelem, idim;
-	acfd_real w2, dr[2];
-
-	for(iface = 0; iface < m->gnbface(); iface++)
-	{
-		ielem = m->gintfac(iface,0);
-		w2 = 0;
-		for(idim = 0; idim < 2; idim++)
-		{
-			w2 += (rc->get(ielem,idim)-rcg->get(iface,idim))*(rc->get(ielem,idim)-rcg->get(iface,idim));
-			dr[idim] = rc->get(ielem,idim)-rcg->get(iface,idim);
-		}
-		w2 = 1.0/w2;
-
-		V[ielem](0,0) += w2*dr[0]*dr[0];
-		V[ielem](1,1) += w2*dr[1]*dr[1];
-		V[ielem](0,1) += w2*dr[0]*dr[1];
-		V[ielem](1,0) += w2*dr[0]*dr[1];
-	}
-	for(iface = m->gnbface(); iface < m->gnaface(); iface++)
-	{
-		ielem = m->gintfac(iface,0);
-		jelem = m->gintfac(iface,1);
-		w2 = 0;
-		for(idim = 0; idim < 2; idim++)
-		{
-			w2 += (rc->get(ielem,idim)-rc->get(jelem,idim))*(rc->get(ielem,idim)-rc->get(jelem,idim));
-			dr[idim] = rc->get(ielem,idim)-rc->get(jelem,idim);
-		}
-		w2 = 1.0/w2;
-
-		V[ielem](0,0) += w2*dr[0]*dr[0];
-		V[ielem](1,1) += w2*dr[1]*dr[1];
-		V[ielem](0,1) += w2*dr[0]*dr[1];
-		V[ielem](1,0) += w2*dr[0]*dr[1];
-		
-		V[jelem](0,0) += w2*dr[0]*dr[0];
-		V[jelem](1,1) += w2*dr[1]*dr[1];
-		V[jelem](0,1) += w2*dr[0]*dr[1];
-		V[jelem](1,0) += w2*dr[0]*dr[1];
 	}
 
-	for(ielem = 0; ielem < m->gnelem(); ielem++)
-	{
-		idets(ielem) = 1.0/(V[ielem].get(0,0)*V[ielem].get(1,1) - V[ielem].get(0,1)*V[ielem].get(1,0));
-		f[ielem].zeros();
-	}
-}
-
-void WeightedLeastSquaresReconstruction::compute_gradients()
-{
-	int iface, ielem, jelem, idim, ivar;
-	acfd_real w2, dr[2];
-
-	// compute least-squares RHS
-
-	for(iface = 0; iface < m->gnbface(); iface++)
-	{
-		ielem = m->gintfac(iface,0);
-		w2 = 0;
-		for(idim = 0; idim < 2; idim++)
-		{
-			w2 += (rc->get(ielem,idim)-rcg->get(iface,idim))*(rc->get(ielem,idim)-rcg->get(iface,idim));
-			dr[idim] = rc->get(ielem,idim)-rcg->get(iface,idim);
-		}
-		w2 = 1.0/w2;
-		for(ivar = 0; ivar < NVARS; ivar++)
-			du(ivar) = u->get(ielem,ivar) - ug->get(iface,ivar);
-		
-		for(ivar = 0; ivar < NVARS; ivar++)
-		{
-			f[ielem](0,ivar) += w2*dr[0]*du(ivar);
-			f[ielem](1,ivar) += w2*dr[1]*du(ivar);
-		}
-	}
-	for(iface = m->gnbface(); iface < m->gnaface(); iface++)
-	{
-		ielem = m->gintfac(iface,0);
-		jelem = m->gintfac(iface,1);
-		w2 = 0;
-		for(idim = 0; idim < 2; idim++)
-		{
-			w2 += (rc->get(ielem,idim)-rc->get(jelem,idim))*(rc->get(ielem,idim)-rc->get(jelem,idim));
-			dr[idim] = rc->get(ielem,idim)-rc->get(jelem,idim);
-		}
-		w2 = 1.0/w2;
-		for(ivar = 0; ivar < NVARS; ivar++)
-			du(ivar) = u->get(ielem,ivar) - u->get(jelem,ivar);
-
-		for(ivar = 0; ivar < NVARS; ivar++)
-		{
-			f[ielem](0,ivar) += w2*dr[0]*du(ivar);
-			f[ielem](1,ivar) += w2*dr[1]*du(ivar);
-			f[jelem](0,ivar) += w2*dr[0]*du(ivar);
-			f[jelem](1,ivar) += w2*dr[1]*du(ivar);
-		}
-	}
-
-	// solve normal equations by Cramer's rule
-	for(ielem = 0; ielem < m->gnelem(); ielem++)
-	{
-		for(ivar = 0; ivar < NVARS; ivar++)
-		{
-			(*dudx)(ielem,ivar) = (f[ielem].get(0,ivar)*V[ielem].get(1,1) - f[ielem].get(1,ivar)*V[ielem].get(0,1)) * idets.get(ielem);
-			(*dudy)(ielem,ivar) = (V[ielem].get(0,0)*f[ielem].get(1,ivar) - V[ielem].get(1,0)*f[ielem].get(0,ivar)) * idets.get(ielem);
-		}
-		f[ielem].zeros();
-	}
+	b = (A.transpose()*b).eval();
+	rder = R*b;
 }
 
 } // end namespace

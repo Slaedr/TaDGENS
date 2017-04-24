@@ -159,11 +159,17 @@ where $\Delta x$ and $\Delta y$ are $\frac12 (x_{max}-x_{min})$ and $\frac12 (y_
 
 This can be similarly extended to any desired polynomial degree in any number of dimensions.
 
+\subsection{Advantages}
+
 An interesting point is that the Taylor basis functions above are defined on the physical element. Thus, any polynomial function of these functions or their gradients remains polynomial. This means that terms in the mass matrices, stiffness matrices etc. can be integrated exactly by Gaussian quadrature of high-enough order, \emph{even for curved elements}. This may be contrasted to how Lagrange basis functions are defined on physical elements (see, for example, chapter 12 in \cite{claesjohnson}). The finite-dimensional function space on element $K$ is defined as
 \begin{equation}
 P_K = \{ p: p(\bld{x}) = \hat{p}(F^{-1}(\bld{x})),\, \bld{x} \in K,\, \hat{p} \in P_{\hat{K}} \}
 \end{equation}
 where $F:\hat{K}\rightarrow K$ is a diffeomorphism from the reference element $\hat{K}$ to the physical element $K$. For curved elements, $F^{-1}$ is not a polynomial in general. Thus, integrands in a weak form will, in general, not be polynomials and thus cannot be integrated exactly.
+
+\subsection{Disadvantages}
+
+Since Taylor basis is defined on physical elements, values of the basis functions and basis gradients at the quadrature points have to be stored individually for each element. This is not required in case of basis functions defined over the reference element.
 
 \section{Reconstruction DG scheme}
 One issue with the DG FEM method is its high cost compared to finite volume schemes for low to intermediate levels of desired accuracy. They become competitive only when a high-enough level of accuracy is required. DG FEM is also more expensive than a continuous FEM scheme of the same order on the same grid, since degrees of freedom are not shared among elements. One way of reducing the cost is the reconstruction DG (RDG) FEM scheme \cite{luo_rdg}. A Taylor basis RDG scheme can be implemented in a reasonably straightforward manner to give high-order accuracy using less degrees of freedom than a DG scheme.

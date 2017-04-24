@@ -1,71 +1,74 @@
 /** @file areconstruction.hpp
- * @brief Classes for different gradient reconstruction schemes.
+ * @brief Classes for higher-order derivative reconstruction schemes
  * @author Aditya Kashi
- * @date February 3, 2016
+ * @date April 23, 2017
  */
 
-#ifndef __AMESH2DH_H
-#include <amesh2dh.hpp>
-#endif
-
+#ifndef __ARECONSTRUCTION_H
 #define __ARECONSTRUCTION_H 1
+
+#ifndef __AELEMENTS_H
+#include "aelements.hpp"
+#endif
 
 namespace acfd
 {
 
-/// Abstract class for variable gradient reconstruction schemes
-/** For this, we need ghost cell-centered values of flow variables.
- */
-class Reconstruction
+/// Abstract class for a erivative reconstruction context for a single element
+class Reconstructor
 {
 protected:
-	const UMesh2dh* m;
-	/// Cell centers' coords
-	const amat::Matrix<acfd_real>* rc;
-	/// Ghost cell centers
-	const amat::Matrix<acfd_real>* rcg;
-	/// Cell-centered flow vaiables
-	const amat::Matrix<acfd_real>* u;
-	/// flow variables at ghost cells
-	const amat::Matrix<acfd_real>* ug;
-	/// Cell-centred x-gradients
-	amat::Matrix<acfd_real>* dudx;
-	/// Cell-centred y-gradients
-	amat::Matrix<acfd_real>* dudy;
+	/// Number of face-neighboring elements
+	int nsur;
+
+	/// Surrounding elements
+	const Element** selms;
+
+	/// DOFs of surrounding elements
+	/** The first matrix in the list should be the DOFs of this element, ie,
+	 * the element whose derivatives this object is to reconstruct.
+	 */
+	const Matrix* sdofs;
+
+	/// Reconstructed derivatives
+	Matrix rder;
 
 public:
+	Reconstructor(const Element** sur_elems, const Matrix* sur_dofs);
 	virtual ~Reconstruction();
-	virtual void setup(const UMesh2dh* mesh, const amat::Matrix<acfd_real>* unk, const amat::Matrix<acfd_real>* unkg, amat::Matrix<acfd_real>* gradx, amat::Matrix<acfd_real>* grady, 
-			const amat::Matrix<acfd_real>* _rc, const amat::Matrix<acfd_real>* const _rcg);
-	virtual void compute_gradients() = 0;
+
+	/// Computes reconstructed derivatives corresponding to the set [DOFs](@ref sdofs)
+	virtual void compute() = 0;
+
+	const Matrix& recDOFs() const {
+		return rder;
+	}
 };
 
-/**
- * @brief Implements linear reconstruction using the Green-Gauss theorem over elements.
- * 
- * An inverse-distance weighted average is used to obtain the conserved variables at the faces.
+/// Least-squares reconstruction, currently only for RDG-P0P1 and P1P2.
+/** Only works for DOFs corresponding to Taylor basis.
+ * The Element pointers must point to TaylorElement objects or Bad Things (TM) will happen.
+ *
+ * The least-squares problem is solved by normal equations. The left-hand side is pre-inverted and stored.
  */
-class GreenGaussReconstruction : public Reconstruction
+class LeastSquaresReconstructor : public Reconstructor
 {
+	int ntotaldofs;
+	int numknowndofs;
+	int numders;				///< numders = ntotaldofs - numknowndofs
+	int pdegree;				///< Polynomial degree of underlying DG discretization
+	Matrix R;
+	Matrix A;
+	/// center element's basis function values at center of each surrounding element
+	std::vector<Matrix> cbasis;
 public:
-	void compute_gradients();
-};
+	/// Computes least-squares reconstruction operator and inverts it
+	LeastSquaresReconstructor(const Element** sur_elems, const Matrix* sur_dofs);
 
-
-/// Class implementing linear weighted least-squares reconstruction
-class WeightedLeastSquaresReconstruction : public Reconstruction
-{
-	std::vector<amat::Matrix<acfd_real>> V;		///< LHS of least-squares problem
-	std::vector<amat::Matrix<acfd_real>> f;		///< RHS of least-squares problem
-	amat::Matrix<acfd_real> d;					///< unknown vector of least-squares problem
-	amat::Matrix<acfd_real> idets;				///< inverse of determinants of the LHS
-	amat::Matrix<acfd_real> du;
-
-public:
-	void setup(const UMesh2dh* mesh, const amat::Matrix<acfd_real>* unk, const amat::Matrix<acfd_real>* unkg, amat::Matrix<acfd_real>* gradx, amat::Matrix<acfd_real>* grady, 
-			const amat::Matrix<acfd_real>* _rc, const amat::Matrix<acfd_real>* const _rcg);
-	void compute_gradients();
+	/// Assemly of RHS and matrix-vector multiplication to compute reconstructed DOFs
+	void compute();
 };
 
 
 } // end namespace
+#endif
