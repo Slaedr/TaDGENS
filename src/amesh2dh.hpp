@@ -43,7 +43,8 @@ private:
 	amat::Array2d<a_int> bface;				///< Boundary face data: lists nodes belonging to a boundary face and contains boudnary markers
 	amat::Array2d<int> vol_regions;			///< to hold volume region markers, if any
 	amat::Array2d<int> flag_bpoin;			///< Holds 1 or 0 for each point depending on whether or not that point is a boundary point
-	std::vector<a_real> h;					///< Holds squared (approx for high-order) length of each edge of the mesh
+	std::vector<a_real> els;				///< Holds squared (approx for high-order) length of each edge of the mesh
+	std::vector<a_real> eldiam;				///< Diameter of each element
 
 	/// List of indices of [esup](@ref esup) corresponding to vertices (vertices = "low order" nodes only)
 	amat::Array2d<a_int> esup_p;
@@ -130,7 +131,8 @@ public:
 	int gnbtag() const{ return nbtag; }
 	int gndtag() const { return ndtag; }
 	a_int gnbpoin() const { return nbpoin; }
-	a_real gedgelengthsquared(const a_int iface) const { return h[iface]; }
+	a_real gedgelengthsquared(const a_int iface) const { return els[iface]; }
+	a_real gelemdiam(const a_int iel) const { return eldiam[iel]; }
 
 	/* Functions to set some mesh data structures. */
 	/// set coordinates of a certain point; 'set' counterpart of the 'get' function [gcoords](@ref gcoords).
@@ -176,9 +178,9 @@ public:
 	 * element-face connectivity array elemface (for each facet of each element, it stores the intfac face number)
 	 * local face numbers in left and right elements for each face, ie, the [face local number](@ref facelocalnum)
 	 * a list of boundary points with correspong global point numbers and containing boundary faces (according to intfac) [see](@ref bpoints).
+	 * Also computes edge lengths and element diameters.
 	 * \note
 	 * - Use only after setup()
-	 * - Currently only works for linear mesh
 	 */
 	void compute_topological();
 

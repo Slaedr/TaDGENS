@@ -9,7 +9,7 @@
 \usepackage{multirow}
 \usepackage{placeins}
 
-\graphicspath{{images/}}
+\graphicspath{{../images/}}
 
 \let\bld\boldsymbol
 
@@ -17,7 +17,7 @@
 
 \title{Discontinuous Galerkin method with Taylor basis functions}
 \author{Aditya Kashi}
-\date{April 24, 2017}
+%\date{March 5, 2017}
 
 \begin{document}
 
@@ -68,7 +68,7 @@ where $f(x,y) = \frac{2\pi}{3}\cos\frac{2\pi}{3}(x+\frac32)$, $\bld{\beta} = (1,
 
 A weak formulation is derived in a `broken' Sobolev space and discretized by finite element method \cite{luo_taylor}. For $w \in W$, a suitable test function space, we can multiply \eqref{conservativetensorGE} by $w$ and integrate over an element $\Omega_e$. Taking $\mu$ as the domain measure and $s$ as the boundary measure,
 \begin{equation}
-\int_{\Omega} \frac{\partial u}{\partial t}w\,d\mu + \int_{\Omega}\nabla\cdot\bld{F}(u)w \,d\mu = \bld{0}.
+\int_{\Omega} \frac{\partial u}{\partial t}w\,d\mu + \int_{\Omega}\nabla\cdot\bld{F(u)}w \,d\mu = \bld{0}.
 \end{equation}
 However, we cannot necessarily integrate by parts to obtain a weak form because the function space $W$ is not necessarily regular enough. We thus derive a discrete weak form on each element as described below.
 
@@ -103,20 +103,18 @@ We thus need to solve the following ODE on each element.
 M \frac{d\mathbf{u}}{dt} + \bld{r}(\mathbf{u}(t)) = \bld{0}
 \label{ode}
 \end{equation}
-where $M \in \mathbb{R}^{n\times n}$ is the mass matrix $[M]_{ij} = \int_{K} B_iB_j\,d\mu$ and $\bld{r}(\mathbf{u})$ is the vector: $\bld{r}_i(\mathbf{u}) :=  \int_{\partial K}  \bld{h}(\bld{u}_{hL}, \bld{u}_{hR}, \hat{\bld{n}})b_i \,ds - \int_{\Omega_e}\bld{F}(u_h)\nabla b_i \,d\mu$. Note that we have given the equation for one conserved variable, and that the coupling between the different conserved variables comes about from the flux $\bld{F}$ and numerical flux $h$.
-
-In our implementation, Gauss-Legendre quadrature has been used to integrate the terms in the weak form. The number of points was chosen so that a polynomial of degree 2$p$ would be integrated exactly for $p$th degree basis functions.
+where $M \in \mathbb{R}^{n\times n}$ is the mass matrix $[M]_{ij} = \int_{K} B_iB_j\,d\mu$ and $\bld{r}(\mathbf{u})$ is the vector: $\bld{r}_i(\mathbf{u}) :=  \int_{\partial K}  \bld{h}(\bld{u}_{hL}, \bld{u}_{hR}, \hat{\bld{n}})b_i \,ds - \int_{\Omega_e}\bld{F}(u_h)\nabla b_i \,d\mu$. Note that we have given the equation for one conserved variable, and that the coupling between the different conserved variables comes about from the numerical flux $h$.
 
 \section{Taylor basis functions}
 In a Taylor basis, a function is expressed as a Taylor expansion about the element center. In 2D, a quadratic or P2 expansion in an element e would be written as
 \begin{equation}
-u_h = u_c + \frac{\partial u}{\partial x} \Big|_c(x-x_c) + \frac{\partial u}{\partial y} \Big|_c(y-y_c) + \frac{\partial^2 u}{\partial x^2} \Big|_c \frac{(x-x_c)^2}{2} + \frac{\partial^2 u}{\partial y^2} \Big|_c \frac{(y-y_c)^2}{2} + \frac{\partial^2 u}{\partial x\partial y} \Big|_c (x-x_c)(y-y_c)
+u_h = u_c + \frac{\partial u}{\partial x} \Big|_c(x-x_c) + \frac{\partial u}{\partial y} \Big|_c(y-y_c) + \frac{\partial^2 u}{\partial x^2} \Big|_c \frac{(x-x_c)^2}{2} + \frac{\partial^2 u}{\partial y^2} \Big|_c \frac{(y-y_c)^2}{2} + \frac{\partial^2 u}{\partial x\partial y} \Big|_c (x-x_x)(y-y_x)
 \label{eqn:taylorexpn_orig}
 \end{equation}
 where the subscript `c' indicates the quantity at the element's geometric center. Let $A_e$ be the element area. Then we can take an average of both sides over the element to get
 \begin{multline}
-\tilde{u} = u_c + \frac{\partial u}{\partial x} \Big|_c \frac{1}{A_e}\int_{\Omega_e}(x-x_c)d\mu + \frac{\partial u}{\partial y} \Big|_c \frac{1}{A_e}\int_{\Omega_e} (y-y_c)d\mu \\ \, + \frac{\partial^2 u}{\partial x^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(x-x_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial y^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(y-y_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial x\partial y} \Big|_c \frac{1}{A_e}\int_{\Omega_e} (x-x_c)(y-y_c)d\mu \\
-= u_c + \frac{\partial^2 u}{\partial x^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(x-x_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial y^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(y-y_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial x\partial y} \Big|_c \frac{1}{A_e}\int_{\Omega_e} (x-x_c)(y-y_c)d\mu
+\tilde{u} = u_c + \frac{\partial u}{\partial x} \Big|_c \frac{1}{A_e}\int_{\Omega_e}(x-x_c)d\mu + \frac{\partial u}{\partial y} \Big|_c \frac{1}{A_e}\int_{\Omega_e} (y-y_c)d\mu \\ \, + \frac{\partial^2 u}{\partial x^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(x-x_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial y^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(y-y_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial x\partial y} \Big|_c \frac{1}{A_e}\int_{\Omega_e} (x-x_x)(y-y_x)d\mu \\
+= u_c + \frac{\partial^2 u}{\partial x^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(x-x_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial y^2} \Big|_c \frac{1}{A_e}\int_{\Omega_e} \frac{(y-y_c)^2}{2}d\mu + \frac{\partial^2 u}{\partial x\partial y} \Big|_c \frac{1}{A_e}\int_{\Omega_e} (x-x_x)(y-y_x)d\mu
 \end{multline}
 where $\tilde{u}$ is the average value of the unknown function over the element, and $\mu$ is the area measure in 2D. This last equation can be subtracted from \eqref{eqn:taylorexpn_orig} to get
 \begin{multline}
@@ -143,33 +141,9 @@ U_{xy} := \frac{\partial^2 u}{\partial x\partial y}\Big|_c \Delta x\Delta y
 \end{align}
 where $\Delta x$ and $\Delta y$ are $\frac12 (x_{max}-x_{min})$ and $\frac12 (y_{max}-y_{min})$ respectively, and subscripts max and min indicate maximum and minimum values over the element. Note that symbols such as $U_x$ include their respective normalization factors.
 
-\subsection{The Taylor basis finite element}
-As defined by Ciarlet, a finite element is a triplet $(K, P_K, \Sigma_K)$ where $K$ is a compact connected Lipschitz subset of $\mathbb{R}^n$ with nonempty interior, $P_K$ is a finite dimensional vector space of functions $K \rightarrow \mathbb{R}^p$, $p \in \mathbb{N}$ and $\Sigma_K$ is a finite set of linear functionals $P_K \rightarrow \mathbb{R}$ called the local degrees of freedom. For a valid finite element, the set of local degrees of freedom must be \emph{unisolvent}, ie., the functionals in $\Sigma_K$ must be linearly independent and the cardinality of $\Sigma_K$ must equal the dimension of $P_K$.
+This can be similarly extended to any desired polynomial degree in any number of dimensions.
 
-That the Taylor basis functions can be used to define a finite element in the sense of Ciarlet can be shown as follows. Consider the P2 Taylor basis described before. We define $P_K$ and $\Sigma_K$ on a mesh element $K$ as follows.
-\begin{multline}
-P_K = \mathbb{P}_2(K), \\
-L_1(u) := \frac{1}{|K|}\int_K u d\mu,\, L_2(u) := \frac{\partial u}{\partial x}\Big|_c \Delta x,\, L_3(u) := \frac{\partial u}{\partial y}\Big|_c \Delta y \\
-L_4(u) := \frac{\partial^2 u}{\partial x^2}\Big|_c 2\Delta x^2,\,
-L_5(u) := \frac{\partial^2 u}{\partial x\partial y}\Big|_c \Delta x\Delta y,\,
-L_6(u) := \frac{\partial^2 u}{\partial y^2}\Big|_c 2\Delta y^2, \quad u \in P_K,\\
-\Sigma_K = \{L_1, L_2, ... L_6\}
-\end{multline}
-where c represents the value at the center of the element, ie., at $\bld{r}_c = 1/|K|\int_K \bld{r}d\mu$. Clearly, the number of functionals in $\Sigma_K$ is equal to the dimension of $\mathbb{P}_2(K)$, and each functional is clearly linear because of the linearity of integrals and partial derivatives. Now suppose $\sum_i^6 c_i L_i = 0$, ie.,
-\begin{equation}
-\sum_{i=1}^6 c_i L_i(f) = 0 \quad \forall f \in P_K.
-\end{equation}
-Setting $f = c$, a constant, we see that $c_1$ has to be zero. If we set $f = ax+b$ with $\int_K f d\mu = 0$, we get $c_2$ = 0. We find that $f(x,y) := x-x_c$. Similarly, from $f(x,y) = y-y_c$, we obtain $c_3 = 0$.
-
-Next, we choose $f = ax^2+bx+c$ such that $\int_K f d\mu = 0$, that is, \[f(x,y) = (x-x_c)^2 - 1/|K|\int_K(x-x_c)^2d\mu, \] we get $c_4 = 0$. Similarly, choosing $f(x,y) = (x-x_c)(y-y_c) - 1/|K|\int_K(x-x_c)(y-y_c)d\mu$ and $f(x,y) = (y-y_c)^2 - 1/|K|\int_K(y-y_c)^2d\mu$, we obtain $c_5 = 0$ and $c_6 = 0$. Thus the functionals in $\Sigma_K$ are linearly independent, and the element is unisolvent. This can be similarly extended to any desired polynomial degree in any number of dimensions.
-
-It has been shown by Johnson and Pitk\"aranta \cite{johnson_pitkaranta} that the following error estimate holds for $\mathbb{P}_k$ finite elements for scalar linear hyperbolic equations on shape-regular and quasi-uniform meshes:
-\begin{equation}
-\lVert u-u_h \rVert_{L^2(\Omega)} \leq h^{k+1/2} |u|_{H^{k+1}(\Omega)}.
-\end{equation}
-Since we have proved that the Taylor element is a valid finite element, the same proof holds for Taylor elements as well. Note that in practice, we generally achieve $O(h^{k+1})$ convergence, though there are some rare cases which make the above estimate sharp.
-
-An interesting point is that the Taylor basis functions above are defined on the physical element. Thus, any polynomial function of these functions or their gradients remains polynomial. This means that terms in the mass matrix and stiffness matrix (for polynomial flux functions) can be integrated exactly by Gaussian quadrature of high-enough order, \emph{even for curved elements}. This may be contrasted to how Lagrange basis functions are defined on physical elements (see, for example, chapter 12 in \cite{claesjohnson}). The finite-dimensional function space on element $K$ is defined as
+An interesting point is that the Taylor basis functions above are defined on the physical element. Thus, any polynomial function of these functions or their gradients remains polynomial. This means that terms in the mass matrices, stiffness matrices etc. can be integrated exactly by Gaussian quadrature of high-enough order, \emph{even for curved elements}. This may be contrasted to how Lagrange basis functions are defined on physical elements (see, for example, chapter 12 in \cite{claesjohnson}). The finite-dimensional function space on element $K$ is defined as
 \begin{equation}
 P_K = \{ p: p(\bld{x}) = \hat{p}(F^{-1}(\bld{x})),\, \bld{x} \in K,\, \hat{p} \in P_{\hat{K}} \}
 \end{equation}
@@ -178,15 +152,19 @@ where $F:\hat{K}\rightarrow K$ is a diffeomorphism from the reference element $\
 One disadvantage of Taylor basis is that since it is defined on physical elements, values of the basis functions and basis gradients at the quadrature points have to be stored individually for each element. This is not required in case of basis functions defined over the reference element.
 
 \section{Reconstruction DG scheme}
-An issue with the DG FEM method is its high cost compared to finite volume schemes for low to intermediate levels of desired accuracy. They become competitive only when a high-enough level of accuracy is required. DG FEM is also more expensive than a continuous FEM scheme of the same order on the same grid, since degrees of freedom are not shared among elements. One way of reducing the cost is the reconstruction DG (RDG) FEM scheme \cite{luo_rdg}. A Taylor basis RDG scheme can be implemented in a reasonably straightforward manner to give high-order accuracy using less degrees of freedom than a DG scheme. The main idea is that in regions where the solution is smooth enough, data from neighboring elements can be used to `reconstruct' a higher-order solution. However, as currently used, this is a reconstruction in the strong sense. This means that strong derivatives of the exact solution must exist if higher-order accuracy is to be attained.
+An issue with the DG FEM method is its high cost compared to finite volume schemes for low to intermediate levels of desired accuracy. They become competitive only when a high-enough level of accuracy is required. DG FEM is also more expensive than a continuous FEM scheme of the same order on the same grid, since degrees of freedom are not shared among elements. One way of reducing the cost is the reconstruction DG (RDG) FEM scheme \cite{luo_rdg}. A Taylor basis RDG scheme can be implemented in a reasonably straightforward manner to give high-order accuracy using less degrees of freedom than a DG scheme.
 
 Consider a DG P1 scheme with Taylor elements. The degrees of freedom are the mean value over the element and the first spatial derivatives at the element centre. Using this data, the three second spatial derivatives can be reconstructed using data from face-neighbouring elements, assuming a smooth enough solution in the region. Consider the union of a given element $\Omega_i$ and its face-neighbouring elements $\Omega_j$. In 2D, $j = 1,2,3$ or $j = 1,2,3,4$ when $\Omega_i$ is a triangle or quadrangle respectively. We write the unknown $u(x)$ as a Taylor series on this union (using the nomenclature introduced in the previous section).
 \begin{equation}
 u(\bld{x}) = \tilde{U}_i + U_{xi}B_{i_2}(\bld{x}) + U_{yi}B_{i_3}(\bld{x}) + U_{xxi} B_{i_4}(\bld{x}) + U_{yyi} B_{i_5}(\bld{x}) + U_{xyi} B_{i_6}(\bld{x})
 \end{equation}
-where $B$ are the basis functions on element $i$ and the derivatives are those at the centre of element $i$.
+where $B$ are the basis functions on element $i$ and the derivatives are those at the centre of element $i$. We can also Taylor-expand the first derivatives.
+\begin{align}
+\frac{\partial u}{\partial x} &= U_{xi}/\Delta x_i + U_{xxi} B_2 / \Delta x_i + U_{xyi}/\Delta x_i \\
+\frac{\partial u}{\partial y} &= U_{yi}/\Delta y_i + U_{xyi} B_2 / \Delta y_i + U_{yyi}/\Delta y_i
+\end{align}
 
-Note that we already know the first-order derivatives as those are our degrees of freedom. The second derivatives are the unknowns we wish to reconstruct. To this end, the above equation and its derivatives can be evaluated at the element-centres $\bld{x}_j$ of each of the face-neighbouring elements $j$.
+Note that we already know the first-order derivatives as those are our degrees of freedom. The second derivatives are the unknowns we wish to reconstruct. To this end, the above functions can be evaluated at the element-centres $\bld{x}_j$ of each of the face-neighbouring elements $j$.
 \begin{align}
 u_j &= \tilde{U}_i + U_{xi}B_{i_2}(\bld{x}_j) + U_{yi}B_{i_3}(\bld{x}_j) + U_{xxi} B_{i_4}(\bld{x}_j) + U_{yyi} B_{i_5}(\bld{x}_j) + U_{xyi} B_{i_6}(\bld{x}_j) \\
 \frac{\partial u}{\partial x}\Big|_j &= U_{xi}/\Delta x_i + U_{xxi} B_{i_2}(\bld{x}_j) / \Delta x_i + U_{xyi} B_{i_3}(\bld{x}_j) /\Delta x_i \\
@@ -196,11 +174,11 @@ This can be expressed as the following linear system.
 \begin{equation}
 \begin{bmatrix}
 B_4^j & B_5^j & B_6^j \\
-B_2^j & B_3^j & 0 \\
-0 & B_2^j & B_3^j
+B_2^j & 0 & B_3^j \\
+0 & B_3^j & B_2^j
 \end{bmatrix}
 \begin{bmatrix}
-U_{xxi} \\ U_{xyi} \\ U_{yyi}
+U_{xxi} \\ U_{yyi} \\ U_{xyi}
 \end{bmatrix} =
 \begin{bmatrix}
 u_j - (\tilde{U}_i + U_{xi}B_2^j + U_{yi}B_3^j) \\
@@ -216,43 +194,26 @@ where the superscript $j$ indicates that the function is evaluated at the elemen
 \section{DG vs SUPG}
 The `streamline upwind Petrov-Galerkin' method is a technique for solving hyperbolic PDEs that uses continuous trial and test function spaces, as opposed to DG methods. This means that degrees of freedom are shared between surrounding elements, and thus the number of degrees of freedom required to attain a given error level is lower than DG, at least for smooth solutions. SUPG is stable in presence shocks as well. However, it has its issues, as described nicely in section 2.5 of \cite{hartmann_thesis}.
 
-\section{Results}
+\section{Outline of the project}
+One can think of the following questions that need answering.
+\subsection{Taylor basis DG}
+\begin{itemize}
+\item (AW) For what $H^k$ functions are these degrees of freedom well-defined? Recall for a Lagrange interpolant, we need at least continuous functions for prescribe nodal values. How would this case be different? Solobev embedding theorem might be useful here.
+\item Show that the degrees of freedom described are unisolvent, and thus that a `Taylor element' is a valid finite element.
+\item (AW) How can we extend error estimates for standard DG FE space to DG Taylor basis FE? A starting point would depend on the answer to the first point above.
+\end{itemize}
+\subsection{RDG method}
+\begin{itemize}
+\item (AW) Given the example of reconstructing second derivatives, can one estimate the $H^2$ semi-norm of the local error between a generic $H^2$ function and its reconstructed interpolant over a triangle? If it can be done then it justifies that the reconstructed interpolant is a good approximation for the second derivative.
+\item (AW) Why solve a least-square system? If we are able to generate 9 equations for the reconstruction, why not include more higher derivatives in the basis and solve uniquely for 9 unknown coefficients?
+\item Prove that the least-squares system will have a unique solution, ie., that the 9x3 or 12x3 matrix has full column rank.
+\end{itemize}
 
-We present results for the forced linear advection equation described in section 2, using Taylor basis DG FEM for 1st and 2nd degree polynomial basis. We achieve optimal orders of accuracy on quadrilateral meshes as well, even though we use less degrees of freedom than a Lagrange DGFEM would use.
+On the implementation side, the tentative plan is as follows. First implement Taylor basis DG FEM for the compressible Euler equations on 2D hybrid (triangles and quadrangles) grids. Total variation diminishing Runge-Kutta explicit time-stepping will be used.
 
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.25]{meshtri}
-	\caption{One of the triangular meshes used}
-\end{figure}
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.25]{meshquad}
-	\caption{One of the quadrangular meshes used}
-\end{figure}
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.3]{solution-steady-linadv}
-	\caption{The solution}
-\end{figure}
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.7]{linadv-taylor-p1}
-	\caption{Convergence w.r.t. mesh size parameter $h$ for P1}
-\end{figure}
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.7]{linadv-taylor-p2}
-	\caption{Convergence w.r.t. mesh size parameter $h$ for P2}
-\end{figure}
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.7]{linadv-taylor-p2-dofs}
-	\caption{Convergence w.r.t. $\sqrt N_{dof}$ for P2}
-\end{figure}
+Two test cases are planned - the isentropic vortex problem on a periodic domain, for which an analytical solution is available, and subsonic inviscid flow over a cylinder, for which error can computed by measuring the entropy generated. Note that entropy generation should be zero for an ideal inviscid subsonic flow. Also, curved elements are necessary for this case \cite{bassi_dgeuler}.
 
-\section{Conclusion}
-While a simulation involving reconstruction was not attempted, it has been shown that Taylor basis functions could provide a viable alternative to Lagrange basis functions for simulations of hyperbolic problems. The convenient extension to reconstruction DG to increase the accuracy without an increase in the number of degrees of freedom would be the main motive to use Taylor basis functions.
+Once that is accomplished, tentatively, the reconstruction DG scheme will be implemented to investigate the order of accuracy achieved and the computing resources needed as compared to a regular DG method of same formal order of accuracy.
 
 \bibliography{refs}
 \end{document}

@@ -139,6 +139,8 @@ public:
 		return minv;
 	}
 
+	a_int numTotalDOFs() const { return ntotaldofs; }
+
 	/// Calls functions to add contribution to the [right hand side](@ref residual), and also compute [time steps](@ref mets)
 	virtual void update_residual(const std::vector<Matrix>& ustage) = 0;
 

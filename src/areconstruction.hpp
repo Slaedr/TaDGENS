@@ -34,8 +34,8 @@ protected:
 	Matrix rder;
 
 public:
-	Reconstructor(const Element** sur_elems, const Matrix* sur_dofs);
-	virtual ~Reconstruction();
+	Reconstructor(int n_sur, const Element** sur_elems, const Matrix* sur_dofs);
+	virtual ~Reconstructor();
 
 	/// Computes reconstructed derivatives corresponding to the set [DOFs](@ref sdofs)
 	virtual void compute() = 0;
@@ -63,7 +63,7 @@ class LeastSquaresReconstructor : public Reconstructor
 	std::vector<Matrix> cbasis;
 public:
 	/// Computes least-squares reconstruction operator and inverts it
-	LeastSquaresReconstructor(const Element** sur_elems, const Matrix* sur_dofs);
+	LeastSquaresReconstructor(int n_sur, const Element** sur_elems, const Matrix* sur_dofs);
 
 	/// Assemly of RHS and matrix-vector multiplication to compute reconstructed DOFs
 	void compute();

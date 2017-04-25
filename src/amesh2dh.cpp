@@ -783,12 +783,30 @@ void UMesh2dh::compute_topological()
 		if(isbpflag(i)==1) nbpoin++;
 		
 	// get edge sizes
-	h.resize(gnaface());
+	els.resize(gnaface());
 	for(a_int iface = 0; iface < gnaface(); iface++)
 	{
 		a_real length = std::pow(gcoords(gintfac(iface,2),0)-gcoords(gintfac(iface,3),0),2);
 		length += std::pow(gcoords(gintfac(iface,2),1)-gcoords(gintfac(iface,3),1),2);
-		h[iface] = length;
+		els[iface] = length;
+	}
+
+	// get element diameters
+	eldiam.resize(nelem);
+	for(int iel = 0; iel < nelem; iel++) 
+	{
+		a_real diam = 0;
+		for(int i = 0; i < nnode[iel]; i++) {
+			for(int j = i+1; j < nnode[iel]; j++) 
+			{
+				a_real dist[NDIM];
+				for(int idim = 0; idim < NDIM; idim++) 
+					dist[idim] = fabs(coords(inpoel(iel,i),idim) - coords(inpoel(iel,j),idim));
+				a_real l = dist[0]*dist[0]+dist[1]*dist[1];
+				if(diam < l) diam = l;
+			}
+		}
+		eldiam[iel] = std::sqrt(diam);
 	}
 
 	//std::cout << "UMesh2dh: compute_topological(): Number of boundary points = " << nbpoin << std::endl;
@@ -858,11 +876,11 @@ void UMesh2dh::compute_boundary_maps()
 a_real UMesh2dh::meshSizeParameter() const
 {
 	a_real hh = 0;
-	for(a_int iface = 0; iface < gnaface(); iface++)
+	for(a_int iel = 0; iel < gnelem(); iel++)
 	{
-		if(hh < h[iface]) hh = h[iface];
+		if(hh < eldiam[iel]) hh = eldiam[iel];
 	}
-	return std::sqrt(hh);
+	return hh;
 }
 
 void UMesh2dh::writeBoundaryMapsToFile(std::string mapfile)

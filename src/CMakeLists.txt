@@ -42,7 +42,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 #set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 # libraries to be compiled
-add_library(tadgens_base aoutput.cpp atimesteady.cpp aspatial.cpp aelements.cpp aquadrature.cpp amesh2dh.cpp adatastructures.cpp)
+add_library(tadgens_base aoutput.cpp areconstruction.cpp atimesteady.cpp aspatial.cpp aelements.cpp aquadrature.cpp amesh2dh.cpp adatastructures.cpp)
 
 #add_library(tadgens_poisson aspatialpoisson.cpp)
 #target_link_libraries(tadgens_poisson tadgens_base)

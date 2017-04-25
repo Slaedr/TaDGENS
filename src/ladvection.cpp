@@ -72,6 +72,7 @@ int main(int argc, char* argv[])
 
 		Vector a(2); a[0] = a0; a[1] = a1;
 		LinearAdvection sd(&m, sdegree, btype, a, 1.0, inoutflag, extrapflag);
+		hh = 1.0/sqrt(sd.numTotalDOFs());
 		
 		SteadyExplicit td(&m, &sd, cfl, tol, maxits, true);
 		td.set_source(rhs);

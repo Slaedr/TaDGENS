@@ -234,7 +234,7 @@ void LinearAdvection::postprocess()
 	{
 		if(basis_type == 'l')
 		{
-			int ndofs = elems[iel]->getNumDOFs();
+			//int ndofs = elems[iel]->getNumDOFs();
 			for(int ino = 0; ino < m->gnfael(iel); ino++) {
 				output(m->ginpoel(iel,ino)) += u[iel](0,ino);
 				surelems[m->ginpoel(iel,ino)] += 1;
