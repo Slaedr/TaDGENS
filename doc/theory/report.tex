@@ -3,6 +3,7 @@
 \usepackage[letterpaper, margin=2.5cm]{geometry}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{amsthm}
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{subcaption}
@@ -12,6 +13,7 @@
 \graphicspath{{images/}}
 
 \let\bld\boldsymbol
+\newtheorem{theorem}{Theorem}
 
 \bibliographystyle{plain}
 
@@ -123,30 +125,37 @@ where $\tilde{u}$ is the average value of the unknown function over the element,
 u_h = \tilde{u} + \frac{\partial u}{\partial x} \Big|_c(x-x_c) + \frac{\partial u}{\partial y} \Big|_c(y-y_c) + \frac{\partial^2 u}{\partial x^2} \Big|_c \left( \frac{(x-x_c)^2}{2} - \frac{1}{A_e}\int_{\Omega_e} \frac{(x-x_c)^2}{2}d\mu \right) \\ + \frac{\partial^2 u}{\partial y^2} \Big|_c \left( \frac{(y-y_c)^2}{2} -\frac{1}{A_e}\int_{\Omega_e} \frac{(y-y_c)^2}{2}d\mu \right) + \frac{\partial^2 u}{\partial x\partial y} \Big|_c \left( (x-x_x)(y-y_x) - \frac{1}{A_e}\int_{\Omega_e} (x-x_x)(y-y_x)d\mu \right).
 \label{eqn:taylorexpn}
 \end{multline}
-This gives us our basis functions and corresponding degrees of freedom on a physical element $\Omega_e$. We also normalize the basis functions to get a better-conditioned discrete problem. Finally, the basis functions used for a P2 `Taylor finite element' are
+This gives us our basis functions and corresponding degrees of freedom on a physical element $\Omega_e = K$. We also normalize the basis functions to get a better-conditioned discrete problem. Finally, the basis functions used for a P2 `Taylor finite element' are
 \begin{align}
-&B_1(\bld{x}) = 1 \\
+&B_1(\bld{x}) = 1 
+\label{eq:taylorbasis0} \\
 &B_2(\bld{x}) = \frac{(x-x_c)}{\Delta x} \\
 &B_3(\bld{x}) = \frac{(y-y_c)}{\Delta y} \\
-&B_4(\bld{x}) = \left( \frac{(x-x_c)^2}{2\Delta x^2} - \frac{1}{A_e}\int_{\Omega_e} \frac{(x-x_c)^2}{2}d\mu \right) \\
-&B_5(\bld{x}) = \left( \frac{(y-y_c)^2}{2\Delta y^2} -\frac{1}{A_e}\int_{\Omega_e} \frac{(y-y_c)^2}{2}d\mu \right) \\
-&B_6(\bld{x}) = \left( \frac{(x-x_c)(y-y_c)}{\Delta x\Delta y} - \frac{1}{A_e}\int_{\Omega_e} (x-x_c)(y-y_c)d\mu \right)
+&B_4(\bld{x}) = \left( \frac{(x-x_c)^2}{2\Delta x^2} - \frac{1}{|K|}\int_{K} \frac{(x-x_c)^2}{2}d\mu \right) \\
+&B_5(\bld{x}) = \left( \frac{(y-y_c)^2}{2\Delta y^2} -\frac{1}{|K|}\int_{K} \frac{(y-y_c)^2}{2}d\mu \right) \\
+&B_6(\bld{x}) = \left( \frac{(x-x_c)(y-y_c)}{\Delta x\Delta y} - \frac{1}{|K|}\int_{K} (x-x_c)(y-y_c)d\mu \right)
+\label{eq:taylorbasis}
 \end{align}
-with the corresponding coefficients, the degrees of freedom, being
+($|K|$ is the measure of element $K$) with the corresponding coefficients, the degrees of freedom, being
 \begin{align}
 \tilde{U} := \tilde{u} \\
 U_x := \frac{\partial u}{\partial x}\Big|_c \Delta x \\
 U_y := \frac{\partial u}{\partial y}\Big|_c \Delta y \\
-U_{xx} := \frac{\partial^2 u}{\partial x^2}\Big|_c 2\Delta x^2 \\
-U_{yy} := \frac{\partial^2 u}{\partial y^2}\Big|_c 2\Delta y^2 \\
+U_{xx} := \frac{\partial^2 u}{\partial x^2}\Big|_c \Delta x^2 \\
+U_{yy} := \frac{\partial^2 u}{\partial y^2}\Big|_c \Delta y^2 \\
 U_{xy} := \frac{\partial^2 u}{\partial x\partial y}\Big|_c \Delta x\Delta y
+\label{eq:taylordofs}
 \end{align}
 where $\Delta x$ and $\Delta y$ are $\frac12 (x_{max}-x_{min})$ and $\frac12 (y_{max}-y_{min})$ respectively, and subscripts max and min indicate maximum and minimum values over the element. Note that symbols such as $U_x$ include their respective normalization factors.
 
 \subsection{The Taylor basis finite element}
 As defined by Ciarlet, a finite element is a triplet $(K, P_K, \Sigma_K)$ where $K$ is a compact connected Lipschitz subset of $\mathbb{R}^n$ with nonempty interior, $P_K$ is a finite dimensional vector space of functions $K \rightarrow \mathbb{R}^p$, $p \in \mathbb{N}$ and $\Sigma_K$ is a finite set of linear functionals $P_K \rightarrow \mathbb{R}$ called the local degrees of freedom. For a valid finite element, the set of local degrees of freedom must be \emph{unisolvent}, ie., the functionals in $\Sigma_K$ must be linearly independent and the cardinality of $\Sigma_K$ must equal the dimension of $P_K$.
 
-That the Taylor basis functions can be used to define a finite element in the sense of Ciarlet can be shown as follows. Consider the P2 Taylor basis described before. We define $P_K$ and $\Sigma_K$ on a mesh element $K$ as follows.
+That the Taylor basis functions can be used to define a finite element in the sense of Ciarlet can be shown as follows.
+\begin{theorem}
+The Taylor element defined by \eqref{eq:taylorbasis0} - \eqref{eq:taylordofs} on an element $K$ is unisolvent.
+\end{theorem}
+\begin{proof} We define $P_K$ and $\Sigma_K$ on a mesh element $K$ as follows.
 \begin{multline}
 P_K = \mathbb{P}_2(K), \\
 L_1(u) := \frac{1}{|K|}\int_K u d\mu,\, L_2(u) := \frac{\partial u}{\partial x}\Big|_c \Delta x,\, L_3(u) := \frac{\partial u}{\partial y}\Big|_c \Delta y \\
@@ -155,13 +164,14 @@ L_5(u) := \frac{\partial^2 u}{\partial x\partial y}\Big|_c \Delta x\Delta y,\,
 L_6(u) := \frac{\partial^2 u}{\partial y^2}\Big|_c 2\Delta y^2, \quad u \in P_K,\\
 \Sigma_K = \{L_1, L_2, ... L_6\}
 \end{multline}
-where c represents the value at the center of the element, ie., at $\bld{r}_c = 1/|K|\int_K \bld{r}d\mu$. Clearly, the number of functionals in $\Sigma_K$ is equal to the dimension of $\mathbb{P}_2(K)$, and each functional is clearly linear because of the linearity of integrals and partial derivatives. Now suppose $\sum_i^6 c_i L_i = 0$, ie.,
+where c represents the value at the center of the element, ie., at $\bld{r}_c = 1/|K|\int_K \bld{r}d\mu$. Clearly, the number of functionals in $\Sigma_K$ is equal to the dimension of $\mathbb{P}_2(K)$, and each functional is clearly linear because of the linearity of integrals and partial derivatives. Now suppose $\sum_{i=1}^6 c_i L_i = 0$, ie.,
 \begin{equation}
 \sum_{i=1}^6 c_i L_i(f) = 0 \quad \forall f \in P_K.
 \end{equation}
 Setting $f = c$, a constant, we see that $c_1$ has to be zero. If we set $f = ax+b$ with $\int_K f d\mu = 0$, we get $c_2$ = 0. We find that $f(x,y) := x-x_c$. Similarly, from $f(x,y) = y-y_c$, we obtain $c_3 = 0$.
 
 Next, we choose $f = ax^2+bx+c$ such that $\int_K f d\mu = 0$, that is, \[f(x,y) = (x-x_c)^2 - 1/|K|\int_K(x-x_c)^2d\mu, \] we get $c_4 = 0$. Similarly, choosing $f(x,y) = (x-x_c)(y-y_c) - 1/|K|\int_K(x-x_c)(y-y_c)d\mu$ and $f(x,y) = (y-y_c)^2 - 1/|K|\int_K(y-y_c)^2d\mu$, we obtain $c_5 = 0$ and $c_6 = 0$. Thus the functionals in $\Sigma_K$ are linearly independent, and the element is unisolvent. This can be similarly extended to any desired polynomial degree in any number of dimensions.
+\end{proof}
 
 It has been shown by Johnson and Pitk\"aranta \cite{johnson_pitkaranta} that the following error estimate holds for $\mathbb{P}_k$ finite elements for scalar linear hyperbolic equations on shape-regular and quasi-uniform meshes:
 \begin{equation}
