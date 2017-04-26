@@ -30,13 +30,15 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char basisty
 
 	map2d = new LagrangeMapping2D[m->gnelem()];
 	elems = new Element*[m->gnelem()];
-	for(int iel = 0; iel < m->gnelem(); iel++) {
-		if(basistype == 't') {
+	if(basistype == 't') {
+		for(int iel = 0; iel < m->gnelem(); iel++) {
 			elems[iel] = new TaylorElement();
 		}
-		else {
-			elems[iel] = new LagrangeElement();
-		}
+	}
+	else {
+		elems[0] = new LagrangeElement();
+		for(int iel = 1; iel < m->gnelem(); iel++)
+			elems[iel] = elems[0];
 	}
 
 	dummyelem = new DummyElement();
@@ -53,8 +55,13 @@ SpatialBase::~SpatialBase()
 	delete [] map2d;
 	delete [] map1d;
 	delete [] faces;
-	for(int iel = 0; iel < m->gnelem(); iel++)
-		delete elems[iel];
+	if(basistype == 't') {
+		for(int iel = 0; iel < m->gnelem(); iel++)
+			delete elems[iel];
+	}
+	else {
+		delete elems[0];
+	}
 	delete [] elems;
 	delete dummyelem;
 }

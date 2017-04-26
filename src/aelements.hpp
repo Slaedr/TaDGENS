@@ -207,6 +207,18 @@ public:
  */
 enum BasisType {REFERENTIAL, PHYSICAL, NONEXISTENT};
 
+/// Stores a set of basis function matrices and gradient tensors
+/** The gradient tensor contains values of x- and y-derivatives of each basis at a set of points
+ * \todo Currently a gradient `tensor' is stored as a vector of Matrices. 
+ * TODO: Replace with Eigen's Tensor.
+ */
+struct BasisSet
+{
+	std::vector<int> deg;
+	std::vector<Matrix> basis;
+	std::vector<std::vector<Matrix>> basisGrad;
+};
+
 /// Abstract finite element
 /** \todo Note that this implementation is not very good for elements with basis functions defined on the reference element.
  * Such elements would only need to store 1 set of basis function values for all elements of a given polynomial order.
@@ -222,13 +234,14 @@ protected:
 	Matrix basis;									///< Values of basis functions at quadrature points
 	std::vector<Matrix> basisGrad;					///< Values of derivatives of the basis functions at the quadrature points
 	const GeomMapping2D* gmap;						///< The 2D geometric map which maps this element to the reference element
+	const BasisSet* bset;							///< This can be used to store basis and basis gradient values too
 
 public:
 	/// Set the data, compute geom map, and compute basis and basis grad
 	/** \param[in] geommap The geometric mapping should be initialized beforehand;
 	 * however, the computation of required geometric quantities such as the Jacobian is done here.
 	 */
-	virtual void initialize(int degr, GeomMapping2D* geommap) = 0;
+	virtual void initialize(int degr, GeomMapping2D* geommap, const BasisSet* bas) = 0;
 
 	/// Computes values of basis functions at given points in either reference space or physical space
 	virtual void computeBasis(const Matrix& points, Matrix& basisvalues) const = 0;
@@ -251,8 +264,7 @@ public:
 	/** \param[in] dofs The rowmajor matrix of local DOFs (1 row per physical variable)
 	 * \param[in|out] values Values of the function at each quadrature point. Each row contains all DOFs of a physical variable
 	 * CANNOT be the same as dofs, the first argument.
-	 * 
-	 * \todo Notice that when we have a system of PDEs, we might want to use a BLAS 3 call to compute all values.
+	 * DEPRECATED in favor of [this global function](@ref evaluateFunctions)
 	 */
 	void interpolateAll(const Matrix& __restrict__ dofs, Matrix& __restrict__ values) const
 	{
