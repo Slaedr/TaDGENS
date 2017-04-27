@@ -209,7 +209,7 @@ enum BasisType {REFERENTIAL, PHYSICAL, NONEXISTENT};
 
 /// Stores a set of basis function matrices and gradient tensors
 /** The gradient tensor contains values of x- and y-derivatives of each basis at a set of points
- * \todo Currently a gradient `tensor' is stored as a vector of Matrices. 
+ * Currently a gradient `tensor' is stored as a vector of Matrices. 
  * TODO: Replace with Eigen's Tensor.
  */
 struct BasisSet
@@ -237,6 +237,11 @@ protected:
 	const BasisSet* bset;							///< This can be used to store basis and basis gradient values too
 
 public:
+	/// Sets a global basis set, in case a single set of basis values serves for all physical elements of the same p degree
+	void setBasisSet(const BasisSet* bas) {
+		bset = bas;
+	}
+
 	/// Set the data, compute geom map, and compute basis and basis grad
 	/** \param[in] geommap The geometric mapping should be initialized beforehand;
 	 * however, the computation of required geometric quantities such as the Jacobian is done here.
@@ -280,12 +285,12 @@ public:
 	}
 
 	/// Read-only access to basis at a given quadrature point
-	const Matrix& bFunc() const {
+	virtual const Matrix& bFunc() const {
 		return basis;
 	}
 
 	/// Read-only access to basis gradients at the element's domain quadrature point
-	const std::vector<Matrix>& bGrad() const {
+	virtual const std::vector<Matrix>& bGrad() const {
 		return basisGrad;
 	}
 
@@ -364,6 +369,8 @@ public:
  * \nabla B(x) = \nabla \hat{B}(F^{-1}(x)) = J^{-T} \nabla_\xi \hat{B}(F^{-1}(F(\xi)))
  * = \nabla_\xi \hat{B}(\xi)
  * \f]
+ *
+ * \todo TODO: Use BasisSet instead of storing basis and gradients at quadrature points for all elements separately.
  */
 class LagrangeElement : public Element
 {
@@ -383,6 +390,16 @@ public:
 	
 	/// Returns the locations of nodes in reference space
 	Matrix getReferenceNodes() const;
+	
+	/// Read-only access to basis at a given quadrature point
+	const Matrix& bFunc() const {
+		return basis;
+	}
+
+	/// Read-only access to basis gradients at the element's domain quadrature point
+	const std::vector<Matrix>& bGrad() const {
+		return basisGrad;
+	}
 };
 
 /// Just that - a dummy element
