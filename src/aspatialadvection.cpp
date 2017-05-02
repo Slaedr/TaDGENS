@@ -111,10 +111,6 @@ void LinearAdvection::computeFaceTerms(const std::vector<Matrix>& u)
 		leftfaceterms[iface](0,0) = fluxes(0,0)*length;*/
 	}
 	
-	// TODO: Change ordering of face speeds and weights
-	/** For the face integrals, care must be taken regarding order of traversal of quadrature points from the
-	 * left and right elements.
-	 */
 	for(a_int iface = m->gnbface(); iface < m->gnaface(); iface++)
 	{
 		a_int lelem = m->gintfac(iface,0);

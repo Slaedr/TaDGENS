@@ -456,49 +456,11 @@ void TaylorElement::initialize(int degr, GeomMapping2D* geommap)
 void TaylorElement::computeBasis(const Matrix& __restrict__ gp, Matrix& __restrict__ basiss) const
 {
 	getTaylorBasis(gp, degree, center, delta, basisOffset, basiss);
-	/*for(int ip = 0; ip < gp.rows(); ip++) 
-		basiss(ip,0) = 1.0;
-
-	if(degree >= 1) {
-		for(int ip = 0; ip < gp.rows(); ip++) 
-		{
-			basiss(ip,1) = (gp(ip,0)-center[0])/delta[0];
-			basiss(ip,2) = (gp(ip,1)-center[1])/delta[1];
-		}
-	}
-
-	if(degree >= 2) {
-		for(int ip = 0; ip < gp.rows(); ip++) 
-		{
-			basiss(ip,3) = (gp(ip,0)-center[0])*(gp(ip,0)-center[0])/(2.0*delta[0]*delta[0]) - basisOffset[0][0];
-			basiss(ip,4) = (gp(ip,1)-center[1])*(gp(ip,1)-center[1])/(2.0*delta[1]*delta[1]) - basisOffset[0][1];
-			basiss(ip,5) = (gp(ip,0)-center[0])*(gp(ip,1)-center[1])/(delta[0]*delta[1]) - basisOffset[0][2];
-		}
-	}*/
 }
 
 void TaylorElement::computeBasisGrads(const Matrix& __restrict__ gp, const std::vector<MatrixDim>& jinv, std::vector<Matrix>& __restrict__ basisG) const
 {
 	getTaylorBasisGrads(gp, degree, center, delta, basisG);
-	/*for(int ip = 0; ip < gp.rows(); ip++)
-		basisG[ip](0,0) = basisG[ip](0,1) = 0.0;
-
-	if(degree >= 1) {
-		for(int ip = 0; ip < gp.rows(); ip++) 
-		{
-			basisG[ip](1,0) = 1.0/delta[0]; basisG[ip](1,1) = 0.0;
-			basisG[ip](2,0) = 0.0;          basisG[ip](2,1) = 1.0/delta[1];
-		}
-	}
-
-	if(degree >= 2) {
-		for(int ip = 0; ip < gp.rows(); ip++) 
-		{
-			basisG[ip](3,0) = (gp(ip,0)-center[0])/(delta[0]*delta[0]); basisG[ip](3,1) = 0.0;
-			basisG[ip](4,0) = 0.0;                                      basisG[ip](4,1) = (gp(ip,1)-center[1])/(delta[1]*delta[1]);
-			basisG[ip](5,0) = (gp(ip,1)-center[1])/(delta[0]*delta[1]); basisG[ip](5,1) = (gp(ip,0)-center[0])/(delta[0]*delta[1]);
-		}
-	}*/
 }
 
 void LagrangeElement::initialize(int degr, GeomMapping2D* geommap)

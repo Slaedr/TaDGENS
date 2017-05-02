@@ -10,7 +10,7 @@ namespace acfd {
 
 SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char basistype) : m(mesh), p_degree(_p_degree), basis_type(basistype)
 {
-	std::cout << " SpatialBase: Setting up spaital integrator for FE polynomial degree " << p_degree << std::endl;
+	std::cout << " SpatialBase: Setting up spatal integrator for FE polynomial degree " << p_degree << std::endl;
 	
 	// set quadrature strength
 	//int dom_quaddegree = 2*p_degree + m->degree()-1;
@@ -36,9 +36,12 @@ SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char basisty
 		}
 	}
 	else {
-		elems[0] = new LagrangeElement();
+		/*elems[0] = new LagrangeElement();
 		for(int iel = 1; iel < m->gnelem(); iel++)
-			elems[iel] = elems[0];
+			elems[iel] = elems[0];*/
+		for(int iel = 0; iel < m->gnelem(); iel++) {
+			elems[iel] = new LagrangeElement();
+		}
 	}
 
 	dummyelem = new DummyElement();
@@ -55,13 +58,15 @@ SpatialBase::~SpatialBase()
 	delete [] map2d;
 	delete [] map1d;
 	delete [] faces;
-	if(basistype == 't') {
+	/*if(basis_type == 't') {
 		for(int iel = 0; iel < m->gnelem(); iel++)
 			delete elems[iel];
 	}
 	else {
 		delete elems[0];
-	}
+	}*/
+	for(int iel = 0; iel < m->gnelem(); iel++)
+		delete elems[iel];
 	delete [] elems;
 	delete dummyelem;
 }
@@ -98,8 +103,7 @@ void SpatialBase::computeFEData()
 		minv[iel] = Matrix::Zero(elems[iel]->getNumDOFs(), elems[iel]->getNumDOFs());
 
 		// compute mass matrix
-		const Quadrature2D* lquad = map2d[iel].getQuadrature();
-		for(int ig = 0; ig < lquad->numGauss(); ig++)
+		for(int ig = 0; ig < map2d[iel].getQuadrature()->numGauss(); ig++)
 		{
 			a_real weightandjdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
 			for(int idof = 0; idof < elems[iel]->getNumDOFs(); idof++)

@@ -246,7 +246,7 @@ public:
 	/** \param[in] geommap The geometric mapping should be initialized beforehand;
 	 * however, the computation of required geometric quantities such as the Jacobian is done here.
 	 */
-	virtual void initialize(int degr, GeomMapping2D* geommap, const BasisSet* bas) = 0;
+	virtual void initialize(int degr, GeomMapping2D* geommap) = 0;
 
 	/// Computes values of basis functions at given points in either reference space or physical space
 	virtual void computeBasis(const Matrix& points, Matrix& basisvalues) const = 0;
