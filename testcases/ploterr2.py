@@ -37,8 +37,8 @@ print("Slope is " + str(pslope))
 symbs = ['bo-', 'gs-', '^-']
 
 
-plt.plot(data1[:,0],data1[:,1],symbs[0], label="Triangles "+str(pslope[0]))
-plt.plot(data2[:,0],data2[:,1],symbs[1], label="Quads "+str(pslope[1]))
+plt.plot(data1[:,0],data1[:,1],symbs[0], label="Taylor "+str(pslope[0]))
+plt.plot(data2[:,0],data2[:,1],symbs[1], label="Lagrange "+str(pslope[1]))
 plt.title("Grid-refinement")
 plt.xlabel("Log 1/sqrt(DOFs)")
 plt.ylabel("Log l2 error")
