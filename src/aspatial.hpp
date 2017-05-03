@@ -49,7 +49,7 @@ protected:
 	bool reconstruct;								///< Use reconstruction or not
 
 	/// Maximum allowable explicit time step for each element
-	/** stores (for each elem i) Vol(i) / \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, 
+	/** For Euler, stores (for each elem i) Vol(i) / \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, 
 	 * where v_n and c are average values of the cell faces
 	 */
 	std::vector<a_real> mets;
@@ -95,12 +95,12 @@ protected:
 	/// computes ghost cell centers assuming symmetry about the face
 	void compute_ghost_cell_coords_about_face();
 	*/
-	
+
 	/// Computes the L2 error in a FE function on an element
 	/** \param[in] comp The index of the row of ug whose error is to be computed
 	 */
 	a_real computeElemL2Error2(const int ielem, const int comp, const Matrix& ug, a_real (* const exact)(a_real, a_real, a_real), const double time) const;
-	
+
 	/// Computes the L2 norm of a FE function on an element
 	a_real computeElemL2Norm2(const int ielem, const Vector& ug) const;
 
@@ -115,7 +115,7 @@ public:
 
 	/// Compute all finite element data, including mass matrix, needed for the spatial discretization
 	void computeFEData();
-	
+
 	/// Computes L2 norm of the the specified component of some vector quantity w
 	a_real computeL2Norm(const std::vector<Matrix> w, const int comp) const;
 

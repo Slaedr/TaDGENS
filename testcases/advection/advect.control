@@ -1,9 +1,9 @@
 -number-of-meshes
-3
+4
 -Mesh-prefix
-../testcases/advection/grids/square
+../testcases/advection/grids/squarequad
 -output-file-prefix
-../testcases/advection/output/l-tri
+../testcases/advection/output/l-quad
 -Basis-type
 l
 -spatial-polynomial-degree-of-computed-solution

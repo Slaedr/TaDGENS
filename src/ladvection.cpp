@@ -1,5 +1,8 @@
 /** @file ladvection.cpp
  * @brief Main function for DG linear advection solver
+ * 
+ * Note that convergence is plotted w.r.t. 1/sqrt(num DOFs).
+ * 
  * @author Aditya Kashi
  * @date 2017 April 18
  */
@@ -66,7 +69,7 @@ int main(int argc, char* argv[])
 		UMesh2dh m; m.readGmsh2(mfiles[imesh], NDIM); m.compute_topological(); m.compute_boundary_maps();
 		
 		// fixed time step is a constant times mesh size
-		//double hh = sqrt( 1.0/m.gnelem() );
+		
 		double hh = m.meshSizeParameter();
 		printf("Mesh %d: h = %f\n", imesh, hh);
 

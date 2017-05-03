@@ -11,7 +11,7 @@ namespace acfd {
 SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char basistype) : m(mesh), p_degree(_p_degree), basis_type(basistype)
 {
 	std::cout << " SpatialBase: Setting up spatal integrator for FE polynomial degree " << p_degree << std::endl;
-	
+
 	// set quadrature strength
 	//int dom_quaddegree = 2*p_degree + m->degree()-1;
 	//int boun_quaddegree = 2*p_degree + m->degree()-1;
@@ -90,12 +90,6 @@ void SpatialBase::computeFEData()
 			map2d[iel].setAll(m->degree(), phynodes, dtquad);
 		}
 
-		/** \note Computation of physical coordinates of domain quadrature points is required separately for Lagrange elements
-		 * only for the purpose of computing source term contributions and errors.
-		 */
-		if(basis_type == 'l')
-			map2d[iel].computePhysicalCoordsOfDomainQuadraturePoints();
-
 		elems[iel]->initialize(p_degree, &map2d[iel]);
 		ntotaldofs += elems[iel]->getNumDOFs();
 
@@ -112,6 +106,12 @@ void SpatialBase::computeFEData()
 		}
 
 		minv[iel] = minv[iel].inverse().eval();
+
+		/** \note Computation of physical coordinates of domain quadrature points is required separately for Lagrange elements
+		 * only for the purpose of computing source term contributions and errors.
+		 */
+		if(basis_type == 'l')
+			map2d[iel].computePhysicalCoordsOfDomainQuadraturePoints();
 	}
 	std::printf(" SpatialBase: computeFEData: Total number of DOFs = %d\n", ntotaldofs);
 
@@ -148,8 +148,8 @@ void SpatialBase::computeFEData()
 		/*std::cout << "  SpatialBase: facelocalnum: L elem " << lelem+m->gnface()+1 << ", R elem " << relem+m->gnface()+1
 			<< ": " << m->gfacelocalnum(iface,0) << ", " << m->gfacelocalnum(iface,1) << std::endl;*/
 	}
-	
-	std::cout << " SpatialBase: computeFEData: Mesh degree = " << m->degree() << ", geom map degee = " << map2d[0].getDegree() 
+
+	std::cout << " SpatialBase: computeFEData: Mesh degree = " << m->degree() << ", geom map degee = " << map2d[0].getDegree()
 		 << ", element degree = " << elems[0]->getDegree() << std::endl;
 }
 
@@ -157,7 +157,7 @@ a_real SpatialBase::computeElemL2Norm2(const int ielem, const Vector& __restrict
 {
 	int ndofs = elems[ielem]->getNumDOFs();
 	a_real l2error = 0;
-	
+
 	const Matrix& bfunc = elems[ielem]->bFunc();
 	const GeomMapping2D* gmap = elems[ielem]->getGeometricMapping();
 	int ng = gmap->getQuadrature()->numGauss();
@@ -199,7 +199,7 @@ a_real SpatialBase::computeElemL2Error2(const int ielem, const int comp, const M
 {
 	int ndofs = elems[ielem]->getNumDOFs();
 	a_real l2error = 0;
-	
+
 	const Matrix& bfunc = elems[ielem]->bFunc();
 	const GeomMapping2D* gmap = elems[ielem]->getGeometricMapping();
 	int ng = gmap->getQuadrature()->numGauss();
