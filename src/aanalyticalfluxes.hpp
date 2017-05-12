@@ -21,25 +21,25 @@ namespace acfd {
 class NormalEulerFluxFunction
 {
 protected:
-	const acfd_real gamma;
+	const a_real gamma;
 public:
-	NormalEulerFluxFunction (acfd_real _gamma) : gamma(_gamma)
+	NormalEulerFluxFunction (a_real _gamma) : gamma(_gamma)
 	{ }
 
-	void evaluate_flux(const amat::Array2d<acfd_real>& state, const acfd_real* const n, amat::Array2d<acfd_real>& flux) const
+	void evaluate_flux(const amat::Array2d<a_real>& state, const a_real* const n, amat::Array2d<a_real>& flux) const
 	{
-		acfd_real vn = (state.get(1)*n[0] + state.get(2)*n[1])/state.get(0);
-		acfd_real p = (gamma-1.0)*(state.get(3) - 0.5*(state.get(1)*state.get(1) + state.get(2)*state.get(2))/state.get(0));
+		a_real vn = (state.get(1)*n[0] + state.get(2)*n[1])/state.get(0);
+		a_real p = (gamma-1.0)*(state.get(3) - 0.5*(state.get(1)*state.get(1) + state.get(2)*state.get(2))/state.get(0));
 		flux(0) = state.get(0) * vn;
 		flux(1) = vn*state.get(1) + p*n[0];
 		flux(2) = vn*state.get(2) + p*n[1];
 		flux(3) = vn*(state.get(3) + p);
 	}
 	
-	void evaluate_flux_2(const amat::Array2d<acfd_real>& state, const int ielem, const acfd_real* const n, amat::Array2d<acfd_real>& flux, const int iside) const
+	void evaluate_flux_2(const amat::Array2d<a_real>& state, const int ielem, const a_real* const n, amat::Array2d<a_real>& flux, const int iside) const
 	{
-		acfd_real vn = (state.get(ielem,1)*n[0] + state.get(ielem,2)*n[1])/state.get(ielem,0);
-		acfd_real p = (gamma-1.0)*(state.get(ielem,3) - 0.5*(state.get(ielem,1)*state.get(ielem,1) + state.get(ielem,2)*state.get(ielem,2))/state.get(ielem,0));
+		a_real vn = (state.get(ielem,1)*n[0] + state.get(ielem,2)*n[1])/state.get(ielem,0);
+		a_real p = (gamma-1.0)*(state.get(ielem,3) - 0.5*(state.get(ielem,1)*state.get(ielem,1) + state.get(ielem,2)*state.get(ielem,2))/state.get(ielem,0));
 		flux(iside,0) = state.get(ielem,0) * vn;
 		flux(iside,1) = vn*state.get(ielem,1) + p*n[0];
 		flux(iside,2) = vn*state.get(ielem,2) + p*n[1];
@@ -51,17 +51,21 @@ public:
 class FluxFunction
 {
 public:
-	virtual void evaluate_flux(const acfd_real p[NDIM], const acfd_real f[NVARS]) = 0;
+	virtual void evaluate_flux(const a_real* const u, a_real* const fx, a_real* const fy) = 0;
 };
 
 /// Sort of a functor for evaluation of analytical inviscid flux vector
 class EulerFlux : public FluxFunction
 {
-	const acfd_real gamma;				///< Adiabatic index
+	const a_real g;				///< Adiabatic index
 public:
-	void evaluate_flux(const acfd_real p[NDIM], acfd_real f[NVARS])
+	EulerFlux (a_real _gamma) : g(_gamma)
+	{ }
+	void evaluate_flux(const a_real *const __restrict__ u, a_real *const __restrict__ fx, a_real *const __restrict__ fy)
 	{
-		//TODO: Add Euler flux vector computation here
+		a_real p = (g-1)*(u[3] - 0.5*(u[1]*u[1]+u[2]*u[2])/u[0]);
+		fx[0] = u[1];
+		fx[1] = u[1]*u[1]/u[0] + p;
 	}
 };
 

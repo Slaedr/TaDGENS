@@ -57,7 +57,7 @@ $\bld{u}(\bld{x},t) \in \mathbb{R}^m$ is the vector of the $m$ conserved variabl
 \end{equation}
 where $\nabla\cdot$ is now the tensor divergence and $\bld{F} \in \mathbb{R}^{m\times n_d}$. This means $\bld{F}:\mathbb{R}^{n_d}\rightarrow \mathbb{R}^m$ maps any vector (direction) in space to the flux in that direction. Note that the operator $\bld{F}$ is a function of the state $\bld{u}$.
 
-Here, we consider the steady 2-dimensional linear advection equation.
+We first consider the steady 2-dimensional linear advection equation.
 \begin{equation}
 \nabla\cdot(\bld{\beta}u) = f, \quad \bld{x} \in [-\frac32,\frac32]\times[-1,1]
 \end{equation}
@@ -65,6 +65,32 @@ where $f(x,y) = \frac{2\pi}{3}\cos\frac{2\pi}{3}(x+\frac32)$, $\bld{\beta} = (1,
 \begin{equation}
 \frac{\partial u}{\partial \tau} + \nabla\cdot(\bld{\beta}u) = f
 \end{equation}
+
+\subsection{Compressible Euler equations}
+For the two-dimensional Euler equations modeling inviscid fluid flow  ($m=4$), the quantities $\bld{u}$ and $\bld{F}$ are
+\begin{equation}
+\bld{u} = 
+\begin{bmatrix}
+\rho \\ \rho u_1 \\ \rho u_2 \\ \rho e
+\end{bmatrix}, \quad
+\bld{F}_1 = 
+\begin{bmatrix}
+\rho u_1 \\ \rho u_1^2 + p \\ \rho u_1 u_2 \\ u_1 (\rho e + p)
+\end{bmatrix}, \,
+\bld{F}_2 = 
+\begin{bmatrix}
+\rho u_2 \\ \rho u_1 u_2 \\ \rho u_2^2 \\ u_2 (\rho e + p)
+\end{bmatrix}.
+\label{conservedvectors}
+\end{equation}
+In the above, $\rho$ is the fluid density, $u_j$ are the velocity components, $e$ is the specific energy, and $p$ is the pressure. The governing equations are closed by the ideal gas equation of state
+\begin{equation}
+p = \rho (e - \frac12 \vert \bld{u} \vert^2).
+\label{constitutive}
+\end{equation}
+
+\subsubsection{Non-dimensionalization}
+We assume we know a reference density $\rho_{ref}$, a reference velocity magnitude $v_{ref}$ and a reference length $l_{ref}$. These could be, for example, the free-stream density, the speed of the object in the fluid and the characteristic dimension of the object (like the chord length of an airfoil). Then we define the reference time as $t_{ref} := l_{ref}/v_{ref}$, the reference pressure as $p_{ref} := \rho_{ref}u_{ref}^2$ and the reference specific energy as $e := u_{ref}^2$. With this specification of reference quantities, the non-dimensionalized governing equations look exactly the same as the governing equations \eqref{conservativeGE}, \eqref{conservedvectors} and \eqref{constitutive}.
 
 \section{Finite element formulation}
 

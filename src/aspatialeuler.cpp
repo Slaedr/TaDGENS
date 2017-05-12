@@ -11,11 +11,7 @@ namespace acfd {
 CompressibleEuler::CompressibleEuler(const UMesh2dh* mesh, const int _p_degree, const char basis, const Vector vel, const a_real b_val, const int inoutflag, const int extrapflag)
 	: SpatialBase(mesh, _p_degree, basis), a(vel), bval(b_val), inoutflow_flag(inoutflag), extrapolation_flag(extrapflag)
 {
-	std::cout << " CompressibleEuler: Velocity is (" << a(0) << ", " << a(1) << ")\n";
-	if(a.rows() != NDIM)
-		printf("! CompressibleEuler: The advection velocity vector does not have dimension %d!\n", NDIM);
-	amag = std::sqrt(a[0]*a[0]+a[1]*a[1]);
-
+	std::cout << " CompressibleEuler: (" << ")\n";
 	computeFEData();
 	u.resize(m->gnelem());
 	res.resize(m->gnelem());
@@ -26,7 +22,7 @@ CompressibleEuler::CompressibleEuler(const UMesh2dh* mesh, const int _p_degree, 
 		res[iel].resize(NVARS, elems[iel]->getNumDOFs());
 		for(int i = 0; i < NVARS; i++)
 			for(int j = 0; j < elems[iel]->getNumDOFs(); j++) {
-				u[iel](i,j) = 1.0;
+				u[iel](i,j) = 0.0;
 				res[iel](i,j) = 0;
 			}
 		
@@ -48,32 +44,36 @@ CompressibleEuler::CompressibleEuler(const UMesh2dh* mesh, const int _p_degree, 
 		rightfaceterms[iface].resize(NVARS, elems[m->gintfac(iface,1)]->getNumDOFs());
 }
 
-void CompressibleEuler::computeBoundaryState(const int iface, const Matrix& instate, Matrix& bstate)
+void CompressibleEuler::computeBoundaryState(const int iface, const Matrix& __restrict__ instate, Matrix& __restrict__ bstate)
 {
 	if(m->gintfacbtags(iface, 0) == inoutflow_flag)
 	{
-		// compute normal velocity and decide whether to extrapolate or impose specified boundary value at each quadrature point
+		/// \todo TODO: Implement proper characteristic-based boundary conditions
 		const std::vector<Vector>& n = map1d[iface].normal();
-		for(size_t ig = 0; ig < n.size(); ig++) {
-			if(a.dot(n[ig]) >= 0)
-				bstate.row(ig) = instate.row(ig);
-			else
-				bstate.row(ig)(0) = bval;
+		for(size_t ig = 0; ig < n.size(); ig++) 
+		{
+			bstate.row(ig) = bval;
 		}
 	}
-	else
+	else if(m->gintfacbtags(iface, 0) == extrapolation_flag)
 	{
 		bstate = instate;
 	}
-}
-
-void CompressibleEuler::computeNumericalFlux(const a_real* const uleft, const a_real* const uright, const a_real* const n, a_real* const flux)
-{
-	a_real adotn = a[0]*n[0]+a[1]*n[1];
-	if(adotn >= 0)
-		flux[0] = adotn*uleft[0];
-	else
-		flux[0] = adotn*uright[0];
+	else if(m->gintfacbtags(iface, 0) == slipwall_flag)
+	{
+		const std::vector<Vector>& n = map1d[iface].normal();
+		for(size_t ig = 0; ig < n.size(); ig++) 
+		{
+			a_real vn = (instate(ig,1)*n[ig](0) + instate(ig,2)*n[ig](1))/instate(ig,0);
+			bstate(ig,0) = instate(ig,0);
+			bstate(ig,1) = instate(ig,1) - 2*vn*n[ig](0)*instate(ig,0);
+			bstate(ig,2) = instate(ig,2) - 2*vn*n[ig](1)*instate(ig,0);
+			bstate(ig,3) = instate(ig,3);
+		}
+	}
+	else {
+		std::printf("!  CompressibleEuler: computeBoundaryState: Invalid boundary flag!!\n");
+	}
 }
 
 void CompressibleEuler::computeFaceTerms(const std::vector<Matrix>& u)
@@ -96,7 +96,7 @@ void CompressibleEuler::computeFaceTerms(const std::vector<Matrix>& u)
 		{
 			a_real weightandsp = map1d[iface].getQuadrature()->weights()(ig) * map1d[iface].speed()[ig];
 
-			computeNumericalFlux(&linterps(ig,0), &rinterps(ig,0), &n[ig](0), &fluxes(ig,0));
+			rflux->get_flux(&linterps(ig,0), &rinterps(ig,0), &n[ig](0), &fluxes(ig,0));
 
 			for(int ivar = 0; ivar < NVARS; ivar++) {
 				for(int idof = 0; idof < elems[lelem]->getNumDOFs(); idof++)
@@ -132,7 +132,7 @@ void CompressibleEuler::computeFaceTerms(const std::vector<Matrix>& u)
 		{
 			a_real weightandsp = map1d[iface].getQuadrature()->weights()(ig) * map1d[iface].speed()[ig];
 
-			computeNumericalFlux(&linterps(ig,0), &rinterps(ig,0), &n[ig](0), &fluxes(ig,0));
+			rflux->get_flux(&linterps(ig,0), &rinterps(ig,0), &n[ig](0), &fluxes(ig,0));
 
 			for(int ivar = 0; ivar < NVARS; ivar++) {
 				for(int idof = 0; idof < elems[lelem]->getNumDOFs(); idof++)
