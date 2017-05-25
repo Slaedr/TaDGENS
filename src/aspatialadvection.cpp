@@ -8,8 +8,9 @@
 
 namespace acfd {
 
-LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, const Vector vel, const a_real b_val, const int inoutflag, const int extrapflag)
-	: SpatialBase(mesh, _p_degree, basis), a(vel), bval(b_val), inoutflow_flag(inoutflag), extrapolation_flag(extrapflag)
+LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, const Vector vel,
+		const int inoutflag, const int extrapflag, a_real (*const bounfunc)(const a_real, const a_real))
+	: SpatialBase(mesh, _p_degree, basis), a(vel), inoutflow_flag(inoutflag), extrapolation_flag(extrapflag), bcfunc(bounfunc)
 {
 	std::cout << " LinearAdvection: Velocity is (" << a(0) << ", " << a(1) << ")\n";
 	if(a.rows() != NDIM)
@@ -54,7 +55,9 @@ void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instat
 	{
 		// compute normal velocity and decide whether to extrapolate or impose specified boundary value at each quadrature point
 		const std::vector<Vector>& n = map1d[iface].normal();
+		const Matrix& phypoints = map1d[iface].map();
 		for(size_t ig = 0; ig < n.size(); ig++) {
+			a_real bval = bcfunc(phypoints(ig,0), phypoints(ig,1));
 			if(a.dot(n[ig]) >= 0)
 				bstate.row(ig) = instate.row(ig);
 			else

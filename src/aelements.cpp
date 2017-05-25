@@ -619,7 +619,7 @@ void FaceElement::initialize(const Element*const lelem, const Element*const rele
 		// compute element reference coordinates of face quadrature points from their face reference coordinates
 		Matrix rpoints(ng,NDIM);
 		const Matrix& facepoints = gmap->getQuadrature()->points();
-		a_real fspeed = getElementRefCoords(facepoints, rightel, rlfn, -1, rpoints);
+		getElementRefCoords(facepoints, rightel, rlfn, -1, rpoints);
 
 		/*std::vector<MatrixDim> jacinv(ng); std::vector<a_real> jacdet(ng);
 		const std::vector<a_real> facedet = gmap->speed();

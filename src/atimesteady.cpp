@@ -51,10 +51,10 @@ void SteadyExplicit::integrate()
 
 		step++;
 		if(step % 20 == 0)
-			std::printf("  SteadyExplicit: integrate: Step %d, rel res = %f\n", step, relresnorm);
+			std::printf("  SteadyExplicit: integrate: Step %d, rel res = %e\n", step, relresnorm);
 	}
 	
-	std::printf(" SteadyExplicit: integrate: Total steps %d, final rel res = %f\n", step, relresnorm);
+	std::printf(" SteadyExplicit: integrate: Total steps %d, final rel res = %e\n", step, relresnorm);
 }
 
 }

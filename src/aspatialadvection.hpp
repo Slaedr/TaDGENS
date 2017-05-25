@@ -23,7 +23,9 @@ class LinearAdvection : public SpatialBase
 protected:
 	Vector a;								///< Advection velocity
 	a_real amag;							///< Magnitude of advection velocity
-	a_real bval;							///< Value to be imposed at inflow
+
+	/// Pointer to function describing the boundary value
+	a_real (*const bcfunc)(const a_real, const a_real);
 	int inoutflow_flag;						///< Boundary flag at faces where inflow or outflow is required
 	int extrapolation_flag;					///< Boundary flag for extrapolation condition
 	amat::Array2d<a_real> output;			///< Pointwise values for output
@@ -38,7 +40,8 @@ protected:
 	void computeBoundaryState(const int iface, const Matrix& instate, Matrix& bstate);
 
 public:
-	LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, const Vector vel, const a_real b_val, const int inoutflag, const int extrapflag);
+	LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, const Vector vel,
+			const int inoutflag, const int extrapflag, a_real (*const bounfunc)(const a_real, const a_real));
 	
 	/// Adds face contributions and computes domain contribution to the [right hand side](@ref residual) 
 	void update_residual(const std::vector<Matrix>& ustage);

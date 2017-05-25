@@ -18,11 +18,21 @@ using namespace acfd;
 double a0 = 1.0, a1 = 0.0;
 
 // exact solution - sin in x
-double exactsol(double x, double y, double t) {
+/*double exactsol(double x, double y, double t) {
 	return 1.0+sin( 2*PI/3.0*(x+1.5));
 }
+// and corresponding RHS
 double rhs(double x, double y, double t) {
 	return 2*PI/3.0 * cos( 2*PI/3.0*(x+1.5));
+}*/
+
+double exactsol(double x, double y, double t) {
+	return sin(2*PI*y);
+}
+// corresponding boundary distribution
+a_real bcfunc(const a_real x, const a_real y)
+{
+	return std::sin(2*PI*y);
 }
 
 int main(int argc, char* argv[])
@@ -39,12 +49,12 @@ int main(int argc, char* argv[])
 	string dum, meshprefix, outf, outerr;
 	double cfl, tol;
 	int sdegree, maxits, nmesh, extrapflag, inoutflag;
-	char btype;
+	char basistype;
 
 	control >> dum; control >> nmesh;
 	control >> dum; control >> meshprefix;
 	control >> dum; control >> outf;
-	control >> dum; control >> btype;
+	control >> dum; control >> basistype;
 	control >> dum; control >> sdegree;
 	control >> dum; control >> cfl;
 	control >> dum; control >> tol;
@@ -68,17 +78,15 @@ int main(int argc, char* argv[])
 	{
 		UMesh2dh m; m.readGmsh2(mfiles[imesh], NDIM); m.compute_topological(); m.compute_boundary_maps();
 		
-		// fixed time step is a constant times mesh size
-		
 		double hh = m.meshSizeParameter();
 		printf("Mesh %d: h = %f\n", imesh, hh);
 
 		Vector a(2); a[0] = a0; a[1] = a1;
-		LinearAdvection sd(&m, sdegree, btype, a, 1.0, inoutflag, extrapflag);
+		LinearAdvection sd(&m, sdegree, basistype, a, inoutflag, extrapflag, bcfunc);
 		hh = 1.0/sqrt(sd.numTotalDOFs());
 		
-		SteadyExplicit td(&m, &sd, cfl, tol, maxits, true);
-		td.set_source(rhs);
+		SteadyExplicit td(&m, &sd, cfl, tol, maxits, false);
+		//td.set_source(rhs);
 		
 		td.integrate();
 
