@@ -16,37 +16,6 @@ LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, cons
 	if(a.rows() != NDIM)
 		printf("! LinearAdvection: The advection velocity vector does not have dimension %d!\n", NDIM);
 	amag = std::sqrt(a[0]*a[0]+a[1]*a[1]);
-
-	computeFEData();
-	u.resize(m->gnelem());
-	res.resize(m->gnelem());
-	mets.resize(m->gnelem());
-	for(a_int iel = 0; iel < m->gnelem(); iel++) 
-	{
-		u[iel].resize(NVARS, elems[iel]->getNumDOFs());
-		res[iel].resize(NVARS, elems[iel]->getNumDOFs());
-		for(int i = 0; i < NVARS; i++)
-			for(int j = 0; j < elems[iel]->getNumDOFs(); j++) {
-				u[iel](i,j) = 1.0;
-				res[iel](i,j) = 0;
-			}
-		
-		a_real hsize = 1.0;
-
-		for(int ifa = 0; ifa < m->gnfael(iel); ifa++) {
-			a_int iface = m->gelemface(iel,ifa);
-			if(hsize > m->gedgelengthsquared(iface)) hsize = m->gedgelengthsquared(iface);
-		}
-
-		mets[iel] = std::sqrt(hsize)/amag;
-	}
-
-	leftfaceterms.resize(m->gnaface());
-	rightfaceterms.resize(m->gnaface());
-	for(a_int iface = 0; iface < m->gnaface(); iface++)
-		leftfaceterms[iface].resize(NVARS, elems[m->gintfac(iface,0)]->getNumDOFs());
-	for(a_int iface = m->gnbface(); iface < m->gnaface(); iface++)
-		rightfaceterms[iface].resize(NVARS, elems[m->gintfac(iface,1)]->getNumDOFs());
 }
 
 void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instate, Matrix& bstate)
@@ -79,7 +48,7 @@ void LinearAdvection::computeNumericalFlux(const a_real* const uleft, const a_re
 		flux[0] = adotn*uright[0];
 }
 
-void LinearAdvection::computeFaceTerms(const std::vector<Matrix>& u)
+void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets)
 {
 	for(a_int iface = 0; iface < m->gnbface(); iface++)
 	{
@@ -90,7 +59,6 @@ void LinearAdvection::computeFaceTerms(const std::vector<Matrix>& u)
 
 		Matrix linterps(ng,NVARS), rinterps(ng,NVARS);
 		Matrix fluxes(ng,NVARS);
-		leftfaceterms[iface] = Matrix::Zero(NVARS, elems[lelem]->getNumDOFs());
 		
 		faces[iface].interpolateAll_left(u[lelem], linterps);
 		computeBoundaryState(iface, linterps, rinterps);
@@ -103,15 +71,9 @@ void LinearAdvection::computeFaceTerms(const std::vector<Matrix>& u)
 
 			for(int ivar = 0; ivar < NVARS; ivar++) {
 				for(int idof = 0; idof < elems[lelem]->getNumDOFs(); idof++)
-					leftfaceterms[iface](ivar,idof) += fluxes(ig,ivar) * lbasis(ig,idof) * weightandsp;
+					res[lelem](ivar,idof) += fluxes(ig,ivar) * lbasis(ig,idof) * weightandsp;
 			}
 		}
-	
-		// ! P0 only !
-		/*a_real length = std::pow(m->gcoords(m->gintfac(iface,2),0)-m->gcoords(m->gintfac(iface,3),0),2);
-		length += std::pow(m->gcoords(m->gintfac(iface,2),1)-m->gcoords(m->gintfac(iface,3),1),2);
-		length = std::sqrt(length);
-		leftfaceterms[iface](0,0) = fluxes(0,0)*length;*/
 	}
 	
 	for(a_int iface = m->gnbface(); iface < m->gnaface(); iface++)
@@ -125,8 +87,6 @@ void LinearAdvection::computeFaceTerms(const std::vector<Matrix>& u)
 
 		Matrix linterps(ng,NVARS), rinterps(ng,NVARS);
 		Matrix fluxes(ng,NVARS);
-		leftfaceterms[iface] = Matrix::Zero(NVARS, elems[lelem]->getNumDOFs());
-		rightfaceterms[iface] = Matrix::Zero(NVARS, elems[relem]->getNumDOFs());
 		
 		faces[iface].interpolateAll_left(u[lelem], linterps);
 		faces[iface].interpolateAll_right(u[relem], rinterps);
@@ -139,24 +99,12 @@ void LinearAdvection::computeFaceTerms(const std::vector<Matrix>& u)
 
 			for(int ivar = 0; ivar < NVARS; ivar++) {
 				for(int idof = 0; idof < elems[lelem]->getNumDOFs(); idof++)
-					leftfaceterms[iface](ivar,idof) += fluxes(ig,ivar) * lbasis(ig,idof) * weightandsp;
+					res[lelem](ivar,idof) += fluxes(ig,ivar) * lbasis(ig,idof) * weightandsp;
 				for(int idof = 0; idof < elems[relem]->getNumDOFs(); idof++)
-					rightfaceterms[iface](ivar,idof) += fluxes(ig,ivar) * rbasis(ig,idof) * weightandsp;
+					res[relem](ivar,idof) -= fluxes(ig,ivar) * rbasis(ig,idof) * weightandsp;
 			}
 		}
-	
-		// ! P0 only !
-		/*a_real length = std::pow(m->gcoords(m->gintfac(iface,2),0)-m->gcoords(m->gintfac(iface,3),0),2);
-		length += std::pow(m->gcoords(m->gintfac(iface,2),1)-m->gcoords(m->gintfac(iface,3),1),2);
-		length = std::sqrt(length);
-		leftfaceterms[iface](0,0) = fluxes(0,0)*length;
-		rightfaceterms[iface](0,0) = fluxes(0,0)*length;*/
 	}
-}
-
-void LinearAdvection::update_residual(const std::vector<Matrix>& u)
-{
-	computeFaceTerms(u);
 
 	for(a_int iel = 0; iel < m->gnelem(); iel++)
 	{
@@ -181,21 +129,19 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u)
 
 			res[iel] -= term;
 		}
+		
+		a_real hsize = 1.0;
 
 		for(int ifa = 0; ifa < m->gnfael(iel); ifa++) {
 			a_int iface = m->gelemface(iel,ifa);
-			a_int nbdelem = m->gesuel(iel,ifa);
-			if(iel < nbdelem) {
-				res[iel] += leftfaceterms[iface];
-			}
-			else {
-				res[iel] -= rightfaceterms[iface];
-			}
+			if(hsize > m->gedgelengthsquared(iface)) hsize = m->gedgelengthsquared(iface);
 		}
+
+		mets[iel] = std::sqrt(hsize)/amag;
 	}
 }
 
-void LinearAdvection::add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t)
+void LinearAdvection::add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t, std::vector<Matrix>& res)
 {
 	for(a_int iel = 0; iel < m->gnelem(); iel++)
 	{

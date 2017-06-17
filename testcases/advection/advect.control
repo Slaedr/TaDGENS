@@ -1,13 +1,13 @@
 -number-of-meshes
 4
 -Mesh-prefix
-../testcases/advection/grids/squarequad
+../testcases/advection/grids/square
 -output-file-prefix
-../testcases/advection/output/l-quad
+../testcases/advection/output/l-tri
 -Basis-type
 t
 -spatial-polynomial-degree-of-computed-solution
-2
+1
 -CFL
 0.05
 -Tolerance

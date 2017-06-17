@@ -58,20 +58,13 @@ SpatialBase::~SpatialBase()
 	delete [] map2d;
 	delete [] map1d;
 	delete [] faces;
-	/*if(basis_type == 't') {
-		for(int iel = 0; iel < m->gnelem(); iel++)
-			delete elems[iel];
-	}
-	else {
-		delete elems[0];
-	}*/
 	for(int iel = 0; iel < m->gnelem(); iel++)
 		delete elems[iel];
 	delete [] elems;
 	delete dummyelem;
 }
 
-void SpatialBase::computeFEData()
+void SpatialBase::spatialSetup(std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets);
 {
 	minv.resize(m->gnelem());
 	ntotaldofs = 0;
@@ -147,6 +140,16 @@ void SpatialBase::computeFEData()
 		faces[iface].initialize(elems[lelem], elems[relem], &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
 		/*std::cout << "  SpatialBase: facelocalnum: L elem " << lelem+m->gnface()+1 << ", R elem " << relem+m->gnface()+1
 			<< ": " << m->gfacelocalnum(iface,0) << ", " << m->gfacelocalnum(iface,1) << std::endl;*/
+	}
+	
+	// allocate
+	u.resize(m->gnelem());
+	res.resize(m->gnelem());
+	mets.resize(m->gnelem());
+	for(a_int iel = 0; iel < m->gnelem(); iel++) 
+	{
+		u[iel].resize(NVARS, elems[iel]->getNumDOFs());
+		res[iel].resize(NVARS, elems[iel]->getNumDOFs());
 	}
 
 	std::cout << " SpatialBase: computeFEData: Mesh degree = " << m->degree() << ", geom map degee = " << map2d[0].getDegree()

@@ -21,6 +21,20 @@ class SteadyBase
 protected:
 	const UMesh2dh *const m;						///< Mesh context
 	SpatialBase* spatial;							///< Spatial discretization context
+
+	std::vector<Matrix> R;						///< Residuals - a Matrix contains residual DOFs for an element
+
+	/// vector of unknowns
+	/** Each Eigen3 (E3) Matrix contains the DOF values of all physical variables for an element.
+	 */
+	std::vector<Matrix> u;
+
+	/// Maximum allowable explicit time step for each element
+	/** For Euler, stores (for each elem i) Vol(i) / \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, 
+	 * where v_n and c are average values of the cell faces
+	 */
+	std::vector<a_real> tsl;
+
 	int order;										///< Desird temporal order of accuracy
 	double cfl;										///< CFL number
 	double tol;										///< Tolerance for residual

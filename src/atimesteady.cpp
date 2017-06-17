@@ -12,6 +12,17 @@ SteadyBase::SteadyBase(const UMesh2dh *const mesh, SpatialBase* s, a_real cflnum
 	: m(mesh), spatial(s), cfl(cflnumber), tol(toler), maxiter(max_iter), source(use_source)
 {
 	std::cout << " SteadyBase: CFL = " << cfl << ", use source? " << source << std::endl;
+
+	spatial->spatialSetup(u, R, tsl);
+
+	for(a_int iel = 0; iel < m->gnelem(); iel++) 
+	{
+		for(int i = 0; i < u[iel].rows(); i++)
+			for(int j = 0; j < u[iel].cols(); j++) {
+				u[iel](i,j) = 1.0;
+				res[iel](i,j) = 0;
+			}
+	}
 }
 
 SteadyExplicit::SteadyExplicit(const UMesh2dh*const mesh, SpatialBase* s, a_real cflnumber, double toler, int max_iter, bool use_source)
@@ -23,16 +34,14 @@ void SteadyExplicit::integrate()
 {
 	int step = 0;
 	double relresnorm = 1.0, resnorm0 = 1.0;
-	std::vector<Matrix>& u = spatial->unk();
-
-	std::vector<Matrix>& R = spatial->residual();
 	const std::vector<Matrix>& Mi = spatial->massInv();
-	const std::vector<a_real>& tsl = spatial->maxExplicitTimeStep();
 
 	while((relresnorm > tol && step < maxiter))
 	{
 		for(int iel = 0; iel < m->gnelem(); iel++) {
-			R[iel] = Matrix::Zero(R[iel].rows(), R[iel].cols());
+			for(int i = 0; i < R[iel].rows(); i++)
+				for(int j = 0; j < R[iel].cols(); j++)
+					R[iel](i,j) = 0.0;
 		}
 
 		spatial->update_residual(u);

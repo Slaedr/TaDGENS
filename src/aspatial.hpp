@@ -42,17 +42,10 @@ class SpatialBase
 protected:
 	const UMesh2dh* m;								///< Mesh context; requires compute_topological() and compute_boundary_maps() to have been called
 	std::vector<Matrix> minv;						///< Inverse of mass matrix for each variable of each element
-	std::vector<Matrix> res;						///< Residuals - a Matrix contains residual DOFs for an element
 	int p_degree;									///< Polynomial degree of trial/test functions
 	a_int ntotaldofs;								///< Total number of DOFs in the discretization (for 1 physical variable)
 	char basis_type;								///< Type of basis to use - Lagrange ('l') or Taylor ('t')
 	bool reconstruct;								///< Use reconstruction or not
-
-	/// Maximum allowable explicit time step for each element
-	/** For Euler, stores (for each elem i) Vol(i) / \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, 
-	 * where v_n and c are average values of the cell faces
-	 */
-	std::vector<a_real> mets;
 
 	Quadrature2DTriangle* dtquad;				///< Domain quadrature context
 	Quadrature2DSquare* dsquad;					///< Domain quadrature context
@@ -62,19 +55,6 @@ protected:
 	Element** elems;							///< List of finite elements
 	Element* dummyelem;							///< Empty element used for ghost elements
 	FaceElement* faces;							///< List of face elements
-
-	///@{
-	/// Integral of fluxes across each face for all dofs of left and right element
-	/** The entries corresponding to different DOFs of a given flow variable are stored contiguously.
-	 */
-	std::vector<Matrix> leftfaceterms;
-	std::vector<Matrix> rightfaceterms;
-	///@}
-
-	/// vector of unknowns
-	/** Each Eigen3 (E3) Matrix contains the DOF values of all physical variables for an element.
-	 */
-	std::vector<Matrix> u;
 
 	amat::Array2d<a_real> scalars;			///< Holds density, Mach number and pressure for each mesh point
 	amat::Array2d<a_real> velocities;		///< Holds velocity components for each mesh point
@@ -113,26 +93,11 @@ public:
 
 	virtual ~SpatialBase();
 
-	/// Compute all finite element data, including mass matrix, needed for the spatial discretization
-	void computeFEData();
+	/// Compute all finite element data, including mass matrix, amd allocates solution, residual and time-step arrays
+	void spatialSetup(std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets);
 
 	/// Computes L2 norm of the the specified component of some vector quantity w
 	a_real computeL2Norm(const std::vector<Matrix> w, const int comp) const;
-
-	/// Access to vector of unknowns
-	std::vector<Matrix>& unk() {
-		return u;
-	}
-
-	/// Access to residual vector
-	std::vector<Matrix>& residual() {
-		return res;
-	}
-
-	/// Maximum allowable explicit time steps for all elements
-	const std::vector<a_real>& maxExplicitTimeStep() const {
-		return mets;
-	}
 
 	/// Inverse of mass matrix
 	const std::vector<Matrix>& massInv() const {
@@ -141,13 +106,13 @@ public:
 
 	a_int numTotalDOFs() const { return ntotaldofs; }
 
-	/// Calls functions to add contribution to the [right hand side](@ref residual), and also compute [time steps](@ref mets)
-	virtual void update_residual(const std::vector<Matrix>& ustage) = 0;
+	/// Calls functions to add contribution to the RHS, and also compute max time steps
+	virtual void update_residual(const std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets) = 0;
 
 	/// Adds source term contribution to residual
 	/** As implemented in this class, does nothing.
 	 */
-	virtual void add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t);
+	virtual void add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t, std::vector<Matrix>& res);
 
 	/// Compute quantities to export
 	virtual void postprocess() = 0;

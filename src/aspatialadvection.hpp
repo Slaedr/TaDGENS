@@ -34,7 +34,7 @@ protected:
 	void computeNumericalFlux(const a_real* const uleft, const a_real* const uright, const a_real* const n, a_real* const flux);
 
 	/// Computes face integrals from flow state described by the parameter
-	void computeFaceTerms(const std::vector<Matrix>& ustage);
+	void computeFaceTerms(const std::vector<Matrix>& u);
 
 	/// Computes boundary (ghost) states depending on face marker for the face denoted by the first argument
 	void computeBoundaryState(const int iface, const Matrix& instate, Matrix& bstate);
@@ -44,10 +44,10 @@ public:
 			const int inoutflag, const int extrapflag, a_real (*const bounfunc)(const a_real, const a_real));
 	
 	/// Adds face contributions and computes domain contribution to the [right hand side](@ref residual) 
-	void update_residual(const std::vector<Matrix>& ustage);
+	void update_residual(const std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets);
 	
 	/// Adds source term contribution to residual
-	void add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t);
+	void add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t, std::vector<Matrix>& res);
 
 	/// Compute quantities to export
 	void postprocess();

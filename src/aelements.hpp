@@ -207,8 +207,9 @@ public:
  */
 enum BasisType {REFERENTIAL, PHYSICAL, NONEXISTENT};
 
-/// Stores a set of basis function matrices and gradient tensors
-/** The gradient tensor contains values of x- and y-derivatives of each basis at a set of points
+/// Stores the values of a set of basis function matrices and gradient tensors at a set of points, such as
+/// the quadrature points of the reference element
+/** The gradient tensor contains values of x- and y-derivatives of each basis at the set of points
  * Currently a gradient `tensor' is stored as a vector of Matrices. 
  * TODO: Replace with Eigen's Tensor.
  */
@@ -237,10 +238,6 @@ protected:
 	const BasisSet* bset;							///< This can be used to store basis and basis gradient values too
 
 public:
-	/// Sets a global basis set, in case a single set of basis values serves for all physical elements of the same p degree
-	void setBasisSet(const BasisSet* bas) {
-		bset = bas;
-	}
 
 	/// Set the data, compute geom map, and compute basis and basis grad
 	/** \param[in] geommap The geometric mapping should be initialized beforehand;
