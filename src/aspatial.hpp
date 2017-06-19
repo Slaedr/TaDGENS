@@ -37,15 +37,16 @@ namespace acfd {
  * The template parameter nvars is the number of variables in the PDE system.
  * \note Make sure compute_topological() has been called on the mesh object prior to initialzing an object of any subclass.
  */
+template <short nvars>
 class SpatialBase
 {
 protected:
-	const UMesh2dh* m;								///< Mesh context; requires compute_topological() and compute_boundary_maps() to have been called
-	std::vector<Matrix> minv;						///< Inverse of mass matrix for each variable of each element
-	int p_degree;									///< Polynomial degree of trial/test functions
-	a_int ntotaldofs;								///< Total number of DOFs in the discretization (for 1 physical variable)
-	char basis_type;								///< Type of basis to use - Lagrange ('l') or Taylor ('t')
-	bool reconstruct;								///< Use reconstruction or not
+	const UMesh2dh* m;							///< Mesh context; requires compute_topological() and compute_boundary_maps() to have been called
+	std::vector<Matrix> minv;					///< Inverse of mass matrix for each variable of each element
+	int p_degree;								///< Polynomial degree of trial/test functions
+	a_int ntotaldofs;							///< Total number of DOFs in the discretization (for 1 physical variable)
+	char basis_type;							///< Type of basis to use - Lagrange ('l') or Taylor ('t')
+	bool reconstruct;							///< Use reconstruction or not
 
 	Quadrature2DTriangle* dtquad;				///< Domain quadrature context
 	Quadrature2DSquare* dsquad;					///< Domain quadrature context
@@ -56,8 +57,8 @@ protected:
 	Element* dummyelem;							///< Empty element used for ghost elements
 	FaceElement* faces;							///< List of face elements
 
-	amat::Array2d<a_real> scalars;			///< Holds density, Mach number and pressure for each mesh point
-	amat::Array2d<a_real> velocities;		///< Holds velocity components for each mesh point
+	amat::Array2d<a_real> scalars;				///< Holds density, Mach number and pressure for each mesh point
+	amat::Array2d<a_real> velocities;			///< Holds velocity components for each mesh point
 
 	/* Reconstruction-related stuff - currently not implemented
 	//Reconstruction* rec;						///< Reconstruction context
@@ -76,6 +77,9 @@ protected:
 	void compute_ghost_cell_coords_about_face();
 	*/
 
+	/// Sets up geometric maps, elements and mass matrices 
+	void computeFEData();
+	
 	/// Computes the L2 error in a FE function on an element
 	/** \param[in] comp The index of the row of ug whose error is to be computed
 	 */
@@ -115,16 +119,19 @@ public:
 	virtual void add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t, std::vector<Matrix>& res);
 
 	/// Compute quantities to export
-	virtual void postprocess() = 0;
+	virtual void postprocess(const std::vector<Matrix>& u) = 0;
 
 	/// Read-only access to output quantities
 	virtual const amat::Array2d<a_real>& getOutput() const = 0;
 
+	/// Computes the norm of the difference between a FE solution and an analytically defined function
+	a_real computeL2Error(double (*const exact)(double,double,double), const double time, const std::vector<Matrix>& u) const;
+
 	/// Sets initial conditions using a function describing a variable
-	void setInitialConditionNodal( const int comp, double (**const init)(a_real, a_real));
+	void setInitialConditionNodal( const int comp, double (**const init)(a_real, a_real), std::vector<Matrix>& u);
 
 	/// Sets initial conditions using functions for a variable and its space derivatives
-	void setInitialConditionModal( const int comp, double (**const init)(a_real, a_real));
+	void setInitialConditionModal( const int comp, double (**const init)(a_real, a_real), std::vector<Matrix>& u);
 };
 
 }	// end namespace

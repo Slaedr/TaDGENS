@@ -162,18 +162,8 @@ void LinearAdvection::add_source( a_real (*const rhs)(a_real, a_real, a_real), a
 	}
 }
 
-a_real LinearAdvection::computeL2Error(double (*const exact)(double,double,double), const double time) const
-{
-	double l2error = 0;
-	for(int iel = 0; iel < m->gnelem(); iel++)
-	{
-		l2error += computeElemL2Error2(iel, 0, u[iel], exact, time);
-	}
-	return sqrt(l2error);
-}
-
 // very crude
-void LinearAdvection::postprocess()
+void LinearAdvection::postprocess(const std::vector<Matrix>& u)
 {
 	output.resize(m->gnpoin(),1);
 	output.zeros();

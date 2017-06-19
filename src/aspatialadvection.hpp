@@ -18,17 +18,18 @@ namespace acfd {
  *
  * If the ODE is \f$ \frac{du}{dt} + R(u) = 0 \f$, [res](@ref res) holds \f$ R \f$.
  */
-class LinearAdvection : public SpatialBase
+class LinearAdvection : public SpatialBase<1>
 {
 protected:
 	Vector a;								///< Advection velocity
 	a_real amag;							///< Magnitude of advection velocity
 
-	/// Pointer to function describing the boundary value
-	a_real (*const bcfunc)(const a_real, const a_real);
 	int inoutflow_flag;						///< Boundary flag at faces where inflow or outflow is required
 	int extrapolation_flag;					///< Boundary flag for extrapolation condition
 	amat::Array2d<a_real> output;			///< Pointwise values for output
+	
+	/// Pointer to function describing the boundary value
+	a_real (*const bcfunc)(const a_real, const a_real);
 
 	/// Computes upwind flux
 	void computeNumericalFlux(const a_real* const uleft, const a_real* const uright, const a_real* const n, a_real* const flux);
@@ -50,14 +51,12 @@ public:
 	void add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t, std::vector<Matrix>& res);
 
 	/// Compute quantities to export
-	void postprocess();
+	void postprocess(const std::vector<Matrix>& u);
 
 	/// Read-only access to output quantities
 	const amat::Array2d<a_real>& getOutput() const {
 		return output;
 	}
-
-	a_real computeL2Error(double (*const exact)(double,double,double), const double time) const;
 };
 
 }

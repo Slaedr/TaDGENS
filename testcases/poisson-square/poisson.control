@@ -1,5 +1,5 @@
 -number-of-meshes
-4
+3
 -Mesh-prefix
 ../testcases/poisson-square/grids/square
 -output-file-for-convergence

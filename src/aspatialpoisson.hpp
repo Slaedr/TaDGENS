@@ -20,7 +20,7 @@ namespace acfd {
 /** \note Strong boundary conditions, hence only nodal basis!
  * Currently only Dirichlet boundaries.
  */
-class LaplaceSIP : public SpatialBase
+class LaplaceSIP : public SpatialBase<1>
 {
 protected:
 	a_real nu;											///< Diffusivity
@@ -59,7 +59,7 @@ public:
 	void update_residual() {};
 };
 
-class LaplaceC : public SpatialBase
+class LaplaceC : public SpatialBase<1>
 {
 protected:
 	a_real nu;											///< Diffusivity
@@ -94,11 +94,13 @@ public:
 	/// Computes errors in L2 and H1 norms
 	void computeErrors(a_real& l2error, a_real& h1error) const;
 
-	void  postprocess();
+	void postprocess(const std::vector<Matrix>& u);
+
 	const amat::Array2d<a_real>& getOutput() const {
 		return output;
 	}
-	void update_residual(const std::vector<Matrix>& x) {};
+
+	void update_residual(const std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets) { }
 };
 
 }	// end namespace

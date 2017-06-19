@@ -49,6 +49,7 @@ int main(int argc, char* argv[])
 	vector<string> mfiles(nmesh), sfiles(nmesh);
 	vector<double> h(nmesh,0), l2err(nmesh,0), siperr(nmesh,0);
 	string names[] = {"poisson"};
+	std::vector<Matrix> udum;
 
 	for(int i = 0; i < nmesh; i++) {
 		mfiles[i] = meshprefix + to_string(i) + ".msh";
@@ -60,7 +61,7 @@ int main(int argc, char* argv[])
 		UMesh2dh m; m.readGmsh2(mfiles[imesh], NDIM); m.compute_topological(); m.compute_boundary_maps();
 		LaplaceC sd(&m, degree, stab, &rhs, &exactsol, &exactgradx, &exactgrady);
 		sd.solve();
-		sd.postprocess();
+		sd.postprocess(udum);
 		sd.computeErrors(l2err[imesh], siperr[imesh]);
 		
 		l2err[imesh] = log10(l2err[imesh]); siperr[imesh] = log10(siperr[imesh]);

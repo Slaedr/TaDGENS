@@ -1,5 +1,5 @@
 -number-of-meshes
-7
+2
 -Mesh-prefix
 ../testcases/advection/grids/square
 -output-file-for-convergence

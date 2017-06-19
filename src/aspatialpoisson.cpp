@@ -452,7 +452,7 @@ void LaplaceC::solve()
 	printf(" LaplaceC: solve: Done.\n");
 }
 
-void LaplaceC::postprocess()
+void LaplaceC::postprocess(const std::vector<Matrix>& u)
 {
 	output.resize(m->gnpoin());
 	for(int i = 0; i < m->gnpoin(); i++)

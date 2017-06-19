@@ -1,11 +1,11 @@
 -number-of-meshes
-4
+2
 -Mesh-prefix
 ../testcases/advection/grids/square
 -output-file-prefix
 ../testcases/advection/output/l-tri
 -Basis-type
-t
+l
 -spatial-polynomial-degree-of-computed-solution
 1
 -CFL

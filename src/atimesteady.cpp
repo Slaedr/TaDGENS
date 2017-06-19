@@ -8,29 +8,32 @@
 
 namespace acfd {
 
-SteadyBase::SteadyBase(const UMesh2dh *const mesh, SpatialBase* s, a_real cflnumber, double toler, int max_iter, bool use_source)
+template <short nvars>
+SteadyBase<nvars>::SteadyBase(const UMesh2dh *const mesh, SpatialBase<nvars>* s, a_real cflnumber, double toler, int max_iter, bool use_source)
 	: m(mesh), spatial(s), cfl(cflnumber), tol(toler), maxiter(max_iter), source(use_source)
 {
 	std::cout << " SteadyBase: CFL = " << cfl << ", use source? " << source << std::endl;
 
 	spatial->spatialSetup(u, R, tsl);
 
-	for(a_int iel = 0; iel < m->gnelem(); iel++) 
+	for(a_int iel = 0; iel < m->gnelem(); iel++)
 	{
 		for(int i = 0; i < u[iel].rows(); i++)
 			for(int j = 0; j < u[iel].cols(); j++) {
 				u[iel](i,j) = 1.0;
-				res[iel](i,j) = 0;
+				R[iel](i,j) = 0;
 			}
 	}
 }
 
-SteadyExplicit::SteadyExplicit(const UMesh2dh*const mesh, SpatialBase* s, a_real cflnumber, double toler, int max_iter, bool use_source)
-	: SteadyBase(mesh, s, cflnumber, toler, max_iter, use_source)
+template <short nvars>
+SteadyExplicit<nvars>::SteadyExplicit(const UMesh2dh*const mesh, SpatialBase<nvars>* s, a_real cflnumber, double toler, int max_iter, bool use_source)
+	: SteadyBase<nvars>(mesh, s, cflnumber, toler, max_iter, use_source)
 {
 }
 
-void SteadyExplicit::integrate()
+template <short nvars>
+void SteadyExplicit<nvars>::integrate()
 {
 	int step = 0;
 	double relresnorm = 1.0, resnorm0 = 1.0;
@@ -44,9 +47,9 @@ void SteadyExplicit::integrate()
 					R[iel](i,j) = 0.0;
 		}
 
-		spatial->update_residual(u);
+		spatial->update_residual(u, R, tsl);
 		if(source)
-			spatial->add_source(rhs,0);
+			spatial->add_source(rhs,0,R);
 
 		// step
 		for(int iel = 0; iel < m->gnelem(); iel++)
@@ -62,8 +65,10 @@ void SteadyExplicit::integrate()
 		if(step % 20 == 0)
 			std::printf("  SteadyExplicit: integrate: Step %d, rel res = %e\n", step, relresnorm);
 	}
-	
+
 	std::printf(" SteadyExplicit: integrate: Total steps %d, final rel res = %e\n", step, relresnorm);
 }
+
+template class SteadyExplicit<1>;
 
 }

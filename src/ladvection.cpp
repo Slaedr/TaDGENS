@@ -85,13 +85,13 @@ int main(int argc, char* argv[])
 		LinearAdvection sd(&m, sdegree, basistype, a, inoutflag, extrapflag, bcfunc);
 		hh = 1.0/sqrt(sd.numTotalDOFs());
 		
-		SteadyExplicit td(&m, &sd, cfl, tol, maxits, false);
+		SteadyExplicit<1> td(&m, &sd, cfl, tol, maxits, false);
 		//td.set_source(rhs);
 		
 		td.integrate();
 
-		sd.postprocess();
-		l2err[imesh] = sd.computeL2Error(exactsol, 0);
+		sd.postprocess(td.solution());
+		l2err[imesh] = sd.computeL2Error(exactsol, 0, td.solution());
 		
 		l2err[imesh] = log10(l2err[imesh]);
 		h[imesh] = log10(hh);

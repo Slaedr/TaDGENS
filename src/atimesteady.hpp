@@ -16,13 +16,14 @@ namespace acfd {
 /// TVD RK explicit time stepping
 /** The initial condition must be specified in the spatial discretization context [elsewhere](@ref SpatialBase::setInitialConditionModal).
  */
+template <short nvars>
 class SteadyBase
 {
 protected:
 	const UMesh2dh *const m;						///< Mesh context
-	SpatialBase* spatial;							///< Spatial discretization context
+	SpatialBase<nvars>* spatial;					///< Spatial discretization context
 
-	std::vector<Matrix> R;						///< Residuals - a Matrix contains residual DOFs for an element
+	std::vector<Matrix> R;							///< Residuals
 
 	/// vector of unknowns
 	/** Each Eigen3 (E3) Matrix contains the DOF values of all physical variables for an element.
@@ -43,11 +44,16 @@ protected:
 	a_real (*rhs)(a_real, a_real, a_real);			///< Function describing source term
 
 public:
-	SteadyBase(const UMesh2dh*const mesh, SpatialBase* s, a_real cflnumber, double toler, int max_iter, bool use_source);
+	SteadyBase(const UMesh2dh*const mesh, SpatialBase<nvars>* s, a_real cflnumber, double toler, int max_iter, bool use_source);
 	
 	/// Sets the forcing function for the source term
 	void set_source( a_real (*const source)(a_real, a_real, a_real)) {
 		rhs = source;
+	}
+
+	/// Read-only access to solution
+	const std::vector<Matrix>& solution() const {
+		return u;
 	}
 
 	/// Carries out the time stepping process
@@ -55,8 +61,21 @@ public:
 };
 
 /// Explicit forward-Euler scheme with local time stepping
-class SteadyExplicit : public SteadyBase
+template <short nvars>
+class SteadyExplicit : public SteadyBase<nvars>
 {
+	using SteadyBase<nvars>::m;
+	using SteadyBase<nvars>::spatial;
+	using SteadyBase<nvars>::R;
+	using SteadyBase<nvars>::u;
+	using SteadyBase<nvars>::tsl;
+	using SteadyBase<nvars>::order;
+	using SteadyBase<nvars>::cfl;
+	using SteadyBase<nvars>::tol;
+	using SteadyBase<nvars>::maxiter;
+	using SteadyBase<nvars>::source;
+	using SteadyBase<nvars>::rhs;
+
 public:
 	/** \param[in] mesh The mesh context
 	 * \param[in] s The spatial discretization context
@@ -65,7 +84,7 @@ public:
 	 * \param[in] max_iter Maximum number of iterations
 	 * \param[in] use_source True if source term integration is required
 	 */
-	SteadyExplicit(const UMesh2dh*const mesh, SpatialBase* s, a_real cflnumber, double toler, int max_iter, bool use_source);
+	SteadyExplicit(const UMesh2dh*const mesh, SpatialBase<nvars>* s, a_real cflnumber, double toler, int max_iter, bool use_source);
 
 	/// Carries out the time stepping process
 	void integrate();
