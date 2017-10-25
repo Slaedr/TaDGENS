@@ -8,20 +8,12 @@
  * @date 2017 March 1
  */
 
-#ifndef __AELEMENTS_H
-#define __AELEMENTS_H
+#ifndef AELEMENTS_H
+#define AELEMENTS_H
 
-#ifndef __ACONSTANTS_H
 #include "aconstants.hpp"
-#endif
-
-#ifndef __AARRAY2D_H
 #include "aarray2d.hpp"
-#endif
-
-#ifndef __AQUADRATURE_H
 #include "aquadrature.hpp"
-#endif
 
 namespace acfd {
 

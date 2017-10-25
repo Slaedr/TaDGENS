@@ -4,8 +4,8 @@
  * @date 2017 April 14
  */
 
-#ifndef __ASPATIALADVECTION_H
-#define __ASPATIALADVECTION_H
+#ifndef ASPATIALADVECTION_H
+#define ASPATIALADVECTION_H
 
 #define NVARS 1
 

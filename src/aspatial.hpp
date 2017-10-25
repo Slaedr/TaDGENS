@@ -4,28 +4,14 @@
  * @date 2017-03-04
  */
 
-#ifndef __ASPATIAL_H
-#define __ASPATIAL_H 1
+#ifndef ASPATIAL_H
+#define ASPATIAL_H 1
 
-#ifndef __ACONSTANTS_H
 #include "aconstants.hpp"
-#endif
-
-#ifndef __AARRAY2D_H
 #include "aarray2d.hpp"
-#endif
-
-#ifndef __AMESH2DH_H
 #include "amesh2dh.hpp"
-#endif
-
-#ifndef __AELEMENTS_H
 #include "aelements.hpp"
-#endif
-
-#ifndef __ARECONSTRUCTION_H
 #include "areconstruction.hpp"
-#endif
 
 #include <Eigen/LU>
 
@@ -35,18 +21,21 @@ namespace acfd {
 /**
  * Provides residual computation, and potentially residual Jacobian evaluation, interface for all solvers.
  * The template parameter nvars is the number of variables in the PDE system.
- * \note Make sure compute_topological() has been called on the mesh object prior to initialzing an object of any subclass.
+ * \note Make sure compute_topological() has been called on the mesh object prior to initialzing 
+ * an object of any subclass.
  */
 template <short nvars>
 class SpatialBase
 {
 protected:
-	const UMesh2dh* m;							///< Mesh context; requires compute_topological() and compute_boundary_maps() to have been called
-	std::vector<Matrix> minv;					///< Inverse of mass matrix for each variable of each element
-	int p_degree;								///< Polynomial degree of trial/test functions
-	a_int ntotaldofs;							///< Total number of DOFs in the discretization (for 1 physical variable)
-	char basis_type;							///< Type of basis to use - Lagrange ('l') or Taylor ('t')
-	bool reconstruct;							///< Use reconstruction or not
+	/// Mesh context; requires compute_topological() and compute_boundary_maps() to have been called
+	const UMesh2dh* m;
+
+	std::vector<Matrix> minv;             ///< Inverse of mass matrix for each variable of each element
+	int p_degree;                         ///< Polynomial degree of trial/test functions
+	a_int ntotaldofs;                     ///< Total number of DOFs in the discretization per physical variable)
+	char basis_type;                      ///< Type of basis to use - Lagrange ('l') or Taylor ('t')
+	bool reconstruct;                     ///< Use reconstruction or not
 
 	Quadrature2DTriangle* dtquad;				///< Domain quadrature context
 	Quadrature2DSquare* dsquad;					///< Domain quadrature context
@@ -57,7 +46,7 @@ protected:
 	Element* dummyelem;							///< Empty element used for ghost elements
 	FaceElement* faces;							///< List of face elements
 
-	amat::Array2d<a_real> scalars;				///< Holds density, Mach number and pressure for each mesh point
+	amat::Array2d<a_real> scalars;				///< Holds scalar variables for each mesh point
 	amat::Array2d<a_real> velocities;			///< Holds velocity components for each mesh point
 
 	/* Reconstruction-related stuff - currently not implemented
@@ -83,7 +72,8 @@ protected:
 	/// Computes the L2 error in a FE function on an element
 	/** \param[in] comp The index of the row of ug whose error is to be computed
 	 */
-	a_real computeElemL2Error2(const int ielem, const int comp, const Matrix& ug, a_real (* const exact)(a_real, a_real, a_real), const double time) const;
+	a_real computeElemL2Error2(const int ielem, const int comp, const Matrix& ug, 
+			a_real (* const exact)(a_real, a_real, a_real), const double time) const;
 
 	/// Computes the L2 norm of a FE function on an element
 	a_real computeElemL2Norm2(const int ielem, const Vector& ug) const;
@@ -97,7 +87,10 @@ public:
 
 	virtual ~SpatialBase();
 
-	/// Compute all finite element data, including mass matrix, amd allocates solution, residual and time-step arrays
+	/// Allocate arrays and precompute some finite-element data
+	/** Compute all finite element data, including mass matrix, 
+	 * and allocates solution, residual and time-step arrays
+	 */
 	void spatialSetup(std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets);
 
 	/// Computes L2 norm of the the specified component of some vector quantity w
@@ -111,7 +104,9 @@ public:
 	a_int numTotalDOFs() const { return ntotaldofs; }
 
 	/// Calls functions to add contribution to the RHS, and also compute max time steps
-	virtual void update_residual(const std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets) = 0;
+	virtual void update_residual(const std::vector<Matrix>& u, 
+			std::vector<Matrix>& res, 
+			std::vector<a_real>& mets) = 0;
 
 	/// Adds source term contribution to residual
 	/** As implemented in this class, does nothing.
@@ -125,13 +120,16 @@ public:
 	virtual const amat::Array2d<a_real>& getOutput() const = 0;
 
 	/// Computes the norm of the difference between a FE solution and an analytically defined function
-	a_real computeL2Error(double (*const exact)(double,double,double), const double time, const std::vector<Matrix>& u) const;
+	a_real computeL2Error(double (*const exact)(double,double,double), const double time, 
+			const std::vector<Matrix>& u) const;
 
 	/// Sets initial conditions using a function describing a variable
-	void setInitialConditionNodal( const int comp, double (**const init)(a_real, a_real), std::vector<Matrix>& u);
+	void setInitialConditionNodal( const int comp, double (**const init)(a_real, a_real), 
+			std::vector<Matrix>& u);
 
 	/// Sets initial conditions using functions for a variable and its space derivatives
-	void setInitialConditionModal( const int comp, double (**const init)(a_real, a_real), std::vector<Matrix>& u);
+	void setInitialConditionModal( const int comp, double (**const init)(a_real, a_real), 
+			std::vector<Matrix>& u);
 };
 
 }	// end namespace

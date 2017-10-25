@@ -4,12 +4,10 @@
  * @date 2017-03-12
  */
 
-#ifndef __ASOLVERSTEADY_H
-#define __ASOLVERSTEADY_H
+#ifndef ASOLVERSTEADY_H
+#define ASOLVERSTEADY_H
 
-#ifndef __ASPATIAL_H
 #include "aspatial.hpp"
-#endif
 
 namespace acfd{
 

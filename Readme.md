@@ -1,13 +1,13 @@
 TADGENS
 =======
 
-A discontinuous Galerkin solver for compressible flow problems. One relatively rare feature is the option of using Taylor basis finite elements. See ./doc/theory and Doxygen comments in the code for a description of the methods used.
+A discontinuous Galerkin solver aimed towards fluid flow problems. One relatively rare feature is the option of using Taylor basis finite elements. See ./doc/theory and Doxygen comments in the code for a description of the methods used.
 
 Building
 --------
 A CMake build system is used. GCC g++ is the compiler regularly built against, but clang++ is theoretically supported as well.
 
-For compiling, the variable "EIGEN_DIR" has to be set to the root directory of Eigen 3 library (version 3.3.3 is used in testing). Either set the environment variable, or pass it to make as "EIGEN_DIR=/path/to/eigen-3.3.3" and to cmake as "-DEIGEN_DIR=/path/to/eigen-3.3.3". 
+For compiling, the variable "EIGEN\_DIR" has to be set to the root directory of Eigen 3 library (version 3.3.3 is used in testing). Either set the environment variable, or pass it to make as "EIGEN\_DIR=/path/to/eigen-3.3.3" and to cmake as "-DEIGEN\_DIR=/path/to/eigen-3.3.3". 
 
 Running
 -------
