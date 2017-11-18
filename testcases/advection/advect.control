@@ -5,9 +5,9 @@
 -output-file-prefix
 ../testcases/advection/output/l-tri
 -Basis-type
-l
+t
 -spatial-polynomial-degree-of-computed-solution
-1
+2
 -CFL
 0.05
 -Tolerance

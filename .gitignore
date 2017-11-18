@@ -14,3 +14,4 @@
 build/** 
 
 *.vtu
+*.control

@@ -33,6 +33,7 @@ SpatialBase<nvars>::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char 
 	map2d = new LagrangeMapping2D[m->gnelem()];
 	elems = new Element*[m->gnelem()];
 	if(basistype == 't') {
+		std::cout << " SpatialBase: Using Taylor basis functions.\n";
 		for(int iel = 0; iel < m->gnelem(); iel++) {
 			elems[iel] = new TaylorElement();
 		}
