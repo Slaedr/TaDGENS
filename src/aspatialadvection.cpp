@@ -8,21 +8,25 @@
 
 namespace acfd {
 
-LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, const Vector vel,
-		const int inoutflag, const int extrapflag, a_real (*const bounfunc)(const a_real, const a_real))
-	: SpatialBase(mesh, _p_degree, basis), a(vel), inoutflow_flag(inoutflag), extrapolation_flag(extrapflag), bcfunc(bounfunc)
+LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, 
+		const Vector vel, const int inoutflag, const int extrapflag, 
+		a_real (*const bounfunc)(const a_real, const a_real))
+	: SpatialBase(mesh, _p_degree, basis), a(vel), inoutflow_flag(inoutflag), 
+		extrapolation_flag(extrapflag), bcfunc(bounfunc)
 {
 	std::cout << " LinearAdvection: Velocity is (" << a(0) << ", " << a(1) << ")\n";
 	if(a.rows() != NDIM)
-		printf("! LinearAdvection: The advection velocity vector does not have dimension %d!\n", NDIM);
+		std::printf("! LinearAdvection: The advection velocity vector does not have dimension %d!\n", NDIM);
 	amag = std::sqrt(a[0]*a[0]+a[1]*a[1]);
 }
 
-void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instate, Matrix& bstate)
+void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instate, 
+	Matrix& bstate)
 {
 	if(m->gintfacbtags(iface, 0) == inoutflow_flag)
 	{
-		// compute normal velocity and decide whether to extrapolate or impose specified boundary value at each quadrature point
+		// compute normal velocity and decide whether to extrapolate 
+		// or impose specified boundary value at each quadrature point
 		const std::vector<Vector>& n = map1d[iface].normal();
 		const Matrix& phypoints = map1d[iface].map();
 		for(size_t ig = 0; ig < n.size(); ig++) {
@@ -39,7 +43,9 @@ void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instat
 	}
 }
 
-void LinearAdvection::computeNumericalFlux(const a_real* const uleft, const a_real* const uright, const a_real* const n, a_real* const flux)
+void LinearAdvection::computeNumericalFlux(
+	const a_real* const uleft, const a_real* const uright, const a_real* const n, 
+	a_real* const flux)
 {
 	a_real adotn = a[0]*n[0]+a[1]*n[1];
 	if(adotn >= 0)

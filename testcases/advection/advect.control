@@ -1,5 +1,5 @@
 -number-of-meshes
-2
+3
 -Mesh-prefix
 ../testcases/advection/grids/square
 -output-file-prefix
