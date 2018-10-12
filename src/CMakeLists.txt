@@ -1,63 +1,34 @@
-cmake_minimum_required(VERSION 2.8)
-
-project (tadgens)
-
-# to compile with OpenMP
-if(OMP)
-	message(STATUS "Compiling with OpenMP")
-	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-		set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-	elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-		set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -qopenmp")
-	else()
-		message(SEND_ERROR "Don't know OpenMP flag for this compiler")
-	endif()
-endif()
-
-# set compile options
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -ftree-vectorizer-verbose=2")
-elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-endif()
-
-# Eigen
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_DONT_PARALLELIZE")
-include_directories($ENV{EIGEN_DIR})
-
-# ---------------------------------------------------------------------------- #
-
-# flags and stuff
-
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ggdb -DDEBUG=1")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -UDEBUG -DNDEBUG")
-
-if(CMAKE_BUILD_TYPE MATCHES "Debug")
-    message(STATUS "Debug mode")
-else()
-	message(STATUS "Release mode")
-endif()
-
-set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
-#set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 
 # libraries to be compiled
-add_library(tadgens_base aoutput.cpp areconstruction.cpp atimesteady.cpp aspatial.cpp aelements.cpp aquadrature.cpp amesh2dh.cpp adatastructures.cpp)
+add_library(base utilities/adatastructures.cpp)
 
-add_library(tadgens_poisson aspatialpoisson.cpp)
-target_link_libraries(tadgens_poisson tadgens_base)
+add_library(mesh mesh/amesh2dh.cpp)
+#target_link_libraries(mesh base)
 
-add_library(tadgens_advection aspatialadvection.cpp)
-target_link_libraries(tadgens_advection tadgens_base)
+add_library(fem fem/aelements.cpp fem/aquadrature.cpp)
+#target_link_libraries(fem mesh)
 
-# for the final executable(s)
+add_library(spatial spatial/aoutput.cpp spatial/areconstruction.cpp spatial/aspatial.cpp)
+#target_link_libraries(spatial fem)
 
-#add_subdirectory(utilities)
+add_library(spatial_poisson spatial/aspatialpoisson.cpp)
+#target_link_libraries(spatial_poisson spatial)
 
-#add_executable(poissonsip poissonSIP.cpp)
-#target_link_libraries(poissonsip tadgens_poisson)
-add_executable(advect ladvection.cpp)
-target_link_libraries(advect tadgens_advection)
-add_executable(poissonc poissonC.cpp)
-target_link_libraries(poissonc tadgens_poisson)
+add_library(spatial_advection spatial/aspatialadvection.cpp)
+#target_link_libraries(spatial_advection spatial)
 
+add_library(solvers solvers/atimesteady.cpp)
+#target_link_libraries(solvers spatial)
+
+#add_library(time time/atimetvdrk.cpp)
+#target_link_libraries(time solvers)
+
+add_library(tadgens_core)
+target_link_libraries(tadgens_core solvers spatial fem mesh base)
+
+add_executable(grid_conv_steady utilities/grid_conv_steady.cpp)
+target_link_libraries(grid_conv_steady spatial_advection tadgens_core)
+
+#add_executable(grid_conv_unsteady utilities/grid_conv_steady.cpp)
+#target_link_libraries(grid_conv_unsteady tadgens_core)
