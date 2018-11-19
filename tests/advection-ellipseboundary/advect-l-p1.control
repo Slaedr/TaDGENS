@@ -13,7 +13,7 @@ l
 -Tolerance
 1e-6
 -Max-iterations
-10000
+5000
 -Boundary-marker-for-inflow-outflow
 1
 -Boundary-marker-for-extrapolation

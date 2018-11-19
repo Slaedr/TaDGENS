@@ -1,7 +1,7 @@
 -number-of-meshes
 4
 -Mesh-prefix
-@CMAKE_CURRENT_BINARY_DIR@/grids/squareellipse_p2_
+@CMAKE_CURRENT_BINARY_DIR@/grids/squareellipse_
 -output-file-prefix
 @CMAKE_CURRENT_BINARY_DIR@/l-tri
 -Basis-type
@@ -11,9 +11,9 @@ l
 -CFL
 0.05
 -Tolerance
-1e-6
+1e-7
 -Max-iterations
-10000
+5000
 -Boundary-marker-for-inflow-outflow
 1
 -Boundary-marker-for-extrapolation
