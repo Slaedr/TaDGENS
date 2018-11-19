@@ -56,6 +56,7 @@ void LinearAdvection::computeNumericalFlux(
 
 void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets)
 {
+#pragma omp parallel for default(shared)
 	for(a_int iface = 0; iface < m->gnbface(); iface++)
 	{
 		a_int lelem = m->gintfac(iface,0);
@@ -82,11 +83,12 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 		}
 	}
 	
+#pragma omp parallel for default(shared)
 	for(a_int iface = m->gnbface(); iface < m->gnaface(); iface++)
 	{
-		a_int lelem = m->gintfac(iface,0);
-		a_int relem = m->gintfac(iface,1);
-		int ng = map1d[iface].getQuadrature()->numGauss();
+		const a_int lelem = m->gintfac(iface,0);
+		const a_int relem = m->gintfac(iface,1);
+		const int ng = map1d[iface].getQuadrature()->numGauss();
 		const std::vector<Vector>& n = map1d[iface].normal();
 		const Matrix& lbasis = faces[iface].leftBasis();
 		const Matrix& rbasis = faces[iface].rightBasis();
@@ -99,24 +101,27 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 
 		for(int ig = 0; ig < ng; ig++)
 		{
-			a_real weightandsp = map1d[iface].getQuadrature()->weights()(ig) * map1d[iface].speed()[ig];
+			const a_real weightandsp = map1d[iface].getQuadrature()->weights()(ig) * map1d[iface].speed()[ig];
 
 			computeNumericalFlux(&linterps(ig,0), &rinterps(ig,0), &n[ig](0), &fluxes(ig,0));
 
 			for(int ivar = 0; ivar < NVARS; ivar++) {
 				for(int idof = 0; idof < elems[lelem]->getNumDOFs(); idof++)
+#pragma omp atomic update
 					res[lelem](ivar,idof) += fluxes(ig,ivar) * lbasis(ig,idof) * weightandsp;
 				for(int idof = 0; idof < elems[relem]->getNumDOFs(); idof++)
+#pragma omp atomic update
 					res[relem](ivar,idof) -= fluxes(ig,ivar) * rbasis(ig,idof) * weightandsp;
 			}
 		}
 	}
 
+#pragma omp parallel for default(shared)
 	for(a_int iel = 0; iel < m->gnelem(); iel++)
 	{
 		if(p_degree > 0) {	
-			int ng = map2d[iel].getQuadrature()->numGauss();
-			int ndofs = elems[iel]->getNumDOFs();
+			const int ng = map2d[iel].getQuadrature()->numGauss();
+			const int ndofs = elems[iel]->getNumDOFs();
 			const std::vector<Matrix>& bgrads = elems[iel]->bGrad();
 
 			Matrix xflux(ng, NVARS), yflux(ng, NVARS);
@@ -127,7 +132,7 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 
 			for(int ig = 0; ig < ng; ig++)
 			{
-				a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
+				const a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
 				for(int ivar = 0; ivar < NVARS; ivar++)
 					for(int idof = 0; idof < ndofs; idof++)
 						term(ivar,idof) += (xflux(ig,ivar)*bgrads[ig](idof,0) + yflux(ig,ivar)*bgrads[ig](idof,1)) * weightjacdet;
@@ -139,7 +144,7 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 		a_real hsize = 1.0;
 
 		for(int ifa = 0; ifa < m->gnfael(iel); ifa++) {
-			a_int iface = m->gelemface(iel,ifa);
+			const a_int iface = m->gelemface(iel,ifa);
 			if(hsize > m->gedgelengthsquared(iface)) hsize = m->gedgelengthsquared(iface);
 		}
 
@@ -149,17 +154,18 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 
 void LinearAdvection::add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t, std::vector<Matrix>& res)
 {
+#pragma omp parallel for default(shared)
 	for(a_int iel = 0; iel < m->gnelem(); iel++)
 	{
-		int ng = map2d[iel].getQuadrature()->numGauss();
-		int ndofs = elems[iel]->getNumDOFs();
+		const int ng = map2d[iel].getQuadrature()->numGauss();
+		const int ndofs = elems[iel]->getNumDOFs();
 		const Matrix& bas = elems[iel]->bFunc();
 		const Matrix& pts = elems[iel]->getGeometricMapping()->map();
 		Matrix term = Matrix::Zero(NVARS, ndofs);
 
 		for(int ig = 0; ig < ng; ig++)
 		{
-			a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
+			const a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
 			for(int idof = 0; idof < ndofs; idof++)
 				term(0,idof) += rhs(pts(ig,0),pts(ig,1),t) * bas(ig,idof) * weightjacdet;
 		}
