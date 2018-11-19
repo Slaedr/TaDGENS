@@ -10,4 +10,5 @@ set(SEQTASKS "")
 
 add_subdirectory(fem)
 add_subdirectory(advection)
+add_subdirectory(advection-ellipseboundary)
 add_subdirectory(poisson)
