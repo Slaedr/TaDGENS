@@ -17,7 +17,7 @@ using namespace amat;
 using namespace std;
 using namespace acfd;
 
-double a0 = 1.0, a1 = 0.0;
+const double a0 = 1.0, a1 = 0.0;
 
 // exact solution - sin in x
 /*double exactsol(double x, double y, double t) {
@@ -80,14 +80,17 @@ int main(int argc, char* argv[])
 
 	for(int imesh = 0; imesh < nmesh; imesh++)
 	{
-		UMesh2dh m; m.readGmsh2(mfiles[imesh], NDIM); m.compute_topological(); m.compute_boundary_maps();
+		UMesh2dh m;
+		m.readGmsh2(mfiles[imesh], NDIM);
+		m.compute_topological();
+		m.compute_boundary_maps();
 		
-		double hh = m.meshSizeParameter();
-		printf("Mesh %d: h = %f\n", imesh, hh);
+		const double hhactual = m.meshSizeParameter();
+		printf("Mesh %d: h = %f\n", imesh, hhactual);
 
 		Vector a(2); a[0] = a0; a[1] = a1;
 		LinearAdvection sd(&m, sdegree, basistype, a, inoutflag, extrapflag, bcfunc);
-		hh = 1.0/sqrt(sd.numTotalDOFs());
+		const double hh = 1.0/sqrt(sd.numTotalDOFs());
 		
 		SteadyExplicit<1> td(&m, &sd, cfl, tol, maxits, false);
 		//td.set_source(rhs);
