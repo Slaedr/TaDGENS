@@ -16,6 +16,7 @@
 #define AARRAY2D_H
 
 #include "aconstants.hpp"
+#include <stdexcept>
 
 #ifndef MATRIX_DOUBLE_PRECISION
 #define MATRIX_DOUBLE_PRECISION 14
@@ -53,7 +54,8 @@ inline a_real minmod(a_real a, a_real b)
  * @brief Stores a dense row-major matrix.
  * 
  * Notes:
- * If A is a column-major matrix, A[i][j] == A[j * nrows + i] where i is the row-index and j is the column index.
+ * If A is a column-major matrix, A[i][j] == A[j * nrows + i] where
+ * i is the row-index and j is the column index.
  */
 template <class T>
 class Array2d
@@ -63,42 +65,24 @@ private:
 	a_int ncols;
 	a_int size;
 	T* elems;
-	bool isalloc;
 
 public:
-	///No-arg constructor. Note: no memory allocation! Make sure Array2d::setup(a_int,a_int,MStype) is used.
-	Array2d()
-	{
-		nrows = 0; ncols = 0; size = 0;
-		isalloc = false;
-	}
+	///No-arg constructor. Note: no memory allocation! Make sure Array2d::setup(a_int,a_int) is used.
+	Array2d() : nrows{0}, ncols{0}, size{0}, elems{nullptr}
+	{ }
 
 	// Full-arg constructor
-	Array2d(a_int nr, a_int nc)
+	Array2d(a_int nr, a_int nc) : nrows{nr}, ncols{nc}, size{nr*nc}, elems{new T[nrows*ncols]}
 	{
 		if(nc==0)
-		{
-			std::cout << "\nError: Number of columns is zero. Setting it to 1.";
-			nc=1;
-		}
+			throw std::runtime_error("Error: Number of columns is zero!");
 		if(nr==0)
-		{
-			std::cout << "\nError: Number of rows is zero. Setting it to 1.";
-			nr=1;
-		}
-		nrows = nr; ncols = nc;
-		size = nrows*ncols;
-		elems = new T[nrows*ncols];
-		isalloc = true;
+			throw std::runtime_error("Error: Number of rows is zero!");
 	}
 
-	Array2d(const Array2d<T>& other)
+	Array2d(const Array2d<T>& other) : nrows{other.nrows}, ncols{other.ncols}, size{nrows*ncols},
+	                                   elems{new T[nrows*ncols]}
 	{
-		nrows = other.nrows;
-		ncols = other.ncols;
-		size = nrows*ncols;
-		elems = new T[nrows*ncols];
-		isalloc = true;
 		for(a_int i = 0; i < nrows*ncols; i++)
 		{
 			elems[i] = other.elems[i];
@@ -107,9 +91,7 @@ public:
 
 	~Array2d()
 	{
-		if(isalloc == true)	
-			delete [] elems;
-		isalloc = false;
+		delete [] elems;
 	}
 
 	Array2d<T>& operator=(const Array2d<T>& rhs)
@@ -120,10 +102,8 @@ public:
 		nrows = rhs.nrows;
 		ncols = rhs.ncols;
 		size = nrows*ncols;
-		if(isalloc == true)
-			delete [] elems;
+		delete [] elems;
 		elems = new T[nrows*ncols];
-		isalloc = true;
 		for(a_int i = 0; i < nrows*ncols; i++)
 		{
 			elems[i] = rhs.elems[i];
@@ -132,66 +112,46 @@ public:
 	}
 
 	/// Separate setup function in case no-arg constructor has to be used
+	/** Any existing contents of the array are destroyed.
+	 */
 	void setup(a_int nr, a_int nc)
 	{
 		if(nc==0)
-		{
-			std::cout << "Array2d: setup(): Error: Number of columns is zero. Setting it to 1.\n";
-			nc=1;
-		}
+			throw std::runtime_error("Error: Number of columns is zero!");
 		if(nr==0)
-		{
-			std::cout << "Array2d(): setup(): Error: Number of rows is zero. Setting it to 1.\n";
-			nr=1;
-		}
+			throw std::runtime_error("Error: Number of rows is zero!");
 		nrows = nr; ncols = nc;
 		size = nrows*ncols;
-		if(isalloc == true)
-			delete [] elems;
+		delete [] elems;
 		elems = new T[nrows*ncols];
-		isalloc = true;
 	}
 	
 	/// Alternative to setup function
+	/** Any existing contents of the array are destroyed.
+	 */
 	void resize(a_int nr, a_int nc=1)
 	{
 		if(nc==0)
-		{
-			std::cout << "Array2d: setup(): Error: Number of columns is zero. Setting it to 1.\n";
-			nc=1;
-		}
+			throw std::runtime_error("Error: Number of columns is zero!");
 		if(nr==0)
-		{
-			std::cout << "Array2d(): setup(): Error: Number of rows is zero. Setting it to 1.\n";
-			nr=1;
-		}
+			throw std::runtime_error("Error: Number of rows is zero!");
 		nrows = nr; ncols = nc;
 		size = nrows*ncols;
-		if(isalloc == true)
-			delete [] elems;
+		delete [] elems;
 		elems = new T[nrows*ncols];
-		isalloc = true;
 	}
 	
 	/// Allocate and set an array using a raw C array
 	void initialize(a_int nr, a_int nc, const T *const array)
 	{
 		if(nc==0)
-		{
-			std::cout << "Array2d: initialize(): Error: Number of columns is zero. Setting it to 1.\n";
-			nc=1;
-		}
+			throw std::runtime_error("Error: Number of columns is zero!");
 		if(nr==0)
-		{
-			std::cout << "Array2d(): initialize(): Error: Number of rows is zero. Setting it to 1.\n";
-			nr=1;
-		}
+			throw std::runtime_error("Error: Number of rows is zero!");
 		nrows = nr; ncols = nc;
 		size = nrows*ncols;
-		if(isalloc == true)
-			delete [] elems;
+		delete [] elems;
 		elems = new T[nrows*ncols];
-		isalloc = true;
 
 		for(int i = 0; i < nr; i++)
 			for(int j = 0; j < nc; j++) {
@@ -204,19 +164,13 @@ public:
 	{
 		//std::cout << "\nEntered setupraw";
 		if(nc==0)
-		{
-			std::cout << "\nError: Number of columns is zero. Setting it to 1.";
-			nc=1;
-		}
+			throw std::runtime_error("Error: Number of columns is zero!");
 		if(nr==0)
-		{
-			std::cout << "\nError: Number of rows is zero. Setting it to 1.";
-			nr=1;
-		}
+			throw std::runtime_error("Error: Number of rows is zero!");
 		nrows = nr; ncols = nc;
 		size = nrows*ncols;
+		delete [] elems;
 		elems = new T[nrows*ncols];
-		isalloc = true;
 	}
 	
 	/// Fill the matrix with zeros.

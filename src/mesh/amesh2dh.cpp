@@ -501,11 +501,12 @@ void UMesh2dh::compute_topological()
 			int ielem = esup(ie,0);		// element number
 
 			// find local node number of ip in ielem
-			int inode;
+			int inode = -1;
 			for(int jnode = 0; jnode < nfael[ielem]; jnode++)
 				if(inpoel(ielem,jnode) == ip) inode = jnode;
 
-			std::vector<bool> nbd(nfael[ielem]);		// contains true if that local node number is connected to a particular local node.
+			// nbd contains true if that local node number is connected to a particular local node.
+			std::vector<bool> nbd(nfael[ielem]);
 			for(int j = 0; j < nfael[ielem]; j++)
 				nbd[j] = false;
 
@@ -549,11 +550,13 @@ void UMesh2dh::compute_topological()
 			int ielem = esup(ie,0);		// element number
 
 			// find local node number of ip in ielem
-			int inode;
+			int inode = -1;
 			for(int jnode = 0; jnode < nfael[ielem]; jnode++)
 				if(inpoel(ielem,jnode) == ip) inode = jnode;
 
-			std::vector<bool> nbd(nfael[ielem]);		// nbd[j] contains true if ip is connected to local node number j of ielem.
+			// nbd[j] contains true if ip is connected to local node number j of ielem.
+			std::vector<bool> nbd(nfael[ielem]);
+
 			for(int j = 0; j < nfael[ielem]; j++)
 				nbd[j] = false;
 

@@ -1,2 +1,2 @@
 add_executable(convertformat convertformat.cpp)
-target_link_libraries(convertformat tadgens_base)
+target_link_libraries(convertformat mesh)

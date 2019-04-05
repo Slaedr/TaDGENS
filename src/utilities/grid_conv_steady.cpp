@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 	}
 	outerr = outf + "-p" + to_string(sdegree)+".txt";
 
-	std::vector<float> l2slopes(nmesh-1);
+	std::vector<double> l2slopes(nmesh-1);
 
 	for(int imesh = 0; imesh < nmesh; imesh++)
 	{

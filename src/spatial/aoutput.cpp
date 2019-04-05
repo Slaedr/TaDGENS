@@ -78,7 +78,7 @@ void writeScalarsVectorToVtu_CellData(std::string fname, const acfd::UMesh2dh& m
 	//enter cells
 	out << "\t\t<Cells>\n";
 	out << "\t\t\t<DataArray type=\"UInt32\" Name=\"connectivity\" Format=\"ascii\">\n";
-	int elemcode;
+	int elemcode = 5;
 	for(int i = 0; i < m.gnelem(); i++) 
 	{
 		out << "\t\t\t\t"; 
@@ -117,7 +117,6 @@ void writeScalarsVectorToVtu_CellData(std::string fname, const acfd::UMesh2dh& m
 
 void writeScalarsVectorToVtu_PointData(std::string fname, const acfd::UMesh2dh& m, const amat::Array2d<double>& x, std::string scaname[], const amat::Array2d<double>& y, std::string vecname)
 {
-	int elemcode;
 	std::cout << "aoutput: Writing vtu output to " << fname << "\n";
 	std::ofstream out(fname);
 
@@ -186,6 +185,7 @@ void writeScalarsVectorToVtu_PointData(std::string fname, const acfd::UMesh2dh& 
 	//enter cells
 	out << "\t\t<Cells>\n";
 	out << "\t\t\t<DataArray type=\"UInt32\" Name=\"connectivity\" Format=\"ascii\">\n";
+	int elemcode = -1;
 	for(int i = 0; i < m.gnelem(); i++) 
 	{
 		out << "\t\t\t\t"; 
