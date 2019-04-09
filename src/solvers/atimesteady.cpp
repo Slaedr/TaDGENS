@@ -9,10 +9,11 @@
 namespace acfd {
 
 template <short nvars>
-SteadyBase<nvars>::SteadyBase(const UMesh2dh *const mesh, SpatialBase<nvars>* s, a_real cflnumber, double toler, int max_iter, bool use_source)
-	: m(mesh), spatial(s), cfl(cflnumber), tol(toler), maxiter(max_iter), source(use_source)
+SteadyBase<nvars>::SteadyBase(const UMesh2dh *const mesh, SpatialBase<nvars>* s,
+                              a_real cflnumber, double toler, int max_iter)
+	: m(mesh), spatial(s), cfl(cflnumber), tol(toler), maxiter(max_iter)
 {
-	std::cout << " SteadyBase: CFL = " << cfl << ", use source? " << source << std::endl;
+	std::cout << " SteadyBase: CFL = " << cfl << std::endl;
 
 	spatial->spatialSetup(u, R, tsl);
 
@@ -27,8 +28,9 @@ SteadyBase<nvars>::SteadyBase(const UMesh2dh *const mesh, SpatialBase<nvars>* s,
 }
 
 template <short nvars>
-SteadyExplicit<nvars>::SteadyExplicit(const UMesh2dh*const mesh, SpatialBase<nvars>* s, a_real cflnumber, double toler, int max_iter, bool use_source)
-	: SteadyBase<nvars>(mesh, s, cflnumber, toler, max_iter, use_source)
+SteadyExplicit<nvars>::SteadyExplicit(const UMesh2dh*const mesh, SpatialBase<nvars>* s,
+                                      a_real cflnumber, double toler, int max_iter)
+	: SteadyBase<nvars>(mesh, s, cflnumber, toler, max_iter)
 {
 }
 
@@ -48,8 +50,6 @@ void SteadyExplicit<nvars>::integrate()
 		}
 
 		spatial->update_residual(u, R, tsl);
-		if(source)
-			spatial->add_source(rhs,0,R);
 
 		// step
 		for(int iel = 0; iel < m->gnelem(); iel++)

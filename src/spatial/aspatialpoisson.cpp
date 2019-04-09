@@ -8,11 +8,8 @@
 
 namespace acfd {
 
-LaplaceSIP::LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, const a_real stab,
-			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
-			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_grady)(a_real,a_real))
-	: SpatialBase(mesh, _p_degree, 'l'), eta(stab), rhs(f), exact(exact_sol),
-	  exactgradx(exact_gradx), exactgrady(exact_grady)
+LaplaceSIP::LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, const a_real stab)
+	: SpatialBase(mesh, _p_degree, 'l')
 {
 	computeFEData();
 
@@ -37,10 +34,6 @@ LaplaceSIP::LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, const a_real s
 		ndirdofs += dirdofflags[i];
 	printf(" LaplaceSIP: No. of Dirichlet DOFs = %d\n", ndirdofs);
 
-	Ag.resize(ntotaldofs, ntotaldofs);
-	bg = Vector::Zero(ntotaldofs);
-	ug = Vector::Zero(ntotaldofs);
-
 	cbig = 1.0e30;
 	nu=1.0;
 }
@@ -53,6 +46,7 @@ void LaplaceSIP::assemble()
 	typedef Eigen::Triplet<a_real> COO;
 	std::vector<COO> coo; 
 	const int ndofs = elems[0]->getNumDOFs();
+	bg = Vector::Zero(ntotaldofs);
 	
 	// domain integral and RHS
 	for(int ielem = 0; ielem < m->gnelem(); ielem++)
@@ -72,13 +66,14 @@ void LaplaceSIP::assemble()
 			const a_real weightAndJDet = wts(ig)*map2d[ielem].jacDet()[ig];
 			for(int i = 0; i < ndofs; i++) 
 			{
-				bl(i) += rhs(quadp(ig,0),quadp(ig,1)) * basis(ig,i) * weightAndJDet;
+				const a_real coords[] = {quadp(ig,0), quadp(ig,1)};
+				//bl(i) += rhs(quadp(ig,0),quadp(ig,1)) * basis(ig,i) * weightAndJDet;
+				bl(i) += source_term(coords,0) * basis(ig,i) * weightAndJDet;
 				for(int j = 0; j < ndofs; j++) {
 					A(i,j) += nu * bgrad[ig].row(i).dot(bgrad[ig].row(j)) * weightAndJDet;
 				}
 			}
 		}
-		//std::cout << A << std::endl << std::endl;
 
 		for(int i = 0; i < ndofs; i++)
 		{
@@ -185,6 +180,8 @@ void LaplaceSIP::assemble()
 				coo.push_back(COO( lelem*ndofs+i, lelem*ndofs+j, -Bkk(i,j)-Bkk(j,i) +Skk(i,j) ));
 	}
 
+	Ag.resize(ntotaldofs, ntotaldofs);
+
 	// assemble
 	Ag.setFromTriplets(coo.begin(), coo.end());
 
@@ -204,6 +201,7 @@ void LaplaceSIP::assemble()
 void LaplaceSIP::solve()
 {
 	//std::cout << Ag;
+	ug = Vector::Zero(ntotaldofs);
 	
 	// printf(" LaplaceSIP: solve: Removing Dirichlet rows and cols\n");
 	// Eigen::SparseMatrix<a_real> Af; Af.resize(ntotaldofs-ndirdofs, ntotaldofs-ndirdofs);
@@ -287,9 +285,10 @@ void LaplaceSIP::computeErrors(a_real& __restrict__ l2error, a_real& __restrict_
 				lux += ug(ielem*ndofs+j)*bgrad[ig](j,0);
 				luy += ug(ielem*ndofs+j)*bgrad[ig](j,1);
 			}
-			l2error += std::pow(lu-exact(qp(ig,0),qp(ig,1)),2) * wts(ig) * gmap->jacDet()[ig];
-			siperror += ( std::pow(lux-exactgradx(qp(ig,0),qp(ig,1)),2)
-			              + std::pow(luy-exactgrady(qp(ig,0),qp(ig,1)),2) ) * wts(ig) * gmap->jacDet()[ig];
+			const a_real crds[] = {qp(ig,0), qp(ig,1)};
+			l2error += std::pow(lu-exact_solution(crds,0),2) * wts(ig) * gmap->jacDet()[ig];
+			siperror += ( std::pow(lux-exactgradx(crds),2)
+			              + std::pow(luy-exactgrady(crds),2) ) * wts(ig) * gmap->jacDet()[ig];
 		}
 	}
 
@@ -325,7 +324,8 @@ void LaplaceSIP::computeErrors(a_real& __restrict__ l2error, a_real& __restrict_
 		a_int lelem = m->gintfac(iface,0);
 
 		// inverse of (approx) measure of face
-		a_real hinv = 1.0/std::sqrt( std::pow(m->gcoords(m->gintfac(iface,2),0) - m->gcoords(m->gintfac(iface,3),0),2) + 
+		a_real hinv = 1.0/std::sqrt( std::pow(m->gcoords(m->gintfac(iface,2),0)
+		                                      - m->gcoords(m->gintfac(iface,3),0),2) +
 				std::pow(m->gcoords(m->gintfac(iface,2),1) - m->gcoords(m->gintfac(iface,3),1),2) );
 
 		int ng = map1d[iface].getQuadrature()->numGauss();
@@ -340,12 +340,32 @@ void LaplaceSIP::computeErrors(a_real& __restrict__ l2error, a_real& __restrict_
 			for(int j = 0; j < ndofs; j++) {
 				lu += ug(lelem*ndofs+j)*lbas(ig,j);
 			}
-			siperror += hinv * pow(lu-exact(qp(ig,0),qp(ig,1)),2) * weightandspeed;
+
+			const a_real coords[] = {qp(ig,0),qp(ig,1)};
+			siperror += hinv * pow(lu-exact_solution(coords,0),2) * weightandspeed;
 		}
 	}
 
 	l2error = std::sqrt(l2error); siperror = std::sqrt(siperror);
 	std::printf(" LaplaceSIP: computeErrors: Done.\n");
+}
+
+a_real LaplaceSIP::source_term(const a_real r[NDIM], const a_real t) const
+{
+	return 2.0*PI*PI*sin(PI*r[0])*sin(PI*r[1]);
+}
+
+a_real LaplaceSIP::exact_solution(const a_real r[NDIM], const a_real t) const
+{
+	return sin(PI*r[0])*sin(PI*r[1]);
+}
+
+a_real LaplaceSIP::exactgradx(const a_real r[NDIM]) const {
+	return PI*cos(PI*r[0])*sin(PI*r[1]);
+}
+
+a_real LaplaceSIP::exactgrady(const a_real r[NDIM]) const {
+	return sin(PI*r[0])*PI*cos(PI*r[1]);
 }
 
 }	// end namespace

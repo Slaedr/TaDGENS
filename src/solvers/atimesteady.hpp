@@ -38,17 +38,11 @@ protected:
 	double cfl;										///< CFL number
 	double tol;										///< Tolerance for residual
 	int maxiter;									///< Max number of iterations
-	bool source;									///< Whether or not to use source term
-	a_real (*rhs)(a_real, a_real, a_real);			///< Function describing source term
 
 public:
-	SteadyBase(const UMesh2dh*const mesh, SpatialBase<nvars>* s, a_real cflnumber, double toler, int max_iter, bool use_source);
+	SteadyBase(const UMesh2dh*const mesh, SpatialBase<nvars>* s,
+	           a_real cflnumber, double toler, int max_iter);
 	
-	/// Sets the forcing function for the source term
-	void set_source( a_real (*const source)(a_real, a_real, a_real)) {
-		rhs = source;
-	}
-
 	/// Read-only access to solution
 	const std::vector<Matrix>& solution() const {
 		return u;
@@ -71,8 +65,6 @@ class SteadyExplicit : public SteadyBase<nvars>
 	using SteadyBase<nvars>::cfl;
 	using SteadyBase<nvars>::tol;
 	using SteadyBase<nvars>::maxiter;
-	using SteadyBase<nvars>::source;
-	using SteadyBase<nvars>::rhs;
 
 public:
 	/** \param[in] mesh The mesh context
@@ -80,9 +72,9 @@ public:
 	 * \param[in] cflnumber
 	 * \param[in] toler Tolerance for the relative residual
 	 * \param[in] max_iter Maximum number of iterations
-	 * \param[in] use_source True if source term integration is required
 	 */
-	SteadyExplicit(const UMesh2dh*const mesh, SpatialBase<nvars>* s, a_real cflnumber, double toler, int max_iter, bool use_source);
+	SteadyExplicit(const UMesh2dh*const mesh, SpatialBase<nvars>* s,
+	               a_real cflnumber, double toler, int max_iter);
 
 	/// Carries out the time stepping process
 	void integrate();

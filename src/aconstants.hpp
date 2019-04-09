@@ -1,6 +1,6 @@
-#ifndef __ACONSTANTS_H
+#ifndef ACONSTANTS_H
 
-#define __ACONSTANTS_H
+#define ACONSTANTS_H
 
 #include <iostream>
 #include <fstream>

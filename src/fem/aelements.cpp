@@ -704,10 +704,11 @@ void FaceElement::computeBasisGrads()
 /** Note that the order of points has to be reversed for the right element.
  * We use lr for this.
  */
-a_real FaceElement::getElementRefCoords(const Matrix& __restrict__ facepoints, const Element *const __restrict__ elem,
-		const int llfn, const int lr, Matrix& __restrict__ dompoints)
+a_real FaceElement::getElementRefCoords(const Matrix& __restrict__ facepoints,
+                                        const Element *const __restrict__ elem,
+                                        const int llfn, const int lr, Matrix& __restrict__ dompoints)
 {
-	int ng = facepoints.rows();
+	const int ng = facepoints.rows();
 #ifdef DEBUG
 	if(ng != dompoints.rows())
 		printf("!  FaceElement: getElementRefCoords: Size mismatch!\n");

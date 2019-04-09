@@ -12,18 +12,18 @@ using namespace amat;
 using namespace std;
 using namespace acfd;
 
-double exactsol(double x, double y) {
-	return sin(PI*x)*sin(PI*y);
-}
-double exactgradx(double x, double y) {
-	return PI*cos(PI*x)*sin(PI*y);
-}
-double exactgrady(double x, double y) {
-	return sin(PI*x)*PI*cos(PI*y);
-}
-double rhs(double x, double y) {
-	return 2.0*PI*PI*sin(PI*x)*sin(PI*y);
-}
+// double exactsol(double x, double y) {
+// 	return sin(PI*x)*sin(PI*y);
+// }
+// double exactgradx(double x, double y) {
+// 	return PI*cos(PI*x)*sin(PI*y);
+// }
+// double exactgrady(double x, double y) {
+// 	return sin(PI*x)*PI*cos(PI*y);
+// }
+// double rhs(double x, double y) {
+// 	return 2.0*PI*PI*sin(PI*x)*sin(PI*y);
+// }
 
 int main(int argc, char* argv[])
 {
@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 	for(int imesh = 0; imesh < nmesh; imesh++)
 	{
 		UMesh2dh m; m.readGmsh2(mfiles[imesh], NDIM); m.compute_topological();
-		LaplaceSIP sd(&m, degree, stab, &rhs, &exactsol, &exactgradx, &exactgrady);
+		LaplaceSIP sd(&m, degree, stab);
 		sd.assemble();
 		sd.solve();
 		std::vector<Matrix> dum;

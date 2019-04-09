@@ -9,14 +9,14 @@
 namespace acfd {
 
 LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, 
-		const Vector vel, const int inoutflag, const int extrapflag, 
-		a_real (*const bounfunc)(const a_real, const a_real))
-	: SpatialBase(mesh, _p_degree, basis), a(vel), inoutflow_flag(inoutflag), 
-		extrapolation_flag(extrapflag), bcfunc(bounfunc)
+                                 const int inoutflag, const int extrapflag)
+	: SpatialBase(mesh, _p_degree, basis), inoutflow_flag(inoutflag), 
+	  extrapolation_flag(extrapflag)
 {
+	a.resize(NDIM,1);
+	a[0] = 1.0; a[1] = 0.0;
+	
 	std::cout << " LinearAdvection: Velocity is (" << a(0) << ", " << a(1) << ")\n";
-	if(a.rows() != NDIM)
-		std::printf("! LinearAdvection: The advection velocity vector does not have dimension %d!\n", NDIM);
 	amag = std::sqrt(a[0]*a[0]+a[1]*a[1]);
 }
 
@@ -29,8 +29,10 @@ void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instat
 		// or impose specified boundary value at each quadrature point
 		const std::vector<Vector>& n = map1d[iface].normal();
 		const Matrix& phypoints = map1d[iface].map();
-		for(size_t ig = 0; ig < n.size(); ig++) {
-			a_real bval = bcfunc(phypoints(ig,0), phypoints(ig,1));
+		for(size_t ig = 0; ig < n.size(); ig++)
+		{
+			const a_real phycoords[] = {phypoints(ig,0), phypoints(ig,1)};
+			a_real bval = bcfunc(phycoords);
 			if(a.dot(n[ig]) >= 0)
 				bstate.row(ig) = instate.row(ig);
 			else
@@ -54,7 +56,8 @@ void LinearAdvection::computeNumericalFlux(
 		flux[0] = adotn*uright[0];
 }
 
-void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets)
+void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<Matrix>& res,
+                                      std::vector<a_real>& mets)
 {
 #pragma omp parallel for default(shared)
 	for(a_int iface = 0; iface < m->gnbface(); iface++)
@@ -119,10 +122,13 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 #pragma omp parallel for default(shared)
 	for(a_int iel = 0; iel < m->gnelem(); iel++)
 	{
-		if(p_degree > 0) {	
+		if(p_degree > 0)
+		{
 			const int ng = map2d[iel].getQuadrature()->numGauss();
 			const int ndofs = elems[iel]->getNumDOFs();
 			const std::vector<Matrix>& bgrads = elems[iel]->bGrad();
+			const Matrix& bas = elems[iel]->bFunc();
+			const Matrix& pts = elems[iel]->getGeometricMapping()->map();
 
 			Matrix xflux(ng, NVARS), yflux(ng, NVARS);
 			elems[iel]->interpolateAll(u[iel], xflux);
@@ -133,9 +139,17 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 			for(int ig = 0; ig < ng; ig++)
 			{
 				const a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
+
+				// add flux
 				for(int ivar = 0; ivar < NVARS; ivar++)
 					for(int idof = 0; idof < ndofs; idof++)
-						term(ivar,idof) += (xflux(ig,ivar)*bgrads[ig](idof,0) + yflux(ig,ivar)*bgrads[ig](idof,1)) * weightjacdet;
+						term(ivar,idof) += (xflux(ig,ivar)*bgrads[ig](idof,0)
+						                    + yflux(ig,ivar)*bgrads[ig](idof,1)) * weightjacdet;
+
+				// add source term
+				const a_real ptcoords[] = {pts(ig,0), pts(ig,1)};
+				for(int idof = 0; idof < ndofs; idof++)
+					term(0,idof) += source_term(ptcoords,0) * bas(ig,idof) * weightjacdet;
 			}
 
 			res[iel] -= term;
@@ -152,27 +166,29 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 	}
 }
 
-void LinearAdvection::add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t, std::vector<Matrix>& res)
-{
-#pragma omp parallel for default(shared)
-	for(a_int iel = 0; iel < m->gnelem(); iel++)
-	{
-		const int ng = map2d[iel].getQuadrature()->numGauss();
-		const int ndofs = elems[iel]->getNumDOFs();
-		const Matrix& bas = elems[iel]->bFunc();
-		const Matrix& pts = elems[iel]->getGeometricMapping()->map();
-		Matrix term = Matrix::Zero(NVARS, ndofs);
+// void LinearAdvection::add_source( a_real (*const rhs)(a_real, a_real, a_real),
+//                                   std::vector<Matrix>& res)
+// {
+// 	//#pragma omp parallel for default(shared)
+// 	for(a_int iel = 0; iel < m->gnelem(); iel++)
+// 	{
+// 		const int ng = map2d[iel].getQuadrature()->numGauss();
+// 		const int ndofs = elems[iel]->getNumDOFs();
+// 		const Matrix& bas = elems[iel]->bFunc();
+// 		const Matrix& pts = elems[iel]->getGeometricMapping()->map();
+// 		Matrix term = Matrix::Zero(NVARS, ndofs);
 
-		for(int ig = 0; ig < ng; ig++)
-		{
-			const a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
-			for(int idof = 0; idof < ndofs; idof++)
-				term(0,idof) += rhs(pts(ig,0),pts(ig,1),t) * bas(ig,idof) * weightjacdet;
-		}
+// 		for(int ig = 0; ig < ng; ig++)
+// 		{
+// 			const a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
+// 			const a_real ptcoords[] = {pts(ig,0), pts(ig,1)};
+// 			for(int idof = 0; idof < ndofs; idof++)
+// 				term(0,idof) += source_term(ptcoords,t) * bas(ig,idof) * weightjacdet;
+// 		}
 
-		res[iel] -= term;
-	}
-}
+// 		res[iel] -= term;
+// 	}
+// }
 
 // very crude
 void LinearAdvection::postprocess(const std::vector<Matrix>& u)
@@ -214,6 +230,11 @@ void LinearAdvection::postprocess(const std::vector<Matrix>& u)
 	}
 	for(int ip = 0; ip < m->gnpoin(); ip++)
 		output(ip) /= (a_real)surelems[ip];
+}
+
+a_real LinearAdvection::exact_solution(const a_real r[NDIM], const a_real t) const
+{
+	return sin(2*PI*r[1]);
 }
 
 }

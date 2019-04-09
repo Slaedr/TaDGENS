@@ -17,26 +17,6 @@ using namespace amat;
 using namespace std;
 using namespace acfd;
 
-const double a0 = 1.0, a1 = 0.0;
-
-// exact solution - sin in x
-/*double exactsol(double x, double y, double t) {
-	return 1.0+sin( 2*PI/3.0*(x+1.5));
-}
-// and corresponding RHS
-double rhs(double x, double y, double t) {
-	return 2*PI/3.0 * cos( 2*PI/3.0*(x+1.5));
-}*/
-
-double exactsol(double x, double y, double t) {
-	return sin(2*PI*y);
-}
-// corresponding boundary distribution
-a_real bcfunc(const a_real x, const a_real y)
-{
-	return std::sin(2*PI*y);
-}
-
 int main(int argc, char* argv[])
 {
 	if(argc < 2)
@@ -88,17 +68,15 @@ int main(int argc, char* argv[])
 		const double hhactual = m.meshSizeParameter();
 		printf("Mesh %d: h = %f\n", imesh, hhactual);
 
-		Vector a(2); a[0] = a0; a[1] = a1;
-		LinearAdvection sd(&m, sdegree, basistype, a, inoutflag, extrapflag, bcfunc);
+		LinearAdvection sd(&m, sdegree, basistype, inoutflag, extrapflag);
 		const double hh = 1.0/sqrt(sd.numTotalDOFs());
 		
-		SteadyExplicit<1> td(&m, &sd, cfl, tol, maxits, false);
-		//td.set_source(rhs);
+		SteadyExplicit<1> td(&m, &sd, cfl, tol, maxits);
 		
 		td.integrate();
 
 		sd.postprocess(td.solution());
-		l2err[imesh] = sd.computeL2Error(exactsol, 0, td.solution());
+		l2err[imesh] = sd.computeL2Error(0, td.solution());
 		
 		l2err[imesh] = log10(l2err[imesh]);
 		h[imesh] = log10(hh);

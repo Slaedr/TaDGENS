@@ -49,23 +49,6 @@ protected:
 	amat::Array2d<a_real> scalars;				///< Holds scalar variables for each mesh point
 	amat::Array2d<a_real> velocities;			///< Holds velocity components for each mesh point
 
-	/* Reconstruction-related stuff - currently not implemented
-	//Reconstruction* rec;						///< Reconstruction context
-	//FaceDataComputation* lim;					///< Limiter context
-
-	// Ghost cell centers
-	amat::Array2d<a_real> ghc;
-
-	/// Ghost elements' flow quantities
-	std::vector<Vector> ug;
-
-	/// computes ghost cell centers assuming symmetry about the midpoint of the boundary face
-	void compute_ghost_cell_coords_about_midpoint();
-
-	/// computes ghost cell centers assuming symmetry about the face
-	void compute_ghost_cell_coords_about_face();
-	*/
-
 	/// Sets up geometric maps, elements and mass matrices 
 	void computeFEData();
 	
@@ -73,10 +56,16 @@ protected:
 	/** \param[in] comp The index of the row of ug whose error is to be computed
 	 */
 	a_real computeElemL2Error2(const int ielem, const int comp, const Matrix& ug, 
-			a_real (* const exact)(a_real, a_real, a_real), const double time) const;
+			const double time) const;
 
 	/// Computes the L2 norm of a FE function on an element
 	a_real computeElemL2Norm2(const int ielem, const Vector& ug) const;
+
+	/// Intended to provide a test source term for a verification case
+	/** This does not need to be virtual as it will only be used in derived classes.
+	 * The implemenatation in this base class does nothing.
+	 */
+	a_real source_term(const a_real position[NDIM], const a_real time) const;
 
 public:
 	/// Constructor
@@ -108,28 +97,27 @@ public:
 	                             std::vector<Matrix>& res, 
 	                             std::vector<a_real>& mets) = 0;
 
-	/// Adds source term contribution to residual
-	/** As implemented in this class, does nothing.
-	 */
-	virtual void add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t, std::vector<Matrix>& res);
-
 	/// Compute quantities to export
 	virtual void postprocess(const std::vector<Matrix>& u) = 0;
 
 	/// Read-only access to output quantities
 	virtual const amat::Array2d<a_real>& getOutput() const = 0;
 
+	/// Intended to provide the exact solution for a verification case
+	virtual a_real exact_solution(const a_real position[NDIM], const a_real time) const;
+
 	/// Computes the norm of the difference between a FE solution and an analytically defined function
-	a_real computeL2Error(double (*const exact)(double,double,double), const double time, 
-			const std::vector<Matrix>& u) const;
+	/** \param exact A function that takes (x,y,t) and returns the solution at that point
+	 */
+	a_real computeL2Error(const double time, const std::vector<Matrix>& u) const;
 
 	/// Sets initial conditions using a function describing a variable
 	void setInitialConditionNodal( const int comp, double (**const init)(a_real, a_real), 
-			std::vector<Matrix>& u);
+	                               std::vector<Matrix>& u);
 
 	/// Sets initial conditions using functions for a variable and its space derivatives
 	void setInitialConditionModal( const int comp, double (**const init)(a_real, a_real), 
-			std::vector<Matrix>& u);
+	                               std::vector<Matrix>& u);
 };
 
 }	// end namespace

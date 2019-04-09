@@ -19,29 +19,8 @@ namespace acfd {
  */
 class LaplaceSIP : public SpatialBase<1>
 {
-protected:
-	a_real nu;											///< Diffusivity
-	a_real eta;											///< Penalty
-	a_real (*const rhs)(a_real, a_real);				///< forcing function
-	a_real (*const exact)(a_real, a_real);              ///< Exact solution
-	a_real (*const exactgradx)(a_real, a_real);			///< Exact x-derivative of exact solution
-	a_real (*const exactgrady)(a_real, a_real);			///< Exact y-derivative of exact solution
-	int dirichlet_id;									///< Boundary marker for Dirichlet boundary
-	int neumann_id;										///< Boundary marker for homogeneous Neumann boundary
-	a_real dirichlet_value;								///< Dirichlet boundary value
-	std::vector<a_int> dirdofflags;						///< Binary flag for each DOF, identifying as lying on a Dirichlet boundary or not
-	a_int ndirdofs;										///< Number of Dirichlet DOFs
-	a_real cbig;										///< Penalty for Dirichlet condition
-
-	Eigen::SparseMatrix<a_real> Ag;						///< Global left hand side matrix
-	Vector bg;											///< Global load vector
-	Vector ug;											///< 'Global' solution vector
-	amat::Array2d<a_real> output;						///< Output array for plotting
-
 public:
-	LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real stab_param,
-			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real), 
-			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_grady)(a_real,a_real));
+	LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real stab_param);
 
 	void assemble();
 	void solve();
@@ -59,6 +38,32 @@ public:
 	                     std::vector<Matrix>& res, 
 	                     std::vector<a_real>& mets)
 	{ }
+
+	/// provide the exact solution for a verification case
+	a_real exact_solution(const a_real position[NDIM], const a_real time) const;
+
+protected:
+	a_real nu;											///< Diffusivity
+	a_real eta;											///< Penalty
+	int dirichlet_id;									///< Boundary marker for Dirichlet boundary
+	int neumann_id;										///< Boundary marker for homogeneous Neumann boundary
+	a_real dirichlet_value;								///< Dirichlet boundary value
+	/// Binary flag for each DOF, identifying as lying on a Dirichlet boundary or not
+	std::vector<a_int> dirdofflags;						
+	a_int ndirdofs;										///< Number of Dirichlet DOFs
+	a_real cbig;										///< Penalty for Dirichlet condition
+
+	Eigen::SparseMatrix<a_real> Ag;						///< Global left hand side matrix
+	Vector bg;											///< Global load vector
+	Vector ug;											///< 'Global' solution vector
+	amat::Array2d<a_real> output;						///< Output array for plotting
+
+	/// provide a test source term for a verification case
+	a_real source_term(const a_real position[NDIM], const a_real time) const;
+	/// Exact gradient x
+	a_real exactgradx(const a_real r[NDIM]) const;
+	/// Exact gradient y
+	a_real exactgrady(const a_real r[NDIM]) const;
 };
 
 }	// end namespace

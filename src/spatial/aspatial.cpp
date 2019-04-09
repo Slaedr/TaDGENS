@@ -12,7 +12,8 @@ template <short nvars>
 SpatialBase<nvars>::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char basistype)
 	: m(mesh), p_degree(_p_degree), basis_type(basistype)
 {
-	std::cout << " SpatialBase: Setting up spatal integrator for FE polynomial degree " << p_degree << std::endl;
+	std::cout << " SpatialBase: Setting up spatal integrator for FE polynomial degree " << p_degree
+	          << std::endl;
 
 	// set quadrature strength
 	//int dom_quaddegree = 2*p_degree + m->degree()-1;
@@ -21,7 +22,8 @@ SpatialBase<nvars>::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char 
 	int boun_quaddegree = 2*p_degree;
 	if(dom_quaddegree == 0) dom_quaddegree = 1;
 	if(boun_quaddegree == 0) boun_quaddegree = 1;
-	std::cout << " SpatialBase: Quadrature strengths for domain and boundary integrals set at " << dom_quaddegree << ", " << boun_quaddegree << std::endl;
+	std::cout << " SpatialBase: Quadrature strengths for domain and boundary integrals set at "
+	          << dom_quaddegree << ", " << boun_quaddegree << std::endl;
 
 	dtquad = new Quadrature2DTriangle();
 	dtquad->initialize(dom_quaddegree);
@@ -100,12 +102,14 @@ void SpatialBase<nvars>::computeFEData()
 			a_real weightandjdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
 			for(int idof = 0; idof < elems[iel]->getNumDOFs(); idof++)
 				for(int jdof = 0; jdof < elems[iel]->getNumDOFs(); jdof++)
-					minv[iel](idof,jdof) += elems[iel]->bFunc()(ig,idof)*elems[iel]->bFunc()(ig,jdof) * weightandjdet;
+					minv[iel](idof,jdof) += elems[iel]->bFunc()(ig,idof)*elems[iel]->bFunc()(ig,jdof)
+						* weightandjdet;
 		}
 
 		minv[iel] = minv[iel].inverse().eval();
 
-		/** \note Computation of physical coordinates of domain quadrature points is required separately for Lagrange elements
+		/** \note Computation of physical coordinates of domain quadrature points
+		 * is required separately for Lagrange elements
 		 * only for the purpose of computing source term contributions and errors.
 		 */
 		if(basis_type == 'l')
@@ -127,7 +131,8 @@ void SpatialBase<nvars>::computeFEData()
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
 		map1d[iface].computeAll();
 
-		faces[iface].initialize(elems[lelem], dummyelem, &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
+		faces[iface].initialize(elems[lelem], dummyelem, &map1d[iface],
+		                        m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
 	}
 
 	for(int iface = m->gnbface(); iface < m->gnaface(); iface++)
@@ -142,17 +147,21 @@ void SpatialBase<nvars>::computeFEData()
 		map1d[iface].setAll(m->degree(), phynodes, bquad);
 		map1d[iface].computeAll();
 
-		faces[iface].initialize(elems[lelem], elems[relem], &map1d[iface], m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
-		/*std::cout << "  SpatialBase: facelocalnum: L elem " << lelem+m->gnface()+1 << ", R elem " << relem+m->gnface()+1
-			<< ": " << m->gfacelocalnum(iface,0) << ", " << m->gfacelocalnum(iface,1) << std::endl;*/
+		faces[iface].initialize(elems[lelem], elems[relem], &map1d[iface],
+		                        m->gfacelocalnum(iface,0), m->gfacelocalnum(iface,1));
+		/*std::cout << "  SpatialBase: facelocalnum: L elem " << lelem+m->gnface()+1 << ", R elem "
+		  << relem+m->gnface()+1
+		  << ": " << m->gfacelocalnum(iface,0) << ", " << m->gfacelocalnum(iface,1) << std::endl;*/
 	}
 
-	std::cout << " SpatialBase: computeFEData: Mesh degree = " << m->degree() << ", geom map degee = " << map2d[0].getDegree()
-		 << ", element degree = " << elems[0]->getDegree() << std::endl;
+	std::cout << " SpatialBase: computeFEData: Mesh degree = " << m->degree()
+	          << ", geom map degee = " << map2d[0].getDegree()
+	          << ", element degree = " << elems[0]->getDegree() << std::endl;
 }
 
 template <short nvars>
-void SpatialBase<nvars>::spatialSetup(std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets)
+void SpatialBase<nvars>::spatialSetup(std::vector<Matrix>& u, std::vector<Matrix>& res,
+                                      std::vector<a_real>& mets)
 {
 	computeFEData();
 	
@@ -213,7 +222,7 @@ a_real SpatialBase<nvars>::computeL2Norm(const std::vector<Matrix> w, const int 
 
 template <short nvars>
 a_real SpatialBase<nvars>::computeElemL2Error2(const int ielem, const int comp,
-	const Matrix& __restrict__ ug, a_real (* const exact)(a_real, a_real, a_real), const double time) const
+                                               const Matrix& __restrict__ ug, const double time) const
 {
 	int ndofs = elems[ielem]->getNumDOFs();
 	a_real l2error = 0;
@@ -231,25 +240,27 @@ a_real SpatialBase<nvars>::computeElemL2Error2(const int ielem, const int comp,
 		for(int j = 0; j < ndofs; j++) {
 			lu += ug(comp,j)*bfunc(ig,j);
 		}
-		l2error += std::pow(lu-exact(qp(ig,0),qp(ig,1),time),2) * wts(ig) * gmap->jacDet()[ig];
+		const a_real coords[] = {qp(ig,0),qp(ig,1)};
+		l2error += std::pow(lu-exact_solution(coords,time),2) * wts(ig) * gmap->jacDet()[ig];
 	}
 
 	return l2error;
 }
 
 template <short nvars>
-a_real SpatialBase<nvars>::computeL2Error(double (*const exact)(double,double,double), const double time, const std::vector<Matrix>& u) const
+a_real SpatialBase<nvars>::computeL2Error(const double time, const std::vector<Matrix>& u) const
 {
 	double l2error = 0;
 	for(int iel = 0; iel < m->gnelem(); iel++)
 	{
-		l2error += computeElemL2Error2(iel, 0, u[iel], exact, time);
+		l2error += computeElemL2Error2(iel, 0, u[iel], time);
 	}
 	return sqrt(l2error);
 }
 
 template <short nvars>
-void SpatialBase<nvars>::setInitialConditionNodal(const int comp, double (**const init)(a_real, a_real), std::vector<Matrix>& u)
+void SpatialBase<nvars>::setInitialConditionNodal(const int comp, double (**const init)(a_real, a_real),
+                                                  std::vector<Matrix>& u)
 {
 	if(basis_type != 'l') {
 		printf("!  SpatialBase: setInitialConditionNodal: Not nodal basis!\n");
@@ -268,7 +279,8 @@ void SpatialBase<nvars>::setInitialConditionNodal(const int comp, double (**cons
 }
 
 template <short nvars>
-void SpatialBase<nvars>::setInitialConditionModal(const int comp, double (**const init)(a_real, a_real), std::vector<Matrix>& u)
+void SpatialBase<nvars>::setInitialConditionModal(const int comp, double (**const init)(a_real, a_real),
+                                                  std::vector<Matrix>& u)
 {
 	if(basis_type != 't') {
 		printf("!  SpatialBase: setInitialConditionModal: Not Taylor basis!\n");
@@ -294,7 +306,16 @@ void SpatialBase<nvars>::setInitialConditionModal(const int comp, double (**cons
 }
 
 template <short nvars>
-void SpatialBase<nvars>::add_source( a_real (*const rhs)(a_real, a_real, a_real), a_real t, std::vector<Matrix>& res) { }
+a_real SpatialBase<nvars>::source_term(const a_real r[NDIM], const a_real t) const
+{
+	return 0;
+}
+
+template <short nvars>
+a_real SpatialBase<nvars>::exact_solution(const a_real r[NDIM], const a_real t) const
+{
+	return 0;
+}
 
 template class SpatialBase<1>;
 
