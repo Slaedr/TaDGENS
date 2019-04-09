@@ -30,5 +30,8 @@ target_link_libraries(solvers spatial)
 add_executable(grid_conv_steady utilities/grid_conv_steady.cpp)
 target_link_libraries(grid_conv_steady solvers spatial_advection spatial_poisson)
 
+add_executable(grid_conv_poissonsip poissonSIP.cpp)
+target_link_libraries(grid_conv_poissonsip solvers spatial_poisson)
+
 #add_executable(grid_conv_unsteady utilities/grid_conv_steady.cpp)
 #target_link_libraries(grid_conv_unsteady tadgens_core)

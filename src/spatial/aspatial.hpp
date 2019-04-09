@@ -105,8 +105,8 @@ public:
 
 	/// Calls functions to add contribution to the RHS, and also compute max time steps
 	virtual void update_residual(const std::vector<Matrix>& u, 
-			std::vector<Matrix>& res, 
-			std::vector<a_real>& mets) = 0;
+	                             std::vector<Matrix>& res, 
+	                             std::vector<a_real>& mets) = 0;
 
 	/// Adds source term contribution to residual
 	/** As implemented in this class, does nothing.

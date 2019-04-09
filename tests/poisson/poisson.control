@@ -1,11 +1,13 @@
 -number-of-meshes
 3
 -Mesh-prefix
-../testcases/poisson-square/grids/square
+grids/square
+-Output-VTU-prefix
+square
 -output-file-for-convergence
-../testcases/poisson-square/errors.txt
+errors-p1.txt
 -polynomial-degree-of-computed-solution
-2
+1
 -stabilization-parameter
-5.0
+10.0
 

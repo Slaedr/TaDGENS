@@ -4,8 +4,9 @@
  * @date 2017 April 11
  */
 
-#include "aspatialpoisson.hpp"
-#include "aoutput.hpp"
+#undef NDEBUG
+#include "spatial/aspatialpoisson.hpp"
+#include "spatial/aoutput.hpp"
 
 using namespace amat;
 using namespace std;
@@ -35,12 +36,13 @@ int main(int argc, char* argv[])
 	// Read control file
 	ifstream control(argv[1]);
 
-	string dum, meshprefix, outf;
+	string dum, meshprefix, outprefix, outf;
 	double stab;
 	int degree, nmesh;
 
 	control >> dum; control >> nmesh;
 	control >> dum; control >> meshprefix;
+	control >> dum; control >> outprefix;
 	control >> dum; control >> outf;
 	control >> dum; control >> degree;
 	control >> dum; control >> stab;
@@ -52,20 +54,23 @@ int main(int argc, char* argv[])
 
 	for(int i = 0; i < nmesh; i++) {
 		mfiles[i] = meshprefix + to_string(i) + ".msh";
-		sfiles[i] = meshprefix + to_string(i) + "-SIP.vtu";
+		sfiles[i] = outprefix + to_string(i) + "-SIP.vtu";
 	}
 
 	for(int imesh = 0; imesh < nmesh; imesh++)
 	{
 		UMesh2dh m; m.readGmsh2(mfiles[imesh], NDIM); m.compute_topological();
 		LaplaceSIP sd(&m, degree, stab, &rhs, &exactsol, &exactgradx, &exactgrady);
+		sd.assemble();
 		sd.solve();
-		sd.postprocess();
+		std::vector<Matrix> dum;
+		sd.postprocess(dum);
 		sd.computeErrors(l2err[imesh], siperr[imesh]);
 		
 		l2err[imesh] = log10(l2err[imesh]); siperr[imesh] = log10(siperr[imesh]);
 		h[imesh] = log10(sqrt(1.0/m.gnelem()));
-		printf("Mesh %d: Log mesh size = %f, log L2 error = %f, log SIP error = %f\n", imesh, h[imesh], l2err[imesh], siperr[imesh]);
+		printf("Mesh %d: Log mesh size = %f, log L2 error = %f, log SIP error = %f\n",
+		       imesh, h[imesh], l2err[imesh], siperr[imesh]);
 
 		const Array2d<a_real>& u = sd.getOutput();
 		Array2d<a_real> vecs;
@@ -77,9 +82,11 @@ int main(int argc, char* argv[])
 		convf << h[i] << " " << l2err[i] << " " << siperr[i] << "\n";
 	convf.close();
 	if(nmesh > 1) {
-		double l2slope = (l2err[nmesh-1]-l2err[nmesh-2])/(h[nmesh-1]-h[nmesh-2]);
-		double sipslope = (siperr[nmesh-1]-siperr[nmesh-2])/(h[nmesh-1]-h[nmesh-2]);
-		printf("L2 slope = %f, SIP slope = %f\n", l2slope, sipslope);
+		const double l2slope = (l2err[nmesh-1]-l2err[nmesh-2])/(h[nmesh-1]-h[nmesh-2]);
+		const double sipslope = (siperr[nmesh-1]-siperr[nmesh-2])/(h[nmesh-1]-h[nmesh-2]);
+		printf("L2 slope = %f, SIP slope = %f\n", l2slope, sipslope); fflush(stdout);
+		assert(l2slope > 1.8);
+		assert(l2slope < 2.2);
 	}
 
 	printf("---\n\n");
