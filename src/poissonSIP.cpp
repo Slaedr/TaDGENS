@@ -77,10 +77,10 @@ int main(int argc, char* argv[])
 		writeScalarsVectorToVtu_PointData(sfiles[imesh], m, u, names, vecs, "none");
 	}
 
-	ofstream convf(outf);
-	for(int i = 0; i < nmesh; i++)
-		convf << h[i] << " " << l2err[i] << " " << siperr[i] << "\n";
-	convf.close();
+	// ofstream convf(outf);
+	// for(int i = 0; i < nmesh; i++)
+	// 	convf << h[i] << " " << l2err[i] << " " << siperr[i] << "\n";
+	// convf.close();
 	if(nmesh > 1) {
 		const double l2slope = (l2err[nmesh-1]-l2err[nmesh-2])/(h[nmesh-1]-h[nmesh-2]);
 		const double sipslope = (siperr[nmesh-1]-siperr[nmesh-2])/(h[nmesh-1]-h[nmesh-2]);

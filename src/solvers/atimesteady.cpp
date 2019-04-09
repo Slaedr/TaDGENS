@@ -8,8 +8,7 @@
 
 namespace acfd {
 
-template <short nvars>
-SteadyBase<nvars>::SteadyBase(const UMesh2dh *const mesh, SpatialBase<nvars>* s,
+SteadyBase::SteadyBase(const UMesh2dh *const mesh, SpatialBase *const s,
                               a_real cflnumber, double toler, int max_iter)
 	: m(mesh), spatial(s), cfl(cflnumber), tol(toler), maxiter(max_iter)
 {
@@ -27,15 +26,13 @@ SteadyBase<nvars>::SteadyBase(const UMesh2dh *const mesh, SpatialBase<nvars>* s,
 	}
 }
 
-template <short nvars>
-SteadyExplicit<nvars>::SteadyExplicit(const UMesh2dh*const mesh, SpatialBase<nvars>* s,
+SteadyExplicit::SteadyExplicit(const UMesh2dh*const mesh, SpatialBase *const s,
                                       a_real cflnumber, double toler, int max_iter)
-	: SteadyBase<nvars>(mesh, s, cflnumber, toler, max_iter)
+	: SteadyBase(mesh, s, cflnumber, toler, max_iter)
 {
 }
 
-template <short nvars>
-void SteadyExplicit<nvars>::integrate()
+void SteadyExplicit::integrate()
 {
 	int step = 0;
 	double relresnorm = 1.0, resnorm0 = 1.0;
@@ -69,7 +66,5 @@ void SteadyExplicit<nvars>::integrate()
 
 	std::printf(" SteadyExplicit: integrate: Total steps %d, final rel res = %e\n", step, relresnorm);
 }
-
-template class SteadyExplicit<1>;
 
 }

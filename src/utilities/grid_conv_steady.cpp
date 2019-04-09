@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 		LinearAdvection sd(&m, sdegree, basistype, inoutflag, extrapflag);
 		const double hh = 1.0/sqrt(sd.numTotalDOFs());
 		
-		SteadyExplicit<1> td(&m, &sd, cfl, tol, maxits);
+		SteadyExplicit td(&m, &sd, cfl, tol, maxits);
 		
 		td.integrate();
 

@@ -30,13 +30,13 @@ else()
   add_custom_target(steadyadvection_meshes DEPENDS ${steadyadvection_tri_meshfiles})
   add_dependencies(grid_conv_steady steadyadvection_meshes)
 
-  add_test(NAME SteadyAdvection_SolutionConvergence_Lagrange_P2
+  add_test(NAME SteadyAdvection_SolutionConvergence_Lagrange_P1
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	COMMAND ${SEQEXEC} ${SEQTASKS} ${CMAKE_BINARY_DIR}/grid_conv_steady
 	${CMAKE_CURRENT_BINARY_DIR}/advect-l.control
 	)
   
-  add_test(NAME SteadyAdvection_SolutionConvergence_Taylor_P2
+  add_test(NAME SteadyAdvection_SolutionConvergence_Taylor_P1
   	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   	COMMAND ${SEQEXEC} ${SEQTASKS} ${CMAKE_BINARY_DIR}/grid_conv_steady
   	${CMAKE_CURRENT_BINARY_DIR}/advect-t.control

@@ -17,7 +17,7 @@ namespace acfd {
 /** \note Strong boundary conditions, hence only nodal basis!
  * Currently only Dirichlet boundaries.
  */
-class LaplaceSIP : public SpatialBase<1>
+class LaplaceSIP : public SpatialBase
 {
 public:
 	LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, a_real stab_param);

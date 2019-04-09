@@ -1,5 +1,6 @@
 configure_file(advect-l-p1.control advect-l-p1.control)
 configure_file(advect-l-p2.control advect-l-p2.control)
+configure_file(advect-t-p2.control advect-t-p2.control)
 
 if(${GMSH_EXEC} STREQUAL "GMSH_EXEC-NOTFOUND")
   message(WARNING "Steady advection test not built because Gmsh was not found")
@@ -59,6 +60,11 @@ else()
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	COMMAND ${SEQEXEC} ${SEQTASKS} ${CMAKE_BINARY_DIR}/grid_conv_steady
 	${CMAKE_CURRENT_BINARY_DIR}/advect-l-p2.control
+	)
+  add_test(NAME SteadyAdvectionEllipseOutflow_SolutionConvergence_Taylor_P2
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	COMMAND ${SEQEXEC} ${SEQTASKS} ${CMAKE_BINARY_DIR}/grid_conv_steady
+	${CMAKE_CURRENT_BINARY_DIR}/advect-t-p2.control
 	)
 
 endif()

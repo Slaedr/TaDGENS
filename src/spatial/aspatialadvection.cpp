@@ -11,7 +11,7 @@ namespace acfd {
 LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, 
                                  const int inoutflag, const int extrapflag)
 	: SpatialBase(mesh, _p_degree, basis), inoutflow_flag(inoutflag), 
-	  extrapolation_flag(extrapflag)
+	  extrapolation_flag(extrapflag), nvars{1}
 {
 	a.resize(NDIM,1);
 	a[0] = 1.0; a[1] = 0.0;
@@ -67,8 +67,8 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 		const std::vector<Vector>& n = map1d[iface].normal();
 		const Matrix& lbasis = faces[iface].leftBasis();
 
-		Matrix linterps(ng,NVARS), rinterps(ng,NVARS);
-		Matrix fluxes(ng,NVARS);
+		Matrix linterps(ng,nvars), rinterps(ng,nvars);
+		Matrix fluxes(ng,nvars);
 		
 		faces[iface].interpolateAll_left(u[lelem], linterps);
 		computeBoundaryState(iface, linterps, rinterps);
@@ -79,7 +79,7 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 
 			computeNumericalFlux(&linterps(ig,0), &rinterps(ig,0), &n[ig](0), &fluxes(ig,0));
 
-			for(int ivar = 0; ivar < NVARS; ivar++) {
+			for(int ivar = 0; ivar < nvars; ivar++) {
 				for(int idof = 0; idof < elems[lelem]->getNumDOFs(); idof++)
 					res[lelem](ivar,idof) += fluxes(ig,ivar) * lbasis(ig,idof) * weightandsp;
 			}
@@ -96,8 +96,8 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 		const Matrix& lbasis = faces[iface].leftBasis();
 		const Matrix& rbasis = faces[iface].rightBasis();
 
-		Matrix linterps(ng,NVARS), rinterps(ng,NVARS);
-		Matrix fluxes(ng,NVARS);
+		Matrix linterps(ng,nvars), rinterps(ng,nvars);
+		Matrix fluxes(ng,nvars);
 		
 		faces[iface].interpolateAll_left(u[lelem], linterps);
 		faces[iface].interpolateAll_right(u[relem], rinterps);
@@ -108,7 +108,7 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 
 			computeNumericalFlux(&linterps(ig,0), &rinterps(ig,0), &n[ig](0), &fluxes(ig,0));
 
-			for(int ivar = 0; ivar < NVARS; ivar++) {
+			for(int ivar = 0; ivar < nvars; ivar++) {
 				for(int idof = 0; idof < elems[lelem]->getNumDOFs(); idof++)
 #pragma omp atomic update
 					res[lelem](ivar,idof) += fluxes(ig,ivar) * lbasis(ig,idof) * weightandsp;
@@ -130,18 +130,18 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 			const Matrix& bas = elems[iel]->bFunc();
 			const Matrix& pts = elems[iel]->getGeometricMapping()->map();
 
-			Matrix xflux(ng, NVARS), yflux(ng, NVARS);
+			Matrix xflux(ng, nvars), yflux(ng, nvars);
 			elems[iel]->interpolateAll(u[iel], xflux);
 			yflux = a[1]*xflux;
 			xflux *= a[0];
-			Matrix term = Matrix::Zero(NVARS, ndofs);
+			Matrix term = Matrix::Zero(nvars, ndofs);
 
 			for(int ig = 0; ig < ng; ig++)
 			{
 				const a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
 
 				// add flux
-				for(int ivar = 0; ivar < NVARS; ivar++)
+				for(int ivar = 0; ivar < nvars; ivar++)
 					for(int idof = 0; idof < ndofs; idof++)
 						term(ivar,idof) += (xflux(ig,ivar)*bgrads[ig](idof,0)
 						                    + yflux(ig,ivar)*bgrads[ig](idof,1)) * weightjacdet;
@@ -176,7 +176,7 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 // 		const int ndofs = elems[iel]->getNumDOFs();
 // 		const Matrix& bas = elems[iel]->bFunc();
 // 		const Matrix& pts = elems[iel]->getGeometricMapping()->map();
-// 		Matrix term = Matrix::Zero(NVARS, ndofs);
+// 		Matrix term = Matrix::Zero(nvars, ndofs);
 
 // 		for(int ig = 0; ig < ng; ig++)
 // 		{

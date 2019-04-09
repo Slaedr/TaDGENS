@@ -12,14 +12,14 @@
 namespace acfd {
 	
 /// TVD RK explicit time stepping
-/** The initial condition must be specified in the spatial discretization context [elsewhere](@ref SpatialBase::setInitialConditionModal).
+/** The initial condition must be specified in the spatial discretization context
+ * [elsewhere](@ref SpatialBase::setInitialConditionModal).
  */
-template <short nvars>
 class SteadyBase
 {
 protected:
 	const UMesh2dh *const m;						///< Mesh context
-	SpatialBase<nvars>* spatial;					///< Spatial discretization context
+	SpatialBase *const spatial;                     ///< Spatial discretization context
 
 	std::vector<Matrix> R;							///< Residuals
 
@@ -29,7 +29,8 @@ protected:
 	std::vector<Matrix> u;
 
 	/// Maximum allowable explicit time step for each element
-	/** For Euler, stores (for each elem i) Vol(i) / \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, 
+	/** For Euler, stores (for each elem i)
+	 *   Vol(i) / \f$ \sum_{j \in \partial\Omega_I} \int_j( |v_n| + c) d \Gamma \f$, 
 	 * where v_n and c are average values of the cell faces
 	 */
 	std::vector<a_real> tsl;
@@ -40,7 +41,7 @@ protected:
 	int maxiter;									///< Max number of iterations
 
 public:
-	SteadyBase(const UMesh2dh*const mesh, SpatialBase<nvars>* s,
+	SteadyBase(const UMesh2dh*const mesh, SpatialBase* s,
 	           a_real cflnumber, double toler, int max_iter);
 	
 	/// Read-only access to solution
@@ -53,19 +54,8 @@ public:
 };
 
 /// Explicit forward-Euler scheme with local time stepping
-template <short nvars>
-class SteadyExplicit : public SteadyBase<nvars>
+class SteadyExplicit : public SteadyBase
 {
-	using SteadyBase<nvars>::m;
-	using SteadyBase<nvars>::spatial;
-	using SteadyBase<nvars>::R;
-	using SteadyBase<nvars>::u;
-	using SteadyBase<nvars>::tsl;
-	using SteadyBase<nvars>::order;
-	using SteadyBase<nvars>::cfl;
-	using SteadyBase<nvars>::tol;
-	using SteadyBase<nvars>::maxiter;
-
 public:
 	/** \param[in] mesh The mesh context
 	 * \param[in] s The spatial discretization context
@@ -73,7 +63,7 @@ public:
 	 * \param[in] toler Tolerance for the relative residual
 	 * \param[in] max_iter Maximum number of iterations
 	 */
-	SteadyExplicit(const UMesh2dh*const mesh, SpatialBase<nvars>* s,
+	SteadyExplicit(const UMesh2dh*const mesh, SpatialBase *const s,
 	               a_real cflnumber, double toler, int max_iter);
 
 	/// Carries out the time stepping process

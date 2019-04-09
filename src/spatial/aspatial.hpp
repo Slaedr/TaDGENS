@@ -20,11 +20,9 @@ namespace acfd {
 /// Base class for spatial discretization and integration of weak forms of PDEs
 /**
  * Provides residual computation, and potentially residual Jacobian evaluation, interface for all solvers.
- * The template parameter nvars is the number of variables in the PDE system.
  * \note Make sure compute_topological() has been called on the mesh object prior to initialzing 
  * an object of any subclass.
  */
-template <short nvars>
 class SpatialBase
 {
 protected:
@@ -80,7 +78,8 @@ public:
 	/** Compute all finite element data, including mass matrix, 
 	 * and allocates solution, residual and time-step arrays
 	 */
-	void spatialSetup(std::vector<Matrix>& u, std::vector<Matrix>& res, std::vector<a_real>& mets);
+	virtual void spatialSetup(std::vector<Matrix>& u, std::vector<Matrix>& res,
+	                          std::vector<a_real>& mets);
 
 	/// Computes L2 norm of the the specified component of some vector quantity w
 	a_real computeL2Norm(const std::vector<Matrix> w, const int comp) const;

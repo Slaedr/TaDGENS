@@ -7,8 +7,6 @@
 #ifndef ASPATIALADVECTION_H
 #define ASPATIALADVECTION_H
 
-#define NVARS 1
-
 #include "aspatial.hpp"
 
 namespace acfd {
@@ -19,7 +17,7 @@ namespace acfd {
  *
  * If the ODE is \f$ \frac{du}{dt} + R(u) = 0 \f$, [res](@ref res) holds \f$ R \f$.
  */
-class LinearAdvection : public SpatialBase<1>
+class LinearAdvection : public SpatialBase
 {
 public:
 	LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis,
@@ -46,6 +44,8 @@ protected:
 	int inoutflow_flag;						///< Boundary flag at faces where inflow or outflow is required
 	int extrapolation_flag;					///< Boundary flag for extrapolation condition
 	amat::Array2d<a_real> output;			///< Pointwise values for output
+
+	const int nvars;                        ///< Number of advected variables - currently 1
 
 	/// Computes upwind flux
 	void computeNumericalFlux(const a_real* const uleft, const a_real* const uright, const a_real* const n,
