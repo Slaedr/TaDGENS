@@ -429,7 +429,7 @@ void TaylorElement::initialize(int degr, GeomMapping2D* geommap)
 #ifdef DEBUG
 	// check for P1 case
 	if(gmap->getDegree() == 1) {
-		a_real xc, yc;
+		a_real xc=0, yc=0;
 		const Matrix& nodes = gmap->getPhyNodes();
 		int npo = nodes.cols();
 		for(int i = 0; i < npo; i++) {

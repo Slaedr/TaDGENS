@@ -1,153 +1,7 @@
+#include <algorithm>
 #include "amesh2dh.hpp"
 
 namespace acfd {
-
-
-/** Reads Professor Luo's mesh file, which I call the 'domn' format.
-   NOTE: Make sure nnofa is mentioned after ndim and ntype in the mesh file. ntype makes no sense for us now.
-   Can only be used for linear mesh for now.
-   MODIFIED FOR READING NON-HYBRID MESH FOR NOW.
-*/
-void UMesh2dh::readDomn(std::string mfile)
-{
-	std::ifstream infile(mfile);
-
-	int nnode2, nfael2;
-	
-	// Do file handling here to populate npoin and nelem
-	std::cout << "UMesh2dh: Reading domn mesh file...\n";
-	char ch = '\0'; int dum = 0; double dummy;
-
-	infile >> dum;
-	infile >> ch;
-	for(int i = 0; i < 4; i++)		//skip 4 lines
-		do
-			ch = infile.get();
-		while(ch != '\n');
-	infile >> ndim;
-	infile >> nnode2;
-	infile >> nfael2;
-	infile >> maxnnofa;
-	infile >> ch;			//get the newline
-	do
-		ch = infile.get();
-	while(ch != '\n');
-	infile >> nelem; infile >> npoin; infile >> nface;
-	infile >> dummy; 				// get time
-	ch = infile.get();			// clear newline
-
-	nnode.resize(nelem,-1);
-	nfael.resize(nelem,-1);
-
-	nbtag = 2;
-	ndtag = 2;
-
-	//std::cout << "\nUTriMesh: Allocating coords..";
-	coords.setup(npoin, ndim);
-	// temporary array to hold connectivity matrix
-	amat::Array2d<a_int > elms(nelem,nnode2);
-	//std::cout << "UTriMesh: Allocating bface...\n";
-	bface.setup(nface, maxnnofa + nbtag);
-	
-	//std::cout << "UTriMesh: Allocation done.";
-
-	do
-		ch = infile.get();
-	while(ch != '\n');
-
-	//now populate inpoel
-	for(int i = 0; i < nelem; i++)
-	{
-		//infile >> nnode[i];
-		infile >> dum;
-		nnode[i] = nnode2;
-		//nfael[i] = nnode[i];		// NOTE: assuming linear element
-		nfael[i] = nfael2;
-
-		for(int j = 0; j < nnode[i]; j++)
-			infile >> elms(i,j);
-
-		do
-			ch = infile.get();
-		while(ch != '\n');
-	}
-	std::cout << "UMesh2dh: Populated inpoel.\n";
-
-	maxnnode = 3;
-	for(int i = 0; i < nelem; i++)
-		if(nnode[i] > maxnnode)
-			maxnnode = nnode[i];
-	
-	inpoel.setup(nelem, maxnnode);
-
-	for(int i = 0; i < nelem; i++)
-		for(int j = 0; j < nnode[i]; j++)
-			inpoel(i,j) = elms(i,j);
-	
-	//Correct inpoel:
-	for(int i = 0; i < nelem; i++)
-	{
-		for(int j = 0; j < nnode[i]; j++)
-			inpoel(i,j)--;
-	}
-
-	ch = infile.get();
-	do
-		ch = infile.get();
-	while(ch != '\n');
-
-	// populate coords
-	for(int i = 0; i < npoin; i++)
-	{
-		infile >> dum;
-		for(int j = 0; j < ndim; j++)
-			infile >> coords(i,j);
-	}
-	std::cout << "UMesh2dh: Populated coords.\n";
-
-	// skip initial conditions
-	ch = infile.get();
-	for(int i = 0; i < npoin+2; i++)
-	{
-		do
-			ch = infile.get();
-		while(ch != '\n');
-	}
-	
-	// populate bface
-	for(int i = 0; i < nface; i++)
-	{
-		infile >> dum;
-		for(int j = 0; j < ndim + nbtag; j++)
-		{
-			infile >> bface(i,j);
-		}
-		if (i==nface-1) break;
-		do
-			ch = infile.get();
-		while(ch!='\n');
-	}
-	std::cout << "UMesh2dh: Populated bface. Done reading mesh.\n";
-	//correct first 2 columns of bface
-	for(int i = 0; i < nface; i++)
-		for(int j = 0; j < 2; j++)
-			bface(i,j)--;
-
-	infile.close();
-
-	vol_regions.setup(nelem, ndtag);
-	vol_regions.zeros();
-	
-	std::cout << "UMesh2dh: Number of elements: " << nelem << ", number of points: " << npoin << ", max number of nodes per element: " << maxnnode << std::endl;
-	std::cout << "Number of boundary faces: " << nface << ", Number of dimensions: " << ndim << std::endl;
-	
-	// set flag_bpoin
-	flag_bpoin.setup(npoin,1);
-	flag_bpoin.zeros();
-	for(int i = 0; i < nface; i++)
-		for(int j = 0; j < maxnnofa; j++)
-			flag_bpoin(bface(i,j)) = 1;
-}
 
 /// Reads mesh from Gmsh 2 format file
 void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
@@ -157,10 +11,12 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	ndim = dimensions;
 
 	std::ifstream infile(mfile);
-	for(int i = 0; i < 4; i++)		//skip 4 lines
-		do
+	for(int i = 0; i < 4; i++) {		//skip 4 lines
+		do {
 			ch = infile.get();
+		}
 		while(ch != '\n');
+	}
 
 	infile >> npoin;
 	coords.setup(npoin,ndim);
@@ -175,6 +31,7 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	}
 	infile >> dums;		// get 'endnodes'
 	infile >> dums;		// get 'elements'
+	std::cout << dums << std::endl;
 
 	int width_elms = 25;
 	int nelm, elmtype, nbtags, ntags;
@@ -445,11 +302,99 @@ void UMesh2dh::writeGmsh2(std::string mfile)
 	outf.close();
 }
 
-/// \todo: TODO: There is an issue with psup for some boundary nodes belonging to elements of different types. Correct this.
-void UMesh2dh::compute_topological()
+EIndex UMesh2dh::getFaceEIndex(const bool phyboundary, const a_int iface,
+                               const a_int lelem) const
 {
-	/// 1. Elements surrounding points. Note that we only consider the vertices, not high-order points for this.
-	//std::cout << "UMesh2d: compute_topological(): Elements surrounding points\n";
+	static_assert(NDIM==2, "Only 2D is currently supported!");
+	constexpr int lonnofa = 2;
+
+	EIndex face = -1;
+
+	if(!phyboundary)
+		assert(intfac.rows() > 0);
+
+	for(EIndex ifael = 0; ifael < gnfael(lelem); ifael++)
+	{
+		bool facefound = true;
+
+		// Iterate over each node of the element's face to see if
+		//  all nodes of the face iface are matched.
+		// Below, gnnofa needs to be replaced by the number of nodes
+		//  in the inofa-th face of the element.
+		for(FIndex inofa = 0; inofa < lonnofa /*gnnofa(iface)*/; inofa++)
+		{
+			const a_int node = ginpoel(lelem,getNodeEIndex(lelem,ifael,inofa));
+			bool nodefound = false;
+			for(FIndex jnofa = 0; jnofa < lonnofa /*gnnofa(iface)*/; jnofa++)
+			{
+				// NOTE: If iface is a phy boundary face, we use bface. Else intfac must be used.
+				if(phyboundary) {
+					if(bface(iface,jnofa) == node) {
+						nodefound = true;
+						break;
+					}
+				}
+				else {
+					if(gintfac(iface,jnofa+2) == node) {
+						nodefound = true;
+						break;
+					}
+				}
+			}
+
+			// If this node of lelem does not any node of iface,
+			//  move on to the next face of the lelem.
+			if(!nodefound) {
+				facefound = false;
+				break;
+			}
+		}
+
+		if(facefound)
+		{
+			face = ifael;
+			break;
+		}
+	}
+
+	return face;
+}
+
+void UMesh2dh::correctBoundaryFaceOrientation()
+{
+	compute_elementsSurroundingPoints();
+
+	const std::vector<std::pair<a_int,EIndex>> hostelems = compute_phyBFaceNeighboringElements();
+
+	bool flag = false;
+
+	for(a_int iface = 0; iface < nface; iface++)
+	{
+		const a_int helem = hostelems[iface].first;
+		const EIndex eface = hostelems[iface].second;
+
+		static_assert(NDIM == 2, "Generalize this to 3D");
+
+		if( inpoel(helem, getNodeEIndex(helem,eface,0)) != bface(iface,0) ||
+		    inpoel(helem, getNodeEIndex(helem,eface,1)) != bface(iface,1) )
+		{
+			// inconsistent orientation - reverse the bface
+			const a_int temp = bface(iface,0);
+			bface(iface,0) = bface(iface,1);
+			bface(iface,1) = temp;
+			flag = true;
+		}
+	}
+
+	if(flag)
+		std::cout << " UMesh: Some boundary faces were inverted for consistency." << std::endl;
+}
+
+/** Note that we only consider the vertices, not high-order points for this.
+ */
+void UMesh2dh::compute_elementsSurroundingPoints()
+{
+	//std::cout << "UMesh2d: Elements surrounding points\n";
 	esup_p.setup(npoin+1,1);
 	esup_p.zeros();
 
@@ -457,7 +402,10 @@ void UMesh2dh::compute_topological()
 	{
 		for(int j = 0; j < nfael[i]; j++)
 		{
-			esup_p(inpoel(i,j)+1) += 1;		// inpoel(i,j) + 1 : the + 1 is there because an extra point in this element affects the starting point of the next.
+			/* inpoel(i,j) + 1 : the + 1 is there because an extra point in this element
+			 * affects the starting point of the next.
+			 */
+			esup_p(inpoel(i,j)+1) += 1;		
 		}
 	}
 	// Now make the members of esup_p cumulative
@@ -471,139 +419,44 @@ void UMesh2dh::compute_topological()
 		for(int j = 0; j < nfael[i]; j++)
 		{
 			int ipoin = inpoel(i,j);
-			esup(esup_p(ipoin)) = i;		// now put that element no. in the space pointed to by esup_p(ipoin)
-			esup_p(ipoin) += 1;				// an element corresponding to ipoin has been found - increment esup_p for that point
+			// now put that element no. in the space pointed to by esup_p(ipoin)
+			esup(esup_p(ipoin)) = i;
+			// an element corresponding to ipoin has been found - increment esup_p for that point
+			esup_p(ipoin) += 1;
 		}
 	}
-	//But now esup_p holds increased values - each member increased by the number elements surrounding the corresponding point.
-	// So correct this.
+
+	/* But now esup_p holds increased values -
+	 * each member increased by the number elements surrounding the corresponding point.
+	 * So correct this.
+	 */
 	for(int i = npoin; i >= 1; i--)
 		esup_p(i,0) = esup_p(i-1,0);
 	esup_p(0,0) = 0;
-	// Elements surrounding points is now done.
+}
 
-	/// 2. Points surrounding points
-	
-	psup_p.setup(npoin+1,1);
-	psup_p.zeros();
-	psup_p(0,0) = 0;
-	amat::Array2d<int > lpoin(npoin,1);  // The ith member indicates the global point number of which the ith point is a surrounding point
-	for(int i = 0; i < npoin; i++) lpoin(i,0) = -1;	// initialize this std::vector to -1
-	int istor = 0;
-
-	// first pass: calculate storage needed for psup
-	for(int ip = 0; ip < npoin; ip++)
-	{
-		lpoin(ip,0) = ip;		// the point ip itself is not counted as a surrounding point of ip
-		// Loop over elements surrounding this point
-		for(int ie = esup_p(ip,0); ie <= esup_p(ip+1,0)-1; ie++)
-		{
-			int ielem = esup(ie,0);		// element number
-
-			// find local node number of ip in ielem
-			int inode = -1;
-			for(int jnode = 0; jnode < nfael[ielem]; jnode++)
-				if(inpoel(ielem,jnode) == ip) inode = jnode;
-
-			// nbd contains true if that local node number is connected to a particular local node.
-			std::vector<bool> nbd(nfael[ielem]);
-			for(int j = 0; j < nfael[ielem]; j++)
-				nbd[j] = false;
-
-			if(nfael[ielem] == 3)
-				for(unsigned int i = 0; i < nbd.size(); i++)
-					nbd[i] = true;
-			else if(nfael[ielem] == 4)
-				for(int jnode = 0; jnode < nfael[ielem]; jnode++)
-				{
-					if(jnode == /*perm(0,nfael[ielem]-1,inode,1)*/(inode+1)%nfael[ielem] || jnode == (inode+nfael[ielem]-1)%nfael[ielem] /*perm(0,nfael[ielem]-1, inode, -1)*/)
-						nbd[jnode] = true;
-				}
-
-			//loop over nodes of the element
-			for(int inode = 0; inode < nfael[ielem]; inode++)
-			{
-				//Get global index of this node
-				int jpoin = inpoel(ielem, inode);
-				if(lpoin(jpoin,0) != ip && nbd[inode])		// test if this point as already been counted as a surrounding point of ip, and whether it's connected to ip.
-				{
-					istor++;
-					lpoin(jpoin,0) = ip;		// set this point as a surrounding point of ip
-				}
-			}
-		}
-		psup_p(ip+1,0) = istor;
-	}
-
-	psup.setup(istor,1);
-	//std::cout << "+++ " << istor << std::endl;
-
-	//second pass: populate psup
-	istor = 0;
-	for(int i = 0; i < npoin; i++) lpoin(i,0) = -1;	// initialize lpoin to -1
-	for(int ip = 0; ip < npoin; ip++)
-	{
-		lpoin(ip,0) = ip;		// the point ip itself is not counted as a surrounding point of ip
-		// Loop over elements surrounding this point
-		for(int ie = esup_p(ip,0); ie <= esup_p(ip+1,0)-1; ie++)
-		{
-			int ielem = esup(ie,0);		// element number
-
-			// find local node number of ip in ielem
-			int inode = -1;
-			for(int jnode = 0; jnode < nfael[ielem]; jnode++)
-				if(inpoel(ielem,jnode) == ip) inode = jnode;
-
-			// nbd[j] contains true if ip is connected to local node number j of ielem.
-			std::vector<bool> nbd(nfael[ielem]);
-
-			for(int j = 0; j < nfael[ielem]; j++)
-				nbd[j] = false;
-
-			if(nfael[ielem] == 3)
-				for(unsigned int i = 0; i < nbd.size(); i++)
-					nbd[i] = true;
-			else if(nfael[ielem] == 4)
-				for(int jnode = 0; jnode < nfael[ielem]; jnode++)
-				{
-					if(jnode == /*perm(0,nfael[ielem]-1,inode,1)*/(inode+1)%nfael[ielem] || jnode == (inode+nfael[ielem]-1)%nfael[ielem] /*perm(0,nfael[ielem]-1, inode, -1)*/)
-						nbd[jnode] = true;
-				}
-
-			//loop over nodes of the element
-			for(int inode = 0; inode < nfael[ielem]; inode++)
-			{
-				//Get global index of this node
-				int jpoin = inpoel(ielem, inode);
-				if(lpoin(jpoin,0) != ip && nbd[inode])		// test of this point as already been counted as a surrounding point of ip
-				{
-					psup(istor,0) = jpoin;
-					istor++;
-					lpoin(jpoin,0) = ip;		// set this point as a surrounding point of ip
-				}
-			}
-		}
-	}
-	//Points surrounding points is now done.
-
-	/// 3. Elements surrounding elements
-
-	//amat::Array2d<int> lpoin(npoin,1);
+void UMesh2dh::compute_elementsSurroundingElements()
+{
+	amat::Array2d<int> lpoin(npoin,1);
 	esuel.setup(nelem, maxnfael);
 	for(int ii = 0; ii < nelem; ii++)
 		for(int jj = 0; jj < maxnfael; jj++)
 			esuel(ii,jj) = -1;
-	//lpofa.mprint();
-	const int lonnofa = 2;
+
+	const int lonnofa = 2;  // Number of low-order nodes per face
 	amat::Array2d<int > lhelp(lonnofa,1);
 	lhelp.zeros();
 	lpoin.zeros();
 
 	for(int ielem = 0; ielem < nelem; ielem++)
 	{
-		// first get lpofa for this element
-		amat::Array2d<int > lpofai(nfael[ielem], lonnofa);	// lpofa(i,j) holds local node number of jth node of ith face (j in [0:nnofa], i in [0:nfael])
-		amat::Array2d<int > lpofaj;							// to be initialized for each jelem
+		/* first get lpofa for this element
+		 * lpofa(i,j) holds local node number of jth node of ith face (j in [0:nnofa], i in [0:nfael])
+		 */
+		amat::Array2d<int > lpofai(nfael[ielem], lonnofa);
+		// lpofa for the neighboring element
+		amat::Array2d<int > lpofaj;
+
 		for(int i = 0; i < nfael[ielem]; i++)
 		{
 			for(int j = 0; j < lonnofa; j++)
@@ -616,7 +469,8 @@ void UMesh2dh::compute_topological()
 		{
 			for(int i = 0; i < lonnofa; i++)
 			{
-				lhelp(i,0) = inpoel(ielem, lpofai(ifael,i));	// lhelp stores global node nos. of current face of current element
+				// lhelp stores global node nos. of current face of current element
+				lhelp(i,0) = inpoel(ielem, lpofai(ifael,i));
 				lpoin(lhelp(i,0)) = 1;
 			}
 			int ipoin = lhelp(0);
@@ -653,18 +507,20 @@ void UMesh2dh::compute_topological()
 				lpoin(lhelp(i)) = 0;
 		}
 	}
+}
 
-	/** - Computes, for each face, the elements on either side, the starting node and the ending node of the face. This is stored in intfac.
-	 * Note that we assume that elements sharing a face have the same order, 
-	 * which effectively means that all elements are assumed to have the same geometric p order.
-	 * The orientation of the face is such that the element with smaller index is always to the left of the face, 
-	 * while the element with greater index is always to the right of the face.
-	 * - Computes nnofa for each face which is initially the same for all faces.
-	 * - Also computes element-face connectivity array elemface in the same loop which computes intfac.
-	 *
-	 * \note After the following portion, esuel holds (nelem + face no.) for each ghost cell, instead of -1 as before.
-	 */
-
+/** 
+ * Note that we assume that elements sharing a face have the same polynomial order, 
+ * which effectively means that all elements are assumed to have the same geometric p order.
+ * The orientation of the face is such that
+ *  the element with smaller index is always to the left of the face, 
+ * while the element with greater index is always to the right of the face.
+ *
+ * - Computes nnofa for each face; this was initially the same for all faces.
+ * - Also computes element-face connectivity array elemface in the same loop which computes intfac.
+ */
+void UMesh2dh::compute_face_structure()
+{
 	nbface = naface = 0;
 	// first run: calculate nbface
 	for(int ie = 0; ie < nelem; ie++)
@@ -678,7 +534,7 @@ void UMesh2dh::compute_topological()
 			}
 		}
 	}
-	std::cout << "UMesh2dh: compute_topological(): Number of boundary faces = " << nbface << std::endl;
+	std::cout << "UMesh2dh: Number of boundary faces = " << nbface << std::endl;
 	// calculate number of internal faces
 	naface = nbface;
 	for(int ie = 0; ie < nelem; ie++)
@@ -689,9 +545,8 @@ void UMesh2dh::compute_topological()
 			if(je > ie && je < nelem) naface++;
 		}
 	}
-	std::cout << "UMesh2dh: compute_topological(): Number of all faces = " << naface << std::endl;
+	std::cout << "UMesh2dh: Number of all faces = " << naface << std::endl;
 
-	// remember nnofa?
 	nnofa.resize(naface);
 
 	//allocate intfac and elemface
@@ -770,21 +625,10 @@ void UMesh2dh::compute_topological()
 			}
 		}
 	}
+}
 
-	/// Finally, calculates bpoints.
-
-	//first get number of bpoints
-	nbpoin = 0;
-	amat::Array2d<int > isbpflag(npoin,1);
-	isbpflag.zeros();
-	for(int i = 0; i < nface; i++)
-	{
-		for(int j = 0; j < nnobfa[i]; j++)
-			isbpflag(bface(i,j)) = 1;
-	}
-	for(int i = 0; i < npoin; i++)
-		if(isbpflag(i)==1) nbpoin++;
-		
+void UMesh2dh::compute_edge_elem_sizes()
+{
 	// get edge sizes
 	els.resize(gnaface());
 	for(a_int iface = 0; iface < gnaface(); iface++)
@@ -805,14 +649,96 @@ void UMesh2dh::compute_topological()
 				a_real dist[NDIM];
 				for(int idim = 0; idim < NDIM; idim++) 
 					dist[idim] = fabs(coords(inpoel(iel,i),idim) - coords(inpoel(iel,j),idim));
-				a_real l = dist[0]*dist[0]+dist[1]*dist[1];
+				const a_real l = dist[0]*dist[0] + dist[1]*dist[1];
 				if(diam < l) diam = l;
 			}
 		}
 		eldiam[iel] = std::sqrt(diam);
 	}
+}
+
+void UMesh2dh::compute_topological()
+{
+	compute_elementsSurroundingPoints();
+	correctBoundaryFaceOrientation();
+	compute_elementsSurroundingElements();
+	compute_face_structure();
+
+	// get number of bpoints
+	nbpoin = 0;
+	amat::Array2d<int > isbpflag(npoin,1);
+	isbpflag.zeros();
+	for(int i = 0; i < nface; i++)
+	{
+		for(int j = 0; j < nnobfa[i]; j++)
+			isbpflag(bface(i,j)) = 1;
+	}
+	for(int i = 0; i < npoin; i++)
+		if(isbpflag(i)==1) nbpoin++;
 
 	//std::cout << "UMesh2dh: compute_topological(): Number of boundary points = " << nbpoin << std::endl;
+}
+
+std::vector<std::pair<a_int,int>> UMesh2dh::compute_phyBFaceNeighboringElements() const
+{
+	using EIndex = int;
+
+	std::vector<std::pair<a_int,EIndex>> interiorelem(nface);
+
+	static_assert(NDIM==2, "Only 2D is currently supported!");
+	constexpr int lonnofa = 2;
+
+	std::cout << "UMesh2d: Going over boundary faces to compute their containing cells.."
+	          << std::endl;
+
+	for(a_int iface = 0; iface < nface; iface++)
+	{
+		// First get sorted list of elements around each point of this face.
+		// NOTE: In 3D, nnofa below has to be replaced by nnobfa[iface], the number of nodes per
+		//  face for physical boundary faces
+		std::vector<std::vector<a_int>> nbdelems(lonnofa);
+		for(int j = 0; j < lonnofa; j++)
+		{
+			const a_int point = bface(iface,j);
+			for(a_int isup_p = esup_p(point); isup_p < esup_p(point+1); isup_p++)
+				nbdelems[j].push_back(esup(isup_p));
+
+			std::sort(nbdelems[j].begin(), nbdelems[j].end());  // for using set_intersection below
+		}
+
+		// Compute the intersection of the sets of elements surrounding each point of this face.
+		//  Initialize with the elements surrounding the first point.
+		std::vector<a_int> intersection;
+		for(unsigned int j = 0; j < nbdelems[0].size(); j++)
+			intersection.push_back(nbdelems[0][j]);
+		for(int j = 1; j < lonnofa; j++)
+		{
+			std::vector<a_int> temp(intersection.size());
+			auto it = std::set_intersection(nbdelems[j].begin(), nbdelems[j].end(),
+			                                intersection.begin(), intersection.end(), temp.begin());
+
+			assert(it-temp.begin() >= 0);
+			assert(it-temp.begin() <= static_cast<ptrdiff_t>(intersection.size()));
+
+			std::copy(temp.begin(), it, intersection.begin());
+			intersection.resize(it-temp.begin());
+		}
+
+		if(intersection.size() > 1) {
+			throw std::logic_error("More than one neighboring element found for bface "
+			                       + std::to_string(iface));
+		}
+
+		assert(intersection[0] >= 0);
+		assert(intersection[0] < nelem);
+		interiorelem[iface].first = intersection[0];
+
+		// find the EIndex of the face
+		interiorelem[iface].second = getFaceEIndex(true, iface, intersection[0]);
+		assert(interiorelem[iface].second >= 0);
+	}
+
+	return interiorelem;
 }
 
 void UMesh2dh::compute_boundary_maps()
@@ -886,42 +812,132 @@ a_real UMesh2dh::meshSizeParameter() const
 	return hh;
 }
 
-void UMesh2dh::writeBoundaryMapsToFile(std::string mapfile)
+/// Compute lists of points surrounding points
+/** \todo: TODO: There is an issue with psup for some boundary nodes
+ * belonging to elements of different types. Correct this.
+ */
+void UMesh2dh::compute_pointsSurroundingPoints()
 {
-	if(isBoundaryMaps == false) {
-		std::cout << "UMesh2d: writeBoundaryMapsToFile(): ! Boundary maps not available!" << std::endl;
-		return;
+	psup_p.setup(npoin+1,1);
+	psup_p.zeros();
+	psup_p(0,0) = 0;
+
+	// The ith member indicates the global point number of which the ith point is a surrounding point
+	amat::Array2d<int > lpoin(npoin,1);  
+	for(int i = 0; i < npoin; i++)
+		lpoin(i,0) = -1;
+
+	int istor = 0;
+
+	// first pass: calculate storage needed for psup
+	for(int ip = 0; ip < npoin; ip++)
+	{
+		lpoin(ip,0) = ip;		// the point ip itself is not counted as a surrounding point of ip
+		// Loop over elements surrounding this point
+		for(int ie = esup_p(ip,0); ie <= esup_p(ip+1,0)-1; ie++)
+		{
+			int ielem = esup(ie,0);		// element number
+
+			// find local node number of ip in ielem
+			int inode = -1;
+			for(int jnode = 0; jnode < nfael[ielem]; jnode++)
+				if(inpoel(ielem,jnode) == ip) inode = jnode;
+
+			// nbd contains true if that local node number is connected to a particular local node.
+			std::vector<bool> nbd(nfael[ielem]);
+			for(int j = 0; j < nfael[ielem]; j++)
+				nbd[j] = false;
+
+			if(nfael[ielem] == 3)
+				for(unsigned int i = 0; i < nbd.size(); i++)
+					nbd[i] = true;
+			else if(nfael[ielem] == 4)
+				for(int jnode = 0; jnode < nfael[ielem]; jnode++)
+				{
+					if(jnode == /*perm(0,nfael[ielem]-1,inode,1)*/(inode+1)%nfael[ielem] || jnode == (inode+nfael[ielem]-1)%nfael[ielem] /*perm(0,nfael[ielem]-1, inode, -1)*/)
+						nbd[jnode] = true;
+				}
+
+			//loop over nodes of the element
+			for(int inode = 0; inode < nfael[ielem]; inode++)
+			{
+				//Get global index of this node
+				int jpoin = inpoel(ielem, inode);
+				/* Test if this point has already been counted as a surrounding point of ip,
+				 *  and whether it's connected to ip.
+				 */
+				if(lpoin(jpoin,0) != ip && nbd[inode])
+				{
+					istor++;
+					lpoin(jpoin,0) = ip;		// set this point as a surrounding point of ip
+				}
+			}
+		}
+		psup_p(ip+1,0) = istor;
 	}
-	std::ofstream ofile(mapfile);
-	ofile << nbface << '\n'<< "bifmap\n";
-	for(int i = 0; i < nbface; i++)
-		ofile << bifmap.get(i) << ' ';
-	ofile << '\n';
-	ofile << "ifbmap\n";
-	for(int i = 0; i < nbface; i++)
-		ofile << ifbmap.get(i) << ' ';
-	ofile << '\n';
-	ofile.close();
+
+	psup.setup(istor,1);
+	//std::cout << "+++ " << istor << std::endl;
+
+	//second pass: populate psup
+	istor = 0;
+	for(int i = 0; i < npoin; i++) lpoin(i,0) = -1;	// initialize lpoin to -1
+	for(int ip = 0; ip < npoin; ip++)
+	{
+		lpoin(ip,0) = ip;		// the point ip itself is not counted as a surrounding point of ip
+		// Loop over elements surrounding this point
+		for(int ie = esup_p(ip,0); ie <= esup_p(ip+1,0)-1; ie++)
+		{
+			int ielem = esup(ie,0);		// element number
+
+			// find local node number of ip in ielem
+			int inode = -1;
+			for(int jnode = 0; jnode < nfael[ielem]; jnode++)
+				if(inpoel(ielem,jnode) == ip) inode = jnode;
+
+			// nbd[j] contains true if ip is connected to local node number j of ielem.
+			std::vector<bool> nbd(nfael[ielem]);
+
+			for(int j = 0; j < nfael[ielem]; j++)
+				nbd[j] = false;
+
+			if(nfael[ielem] == 3)
+				for(unsigned int i = 0; i < nbd.size(); i++)
+					nbd[i] = true;
+			else if(nfael[ielem] == 4)
+				for(int jnode = 0; jnode < nfael[ielem]; jnode++)
+				{
+					if(jnode == /*perm(0,nfael[ielem]-1,inode,1)*/(inode+1)%nfael[ielem] ||
+					   jnode == (inode+nfael[ielem]-1)%nfael[ielem] /*perm(0,nfael[ielem]-1, inode, -1)*/)
+						nbd[jnode] = true;
+				}
+
+			//loop over nodes of the element
+			for(int inode = 0; inode < nfael[ielem]; inode++)
+			{
+				//Get global index of this node
+				int jpoin = inpoel(ielem, inode);
+				if(lpoin(jpoin,0) != ip && nbd[inode])
+				{
+					psup(istor,0) = jpoin;
+					istor++;
+					lpoin(jpoin,0) = ip;		// set this point as a surrounding point of ip
+				}
+			}
+		}
+	}
+	//Points surrounding points is now done.
 }
 
-void UMesh2dh::readBoundaryMapsFromFile(std::string mapfile)
+UMesh2dh prepare_mesh(const std::string meshfile)
 {
-	std::ifstream ofile(mapfile);
-	std::string dum; int sz;
-	ofile >> sz >>  dum;
-	std::cout << "UMesh2d: readBoundaryMapsFromFile(): Number of boundary faces in file = " << sz << std::endl;
-	bifmap.setup(sz,1);
-	ifbmap.setup(sz,1);
+	UMesh2dh m;
+	m.readGmsh2(meshfile, NDIM);
+	m.compute_topological();
+	m.compute_boundary_maps();
+	m.compute_edge_elem_sizes();
 
-	for(int i = 0; i < nbface; i++)
-		ofile >> bifmap(i);
-
-	ofile >> dum;
-	for(int i = 0; i < nbface; i++)
-		ofile >> ifbmap(i);
-
-	ofile.close();
-	isBoundaryMaps = true;
+	return m;
 }
 
 

@@ -21,7 +21,7 @@ LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, cons
 }
 
 void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instate, 
-	Matrix& bstate)
+                                           Matrix& bstate)
 {
 	if(m->gintfacbtags(iface, 0) == inoutflow_flag)
 	{
@@ -104,17 +104,19 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 
 		for(int ig = 0; ig < ng; ig++)
 		{
-			const a_real weightandsp = map1d[iface].getQuadrature()->weights()(ig) * map1d[iface].speed()[ig];
+			const a_real wtandsp = map1d[iface].getQuadrature()->weights()(ig) * map1d[iface].speed()[ig];
 
 			computeNumericalFlux(&linterps(ig,0), &rinterps(ig,0), &n[ig](0), &fluxes(ig,0));
 
-			for(int ivar = 0; ivar < nvars; ivar++) {
+			for(int ivar = 0; ivar < nvars; ivar++)
+			{
 				for(int idof = 0; idof < elems[lelem]->getNumDOFs(); idof++)
 #pragma omp atomic update
-					res[lelem](ivar,idof) += fluxes(ig,ivar) * lbasis(ig,idof) * weightandsp;
+					res[lelem](ivar,idof) += fluxes(ig,ivar) * lbasis(ig,idof) * wtandsp;
+
 				for(int idof = 0; idof < elems[relem]->getNumDOFs(); idof++)
 #pragma omp atomic update
-					res[relem](ivar,idof) -= fluxes(ig,ivar) * rbasis(ig,idof) * weightandsp;
+					res[relem](ivar,idof) -= fluxes(ig,ivar) * rbasis(ig,idof) * wtandsp;
 			}
 		}
 	}

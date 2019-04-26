@@ -60,10 +60,11 @@ int main(int argc, char* argv[])
 
 	for(int imesh = 0; imesh < nmesh; imesh++)
 	{
-		UMesh2dh m;
-		m.readGmsh2(mfiles[imesh], NDIM);
+		const UMesh2dh m = prepare_mesh(mfiles[imesh]);
+		/*m.readGmsh2(mfiles[imesh], NDIM);
+		m.correctBoundaryFaceOrientation();
 		m.compute_topological();
-		m.compute_boundary_maps();
+		m.compute_boundary_maps();*/
 		
 		const double hhactual = m.meshSizeParameter();
 		printf("Mesh %d: h = %f\n", imesh, hhactual);
