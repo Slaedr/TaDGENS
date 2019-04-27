@@ -218,7 +218,7 @@ a_real SpatialBase::computeL2Norm(const std::vector<Matrix> w, const int comp) c
 }
 
 a_real SpatialBase::computeElemL2Error2(const int ielem, const int comp,
-                                               const Matrix& __restrict__ ug, const double time) const
+                                        const Matrix& __restrict__ ug, const double time) const
 {
 	int ndofs = elems[ielem]->getNumDOFs();
 	a_real l2error = 0;
@@ -254,7 +254,7 @@ a_real SpatialBase::computeL2Error(const double time, const std::vector<Matrix>&
 }
 
 void SpatialBase::setInitialConditionNodal(const int comp, double (**const init)(a_real, a_real),
-                                                  std::vector<Matrix>& u)
+                                           std::vector<Matrix>& u)
 {
 	if(basis_type != 'l') {
 		printf("!  SpatialBase: setInitialConditionNodal: Not nodal basis!\n");
@@ -273,7 +273,7 @@ void SpatialBase::setInitialConditionNodal(const int comp, double (**const init)
 }
 
 void SpatialBase::setInitialConditionModal(const int comp, double (**const init)(a_real, a_real),
-                                                  std::vector<Matrix>& u)
+                                           std::vector<Matrix>& u)
 {
 	if(basis_type != 't') {
 		printf("!  SpatialBase: setInitialConditionModal: Not Taylor basis!\n");
@@ -296,16 +296,6 @@ void SpatialBase::setInitialConditionModal(const int comp, double (**const init)
 			u[iel](comp,5) = init[5](xc,yc)*dx*dy;
 		}
 	}
-}
-
-a_real SpatialBase::source_term(const a_real r[NDIM], const a_real t) const
-{
-	return 0;
-}
-
-a_real SpatialBase::exact_solution(const a_real r[NDIM], const a_real t) const
-{
-	return 0;
 }
 
 }	// end namespace

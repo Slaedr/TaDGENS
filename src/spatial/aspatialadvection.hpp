@@ -38,7 +38,7 @@ public:
 	a_real exact_solution(const a_real position[NDIM], const a_real time) const;
 
 protected:
-	Vector a;								///< Advection velocity
+	std::array<a_real,NDIM> a;              ///< Advection velocity
 	a_real amag;							///< Magnitude of advection velocity
 
 	int inoutflow_flag;						///< Boundary flag at faces where inflow or outflow is required
@@ -46,6 +46,8 @@ protected:
 	amat::Array2d<a_real> output;			///< Pointwise values for output
 
 	const int nvars;                        ///< Number of advected variables - currently 1
+
+	const a_real aa,bb,dd,ee;               ///< Coeffs of exact solution
 
 	/// Computes upwind flux
 	void computeNumericalFlux(const a_real* const uleft, const a_real* const uright, const a_real* const n,
@@ -58,15 +60,18 @@ protected:
 	void computeBoundaryState(const int iface, const Matrix& instate, Matrix& bstate);
 
 	/// provide a test source term for a verification case
-	a_real source_term(const a_real position[NDIM], const a_real time) const
+	a_real source_term(const a_real pos[NDIM], const a_real time) const
 	{
-		return 0;
+		return a[0]*aa*std::cos(aa*pos[0]+dd)*sin(bb*pos[1]+ee)
+			+ a[1]*bb*std::sin(aa*pos[0]+dd)*std::cos(bb*pos[1]*ee);
+		//return 0;
 	}
 
 	/// State at inflow boundaries
 	a_real bcfunc(const a_real position[NDIM]) const
 	{
-		return sin(2*PI*position[1]);
+		return std::sin(aa*position[0]+dd)*std::sin(bb*position[1]+ee);
+		//return sin(2*PI*position[1]);
 	}
 };
 

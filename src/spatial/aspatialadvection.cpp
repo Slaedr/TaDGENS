@@ -4,6 +4,7 @@
  * @date 2017 April 14
  */
 
+#include <cmath>
 #include "aspatialadvection.hpp"
 
 namespace acfd {
@@ -11,20 +12,20 @@ namespace acfd {
 LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, 
                                  const int inoutflag, const int extrapflag)
 	: SpatialBase(mesh, _p_degree, basis), inoutflow_flag(inoutflag), 
-	  extrapolation_flag(extrapflag), nvars{1}
+	  extrapolation_flag(extrapflag), nvars{1}, aa{1.59/2}, bb{1.81}, dd{1.0}, ee{1.2}
 {
-	a.resize(NDIM,1);
-	a[0] = 1.0; a[1] = 0.0;
+	a[0] = std::exp(1.0)/2.0; a[1] = -std::atan(1.0);
+	//a[0] = 1; a[1] = 0;
 	
-	std::cout << " LinearAdvection: Velocity is (" << a(0) << ", " << a(1) << ")\n";
+	std::cout << " LinearAdvection: Velocity is (" << a[0] << ", " << a[1] << ")\n";
 	amag = std::sqrt(a[0]*a[0]+a[1]*a[1]);
 }
 
 void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instate, 
                                            Matrix& bstate)
 {
-	if(m->gintfacbtags(iface, 0) == inoutflow_flag)
-	{
+	// if(m->gintfacbtags(iface, 0) == inoutflow_flag)
+	// {
 		// compute normal velocity and decide whether to extrapolate 
 		// or impose specified boundary value at each quadrature point
 		const std::vector<Vector>& n = map1d[iface].normal();
@@ -32,17 +33,18 @@ void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instat
 		for(size_t ig = 0; ig < n.size(); ig++)
 		{
 			const a_real phycoords[] = {phypoints(ig,0), phypoints(ig,1)};
-			a_real bval = bcfunc(phycoords);
-			if(a.dot(n[ig]) >= 0)
+			const a_real bval = bcfunc(phycoords);
+
+			if(a[0]*n[ig][0] + a[1]*n[ig][1] >= 0)
 				bstate.row(ig) = instate.row(ig);
 			else
 				bstate.row(ig)(0) = bval;
 		}
-	}
-	else
-	{
-		bstate = instate;
-	}
+	// }
+	// else
+	// {
+	// 	bstate = instate;
+	// }
 }
 
 void LinearAdvection::computeNumericalFlux(
@@ -59,7 +61,7 @@ void LinearAdvection::computeNumericalFlux(
 void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<Matrix>& res,
                                       std::vector<a_real>& mets)
 {
-#pragma omp parallel for default(shared)
+	//#pragma omp parallel for default(shared)
 	for(a_int iface = 0; iface < m->gnbface(); iface++)
 	{
 		a_int lelem = m->gintfac(iface,0);
@@ -86,7 +88,7 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 		}
 	}
 	
-#pragma omp parallel for default(shared)
+	//#pragma omp parallel for default(shared)
 	for(a_int iface = m->gnbface(); iface < m->gnaface(); iface++)
 	{
 		const a_int lelem = m->gintfac(iface,0);
@@ -121,7 +123,7 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 		}
 	}
 
-#pragma omp parallel for default(shared)
+	//#pragma omp parallel for default(shared)
 	for(a_int iel = 0; iel < m->gnelem(); iel++)
 	{
 		if(p_degree > 0)
@@ -135,12 +137,13 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 			Matrix xflux(ng, nvars), yflux(ng, nvars);
 			elems[iel]->interpolateAll(u[iel], xflux);
 			yflux = a[1]*xflux;
-			xflux *= a[0];
+			xflux = a[0]*xflux;
 			Matrix term = Matrix::Zero(nvars, ndofs);
 
 			for(int ig = 0; ig < ng; ig++)
 			{
-				const a_real weightjacdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
+				const a_real weightjacdet = map2d[iel].jacDet()[ig]
+					* map2d[iel].getQuadrature()->weights()(ig);
 
 				// add flux
 				for(int ivar = 0; ivar < nvars; ivar++)
@@ -210,7 +213,9 @@ void LinearAdvection::postprocess(const std::vector<Matrix>& u)
 			}
 			if(m->gnnode(iel) > m->gnfael(iel)) {
 				for(int ino = m->gnfael(iel); ino < 2*m->gnfael(iel); ino++) {
-					output(m->ginpoel(iel,ino)) += (u[iel](0,ino-m->gnfael(iel)) + u[iel](0, (ino-m->gnfael(iel)+1) % m->gnfael(iel)))/2.0;
+					output(m->ginpoel(iel,ino))
+						+= (u[iel](0,ino-m->gnfael(iel))
+						    + u[iel](0, (ino-m->gnfael(iel)+1) % m->gnfael(iel)))/2.0;
 					surelems[m->ginpoel(iel,ino)] += 1;
 				}
 				// for interior nodes, just use average of vertices
@@ -236,7 +241,7 @@ void LinearAdvection::postprocess(const std::vector<Matrix>& u)
 
 a_real LinearAdvection::exact_solution(const a_real r[NDIM], const a_real t) const
 {
-	return sin(2*PI*r[1]);
+	return bcfunc(r);
 }
 
 }

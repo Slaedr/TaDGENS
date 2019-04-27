@@ -63,7 +63,7 @@ protected:
 	/** This does not need to be virtual as it will only be used in derived classes.
 	 * The implemenatation in this base class does nothing.
 	 */
-	a_real source_term(const a_real position[NDIM], const a_real time) const;
+	virtual a_real source_term(const a_real position[NDIM], const a_real time) const = 0;
 
 public:
 	/// Constructor
@@ -103,7 +103,7 @@ public:
 	virtual const amat::Array2d<a_real>& getOutput() const = 0;
 
 	/// Intended to provide the exact solution for a verification case
-	virtual a_real exact_solution(const a_real position[NDIM], const a_real time) const;
+	virtual a_real exact_solution(const a_real position[NDIM], const a_real time) const = 0;
 
 	/// Computes the norm of the difference between a FE solution and an analytically defined function
 	/** \param exact A function that takes (x,y,t) and returns the solution at that point

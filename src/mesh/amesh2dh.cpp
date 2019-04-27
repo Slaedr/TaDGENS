@@ -31,7 +31,6 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	}
 	infile >> dums;		// get 'endnodes'
 	infile >> dums;		// get 'elements'
-	std::cout << dums << std::endl;
 
 	int width_elms = 25;
 	int nelm, elmtype, nbtags, ntags;
@@ -687,9 +686,6 @@ std::vector<std::pair<a_int,int>> UMesh2dh::compute_phyBFaceNeighboringElements(
 
 	static_assert(NDIM==2, "Only 2D is currently supported!");
 	constexpr int lonnofa = 2;
-
-	std::cout << "UMesh2d: Going over boundary faces to compute their containing cells.."
-	          << std::endl;
 
 	for(a_int iface = 0; iface < nface; iface++)
 	{

@@ -10,6 +10,13 @@
 #include "spatial/aspatial.hpp"
 
 namespace acfd {
+
+struct SteadySolverConfig {
+	double tol;
+	int maxiter;
+	double cflbeg;
+	double cflend;
+};
 	
 /// TVD RK explicit time stepping
 /** The initial condition must be specified in the spatial discretization context
@@ -35,7 +42,6 @@ protected:
 	 */
 	std::vector<a_real> tsl;
 
-	int order;										///< Desird temporal order of accuracy
 	double cfl;										///< CFL number
 	double tol;										///< Tolerance for residual
 	int maxiter;									///< Max number of iterations
@@ -50,7 +56,7 @@ public:
 	}
 
 	/// Carries out the time stepping process
-	virtual void integrate() = 0;
+	virtual void solve() = 0;
 };
 
 /// Explicit forward-Euler scheme with local time stepping
@@ -63,11 +69,28 @@ public:
 	 * \param[in] toler Tolerance for the relative residual
 	 * \param[in] max_iter Maximum number of iterations
 	 */
-	SteadyExplicit(const UMesh2dh*const mesh, SpatialBase *const s,
+	SteadyExplicit(const UMesh2dh *const mesh, SpatialBase *const s,
 	               a_real cflnumber, double toler, int max_iter);
 
 	/// Carries out the time stepping process
-	void integrate();
+	void solve();
+};
+
+/// Implicit backward-Euler pseudo-time scheme with local time stepping
+class SteadyImplicit : public SteadyBase
+{
+public:
+	/** \param[in] mesh The mesh context
+	 * \param[in] s The spatial discretization context
+	 * \param[in] cflnumber
+	 * \param[in] toler Tolerance for the relative residual
+	 * \param[in] max_iter Maximum number of iterations
+	 */
+	SteadyImplicit(const UMesh2dh *const mesh, SpatialBase *const s,
+	               const a_real cflnumber, double toler, int max_iter);
+
+	/// Carries out the time stepping process
+	void solve();
 };
 
 }

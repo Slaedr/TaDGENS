@@ -61,26 +61,22 @@ int main(int argc, char* argv[])
 	for(int imesh = 0; imesh < nmesh; imesh++)
 	{
 		const UMesh2dh m = prepare_mesh(mfiles[imesh]);
-		/*m.readGmsh2(mfiles[imesh], NDIM);
-		m.correctBoundaryFaceOrientation();
-		m.compute_topological();
-		m.compute_boundary_maps();*/
 		
 		const double hhactual = m.meshSizeParameter();
 		printf("Mesh %d: h = %f\n", imesh, hhactual);
 
 		LinearAdvection sd(&m, sdegree, basistype, inoutflag, extrapflag);
-		const double hh = 1.0/sqrt(sd.numTotalDOFs());
+		//const double hh = 1.0/sqrt(sd.numTotalDOFs());
 		
 		SteadyExplicit td(&m, &sd, cfl, tol, maxits);
 		
-		td.integrate();
+		td.solve();
 
 		sd.postprocess(td.solution());
 		l2err[imesh] = sd.computeL2Error(0, td.solution());
 		
 		l2err[imesh] = log10(l2err[imesh]);
-		h[imesh] = log10(hh);
+		h[imesh] = log10(hhactual);
 		printf("Mesh %d: Log mesh size = %f, log L2 error = %f\n", imesh, h[imesh], l2err[imesh]);
 
 		const Array2d<a_real>& u = sd.getOutput();
