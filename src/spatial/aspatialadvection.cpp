@@ -12,10 +12,11 @@ namespace acfd {
 LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, 
                                  const int inoutflag, const int extrapflag)
 	: SpatialBase(mesh, _p_degree, basis), inoutflow_flag(inoutflag), 
-	  extrapolation_flag(extrapflag), nvars{1}, aa{1.59/2}, bb{1.81}, dd{1.0}, ee{1.2}
+	  extrapolation_flag(extrapflag), nvars{1}, //aa{1.59/2}, bb{1.81}, dd{1.0}, ee{1.2}
+	  aa{0}, bb{2*PI}, dd{PI/2.0}, ee{0}
 {
-	a[0] = std::exp(1.0)/2.0; a[1] = -std::atan(1.0);
-	//a[0] = 1; a[1] = 0;
+	//a[0] = std::exp(1.0)/2.0; a[1] = -std::atan(1.0);
+	a[0] = 1; a[1] = 1;
 	
 	std::cout << " LinearAdvection: Velocity is (" << a[0] << ", " << a[1] << ")\n";
 	amag = std::sqrt(a[0]*a[0]+a[1]*a[1]);
