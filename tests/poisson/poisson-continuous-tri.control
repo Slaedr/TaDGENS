@@ -1,13 +1,9 @@
 -number-of-meshes
 3
 -Mesh-prefix
-grids/square
+grids/squaretri
 -Output-VTU-prefix
 square
--output-file-for-convergence
-errors-p1.txt
 -polynomial-degree-of-computed-solution
 1
--stabilization-parameter
-10.0
 

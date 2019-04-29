@@ -4,15 +4,12 @@
  * @date 2016-04-10
  */
 
-#include "spatial/aspatialpoisson_continuous.hpp"
+#include "aspatialpoisson_continuous.hpp"
 
 namespace acfd {
 
-LaplaceC::LaplaceC(const UMesh2dh* mesh, const int _p_degree, const a_real stab,
-			a_real(*const f)(a_real,a_real), a_real(*const exact_sol)(a_real,a_real,a_real), 
-			a_real(*const exact_gradx)(a_real,a_real), a_real(*const exact_grady)(a_real,a_real))
-	: SpatialBase(mesh, _p_degree, 'l'), eta(stab), rhs(f), exact(exact_sol),
-	  exactgradx(exact_gradx), exactgrady(exact_grady)
+LaplaceC::LaplaceC(const UMesh2dh* mesh, const int _p_degree)
+	: SpatialBase(mesh, _p_degree, 'l'), nu{1.0}, cbig{1e30}, aa{PI}, bb{PI}, dd{PI/4}, ee{PI/4}
 {
 	computeFEData();
 
@@ -27,9 +24,6 @@ LaplaceC::LaplaceC(const UMesh2dh* mesh, const int _p_degree, const a_real stab,
 	Ag.resize(ntotaldofs, ntotaldofs);
 	bg = Vector::Zero(ntotaldofs);
 	ug = Vector::Zero(ntotaldofs);
-
-	cbig = 1.0e30;
-	nu=1.0;
 
 	int nlocdofs = elems[0]->getNumDOFs();
 	std::cout << " LaplaceC: Local DOFs = " << nlocdofs << std::endl;
@@ -71,7 +65,7 @@ void LaplaceC::assemble()
 		const Matrix& basis = elems[ielem]->bFunc();
 		const std::vector<Matrix>& bgrad = elems[ielem]->bGrad();
 		const GeomMapping2D* gmap = elems[ielem]->getGeometricMapping();
-		int ng = gmap->getQuadrature()->numGauss();
+		const int ng = gmap->getQuadrature()->numGauss();
 		const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
 		const Matrix& quadp = map2d[ielem].map();
 
@@ -80,10 +74,12 @@ void LaplaceC::assemble()
 
 		for(int ig = 0; ig < ng; ig++)
 		{
-			a_real weightAndJDet = wts(ig)*map2d[ielem].jacDet()[ig];
+			const a_real weightAndJDet = wts(ig)*map2d[ielem].jacDet()[ig];
+			const a_real qcoords[NDIM] = { quadp(ig,0), quadp(ig,1) };
+
 			for(int i = 0; i < ndofs; i++) 
 			{
-				bl(i) += rhs(quadp(ig,0),quadp(ig,1)) * basis(ig,i) * weightAndJDet;
+				bl(i) += source_term(qcoords,0) * basis(ig,i) * weightAndJDet;
 				for(int j = 0; j < ndofs; j++) {
 					A(i,j) += nu * bgrad[ig].row(i).dot(bgrad[ig].row(j)) * weightAndJDet;
 				}
@@ -95,7 +91,7 @@ void LaplaceC::assemble()
 		{
 			bg(dofmap(ielem,i)) += bl(i);
 			for(int j = 0; j < ndofs; j++) {
-					coo.push_back(COO(dofmap(ielem,i), dofmap(ielem,j), A(i,j)));
+				coo.push_back(COO(dofmap(ielem,i), dofmap(ielem,j), A(i,j)));
 			}
 		}
 	}
@@ -103,12 +99,24 @@ void LaplaceC::assemble()
 	// assemble
 	Ag.setFromTriplets(coo.begin(), coo.end());
 
-	// apply Dirichlet penalties
-	for(int i = 0; i < ntotaldofs; i++)
+	// apply Dirichlet BCs for manufactured solution by penalty method
+	/*  Currently, this only works for topologically isoparametric elements!
+	 */
+	for(int ielem = 0; ielem < m->gnelem(); ielem++)
 	{
-		if(bflag(i)) {
-			Ag.coeffRef(i,i) *= cbig;
-			bg(i) = 0;
+		const Matrix& nodes = map2d[ielem].getPhyNodes();
+
+		for(int i = 0; i < ndofs; i++) 
+		{
+			const int igdof = dofmap(ielem,i);
+			if(bflag(igdof))
+			{
+				Ag.coeffRef(igdof,igdof) = cbig;
+
+				const a_real pos[NDIM] = {nodes(0,i),nodes(1,i)};
+				const a_real bval = exact_solution(pos,0);
+				bg(igdof) = cbig*bval;
+			}
 		}
 	}
 }
@@ -133,13 +141,13 @@ void LaplaceC::postprocess(const std::vector<Matrix>& u)
 		output(i) = ug(i);
 }
 
-void LaplaceC::computeErrors(a_real& __restrict__ l2error, a_real& __restrict__ siperror) const
+void LaplaceC::computeErrors(a_real& __restrict__ l2error, a_real& __restrict__ h1error) const
 {
 	std::printf(" LaplaceC: computeErrors: Computing the L2 and H1 norm of the error\n");
-	int ndofs = elems[0]->getNumDOFs();
-	l2error = 0; siperror = 0;
+	const int ndofs = elems[0]->getNumDOFs();
+	l2error = 0; h1error = 0;
 	
-	for(int ielem = 0; ielem < m->gnelem(); ielem++)
+	for(a_int ielem = 0; ielem < m->gnelem(); ielem++)
 	{
 		const std::vector<Matrix>& bgrad = elems[ielem]->bGrad();
 		const Matrix& bfunc = elems[ielem]->bFunc();
@@ -150,19 +158,23 @@ void LaplaceC::computeErrors(a_real& __restrict__ l2error, a_real& __restrict__ 
 
 		for(int ig = 0; ig < ng; ig++)
 		{
+			const a_real qcoords[NDIM] = { qp(ig,0), qp(ig,1) };
+
 			a_real lu = 0, lux = 0, luy = 0;
 			for(int j = 0; j < ndofs; j++) {
 				lu += ug(dofmap(ielem,j))*bfunc(ig,j);
 				lux += ug(dofmap(ielem,j))*bgrad[ig](j,0);
 				luy += ug(dofmap(ielem,j))*bgrad[ig](j,1);
 			}
-			l2error += std::pow(lu-exact(qp(ig,0),qp(ig,1),0),2) * wts(ig) * gmap->jacDet()[ig];
-			siperror += ( std::pow(lux-exactgradx(qp(ig,0),qp(ig,1)),2) + std::pow(luy-exactgrady(qp(ig,0),qp(ig,1)),2) ) * wts(ig) * gmap->jacDet()[ig];
+			l2error += std::pow(lu-exact_solution(qcoords,0),2) * wts(ig) * gmap->jacDet()[ig];
+			const std::array<a_real,NDIM> ugrad = exact_gradient(qcoords,0);
+			h1error += ( std::pow(lux-ugrad[0],2) +
+			             std::pow(luy-ugrad[1],2) ) * wts(ig)*gmap->jacDet()[ig];
 		}
 	}
 
-	siperror += l2error;
-	l2error = std::sqrt(l2error); siperror = std::sqrt(siperror);
+	h1error += l2error;
+	l2error = std::sqrt(l2error); h1error = std::sqrt(h1error);
 	std::printf(" LaplaceC: computeErrors: Done.\n");
 }
 

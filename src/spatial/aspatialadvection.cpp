@@ -48,9 +48,9 @@ void LinearAdvection::computeBoundaryState(const int iface, const Matrix& instat
 	// }
 }
 
-void LinearAdvection::computeNumericalFlux(
-	const a_real* const uleft, const a_real* const uright, const a_real* const n, 
-	a_real* const flux)
+void LinearAdvection::computeNumericalFlux(const a_real* const uleft, const a_real* const uright,
+                                           const a_real* const n,
+                                           a_real* const flux)
 {
 	a_real adotn = a[0]*n[0]+a[1]*n[1];
 	if(adotn >= 0)

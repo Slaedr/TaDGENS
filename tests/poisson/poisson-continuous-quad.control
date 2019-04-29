@@ -1,0 +1,9 @@
+-number-of-meshes
+4
+-Mesh-prefix
+../common_inputs/grids/squarequad
+-Output-VTU-prefix
+square
+-polynomial-degree-of-computed-solution
+1
+

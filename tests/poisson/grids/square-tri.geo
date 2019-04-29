@@ -1,7 +1,8 @@
-// Simple square test case for Poisson problem with DGFEM
+// Simple square test case for Poisson problem
 // Aditya Kashi
 
-h = 0.9;
+refine = 2^ref;
+h = 0.25/refine;
 Point(1) = {0, 0, 0, h};
 Point(2) = {1, 0, 0, h};
 Point(3) = {1, 1, 0, h};
