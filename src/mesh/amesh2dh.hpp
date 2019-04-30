@@ -45,7 +45,11 @@ public:
 	a_int gpsup(a_int i) const { return psup(i); }
 	a_int gpsup_p(a_int i) const { return psup_p(i); }
 	a_int gesuel(a_int ielem, int jnode) const { return esuel(ielem, jnode); }
-	a_int gelemface(a_int ielem, int inode) const { return elemface(ielem,inode); }
+	a_int gelemface(a_int ielem, int inode) const {
+		assert(ielem < nelem);
+		assert(inode < nnode[ielem]);
+		return elemface(ielem,inode);
+	}
 	a_int gintfac(a_int face, int i) const { return intfac(face,i); }
 	int gintfacbtags(a_int face, int i) const { return intfacbtags(face,i); }
 	int gfacelocalnum(a_int face, int leftright) const { return facelocalnum(face, leftright); }
@@ -61,6 +65,10 @@ public:
 	int gnnode(a_int ielem) const { return nnode[ielem]; }
 	a_int gnaface() const {return naface; }
 	int gnfael(a_int ielem) const { return nfael[ielem]; }
+	int gnvertices(const a_int ielem) const {
+		static_assert(NDIM==2);
+		return nfael[ielem];
+	}
 	int gnnofa(a_int iface) const { return nnofa[iface]; }
 	int gnnobfa(a_int ibface) const { return nnobfa[ibface]; }
 	int gmaxnnofa() const { return maxnnofa; }
@@ -166,7 +174,7 @@ private:
 	std::vector<int> nintnodel;				///< Number of internal (not lying on a face) nodes in an element
 	int maxnnode;							///< Maximum number of nodes per element for any element
 	int maxnnofa;							///< Maximum number of nodes per face for any face
-	std::vector<int> nfael;					///< number of faces to an element (equal to number of edges to an element in 2D) for each element
+	std::vector<int> nfael;					///< number of faces to an element
 	int maxnfael;							///< Maximum number of faces per element for any element
 	std::vector<int> nnofa;					///< number of nodes in a face
 	std::vector<int> nnobfa;				///< number of nodes in boundary faces

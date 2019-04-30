@@ -213,19 +213,19 @@ public:
 
 	T get(const a_int i, const a_int j=0) const
 	{
-#ifdef DEBUG
-		if(i>=nrows || j>=ncols) { std::cout << "Array2d: get(): Index beyond array size(s)\n"; return 0; }
-		if(i < 0 || j < 0) { std::cout << "Array2d: get(): Index less than 0!\n"; return 0; }
-#endif
+		assert(i < nrows);
+		assert(j < ncols);
+		assert(i >= 0);
+		assert(j >= 0);
 		return elems[i*ncols + j];
 	}
 
 	void set(a_int i, a_int j, T data)
 	{
-#ifdef DEBUG
-		if(i>=nrows || j>=ncols) { std::cout << "Array2d: set(): Index beyond array size(s)\n"; return; }
-		if(i < 0 || j < 0) {std::cout << "Array2d: set(): Negative index!\n"; return; }
-#endif
+		assert(i < nrows);
+		assert(j < ncols);
+		assert(i >= 0);
+		assert(j >= 0);
 		elems[i*ncols + j] = data;
 	}
 
@@ -273,20 +273,20 @@ public:
 	/// Getter/setter function for expressions like A(1,2) = 141 to set the element at 1st row and 2nd column to 141
 	T& operator()(const a_int x, const a_int y=0)
 	{
-#ifdef DEBUG
-		if(x>=nrows || y>=ncols) { std::cout << "! Array2d (): Index beyond array size(s)\n"; return elems[0]; }
-		if(x<0 || y<0) { std::cout << "! Array2d (): Index negative!\n"; return elems[0]; }
-#endif
+		assert(x < nrows);
+		assert(y < ncols);
+		assert(x >= 0);
+		assert(y >= 0);
 		return elems[x*ncols + y];
 	}
 	
 	/// Const Getter/setter function for expressions like x = A(1,2) to get the element at 1st row and 2nd column
 	T operator()(const a_int x, const a_int y=0) const
 	{
-#ifdef DEBUG
-		if(x>=nrows || y>=ncols) { std::cout << "Array2d (): Index beyond array size(s)\n"; return elems[0]; }
-		if(x<0 || y<0) { std::cout << "! Array2d (): Index negative!\n"; return elems[0]; }
-#endif
+		assert(x < nrows);
+		assert(y < ncols);
+		assert(x >= 0);
+		assert(y >= 0);
 		return elems[x*ncols + y];
 	}
 

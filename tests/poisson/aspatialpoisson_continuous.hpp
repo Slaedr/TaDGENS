@@ -17,7 +17,8 @@ namespace acfd {
 class LaplaceC : public SpatialBase
 {
 public:
-	LaplaceC(const UMesh2dh* mesh, const int _p_degree);
+	LaplaceC(const UMesh2dh *const mesh, const int _p_degree,
+	         const int bc_dirichlet_id, const int bc_neumann_id);
 
 	void assemble();
 	void solve();
@@ -44,14 +45,12 @@ public:
 protected:
 	const a_real nu;                        ///< Diffusivity (currently always 1)
 	const a_real cbig;                      ///< Penalty for Dirichlet condition
-	int dirichlet_id;                       ///< Boundary marker for Dirichlet boundary
-	int neumann_id;                         ///< Boundary marker for homogeneous Neumann boundary
-	a_real dirichlet_value;                 ///< Dirichlet boundary value
-	std::vector<a_int> dirdofflags;         ///< Binary flag for each DOF
-											///<   identifying as lying on a Dirichlet boundary or not
-	a_int ndirdofs;                         ///< Number of Dirichlet DOFs
-	a_int ntotaldofs;                       ///< Total number of DOFs
-	amat::Array2d<int> dofmap;              ///< Identifies global dof index with local dofs and element index
+	const int dirichlet_id;                 ///< Boundary marker for Dirichlet boundary
+	const int neumann_id;                   ///< Boundary marker for homogeneous Neumann boundary
+	const a_int ntotaldofs;                 ///< Total number of DOFs
+	const a_real aa, bb, dd, ee;            ///< Params of exact solution
+
+	//amat::Array2d<int> dofmap;              ///< Identifies global dof index with local dofs and element index
 	Vector bflag;                           ///< Marks whether a DOF lies on a boundary or not
 
 	Eigen::SparseMatrix<a_real> Ag;         ///< Global left hand side matrix
@@ -59,7 +58,8 @@ protected:
 	Vector ug;                              ///< 'Global' solution vector
 	amat::Array2d<a_real> output;           ///< Output array for plotting
 
-	const a_real aa, bb, dd, ee;            ///< Params of exact solution
+
+	a_int getGlobalDofIdx(const a_int elem, const int localnode) const;
 
 	a_real source_term(const a_real pos[NDIM], const a_real time) const
 	{

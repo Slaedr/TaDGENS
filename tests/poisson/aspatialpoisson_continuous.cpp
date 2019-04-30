@@ -4,12 +4,32 @@
  * @date 2016-04-10
  */
 
+#undef NDEBUG
 #include "aspatialpoisson_continuous.hpp"
 
 namespace acfd {
 
-LaplaceC::LaplaceC(const UMesh2dh* mesh, const int _p_degree)
-	: SpatialBase(mesh, _p_degree, 'l'), nu{1.0}, cbig{1e30}, aa{PI}, bb{PI}, dd{PI/4}, ee{PI/4}
+a_int LaplaceC::getGlobalDofIdx(const a_int ielem, const int inode) const
+{
+	const a_int face = m->gelemface(ielem, inode >= m->gnnode(ielem) ? inode-m->gnnode(ielem) : inode);
+
+	if(inode < m->gnnode(ielem)) {
+		return m->ginpoel(ielem,inode);
+	}
+	else if(inode < m->gnnode(ielem)*2){
+		return m->gnpoin()+face;
+	}
+	else {
+		throw std::runtime_error("! LaplaceC: Dofmap not implemented for this kind of element!");
+	}
+}
+
+LaplaceC::LaplaceC(const UMesh2dh *const mesh, const int _p_degree,
+                   const int bc_dirichlet_id, const int bc_neumann_id)
+	: SpatialBase(mesh, _p_degree, 'l'), nu{1.0}, cbig{1e30},
+	  dirichlet_id{bc_dirichlet_id}, neumann_id{bc_neumann_id},
+	  ntotaldofs{mesh->gnpoin() + (p_degree-1)*mesh->gnaface()},
+	  aa{PI}, bb{PI}, dd{PI/4}, ee{PI/4}
 {
 	computeFEData();
 
@@ -19,35 +39,43 @@ LaplaceC::LaplaceC(const UMesh2dh* mesh, const int _p_degree)
 	for(int iface = 0; iface < m->gnaface(); iface++)
 		faces[iface].computeBasisGrads();
 
-	ntotaldofs = m->gnpoin() + (p_degree-1)*m->gnaface();
 	std::cout << " LaplaceC: Total DOFs = " << ntotaldofs << std::endl;
 	Ag.resize(ntotaldofs, ntotaldofs);
 	bg = Vector::Zero(ntotaldofs);
 	ug = Vector::Zero(ntotaldofs);
 
-	int nlocdofs = elems[0]->getNumDOFs();
-	std::cout << " LaplaceC: Local DOFs = " << nlocdofs << std::endl;
-	dofmap.resize(m->gnelem(), nlocdofs);
+	// const int nlocdofs = elems[0]->getNumDOFs();
+	// std::cout << " LaplaceC: Local DOFs = " << nlocdofs << std::endl;
+	// dofmap.resize(m->gnelem(), nlocdofs);
+
 	bflag = Vector::Zero(ntotaldofs);
 	for(int i = 0; i < m->gnpoin(); i++)
 		bflag(i) = m->gflag_bpoin(i);
 
+	// Only works upto P2
 	for(int i = 0; i < m->gnelem(); i++)
 	{
+		const int nlocdofs = elems[i]->getNumDOFs();
+
 		for(int j = 0; j < nlocdofs; j++) 
 		{
+			const a_int face = m->gelemface(i, j >= m->gnnode(i) ? j-m->gnnode(i) : j);
+
 			if(j < m->gnnode(i)) {
-				dofmap(i,j) = m->ginpoel(i,j);
+				//dofmap(i,j) = m->ginpoel(i,j);
 			}
 			else if(j < m->gnnode(i)*2){
-				a_int face = m->gelemface(i, j-m->gnnode(i));
-				dofmap(i,j) = m->gnpoin()+face;
-				if(face < m->gnbface()) bflag(dofmap(i,j)) = 1;
+				//dofmap(i,j) = m->gnpoin()+face;
+				assert(getGlobalDofIdx(i,j) < ntotaldofs);
+				if(face < m->gnbface()) bflag(getGlobalDofIdx(i,j)) = 1;
 			}
 			else {
 				std::cout << "! LaplaceC: Dofmap not implemented for this kind of element!\n";
 			}
-			//std::cout << "  Dofmap " << i << "," << j << " = " << dofmap(i,j) << "\n";
+
+			// if(face < m->gnbface())
+			// 	if(m->gbface(face,m->gmaxnnofa()) == dirichlet_id)
+			// 		bflag(getGlobalDofIdx(i,j)) = 1;
 		}
 	}
 }
@@ -57,7 +85,7 @@ void LaplaceC::assemble()
 	// declare LHS in coordinate (triplet) form for assembly
 	typedef Eigen::Triplet<a_real> COO;
 	std::vector<COO> coo; 
-	int ndofs = elems[0]->getNumDOFs();
+	const int ndofs = elems[0]->getNumDOFs();
 	
 	// domain integral
 	for(int ielem = 0; ielem < m->gnelem(); ielem++)
@@ -89,9 +117,13 @@ void LaplaceC::assemble()
 		
 		for(int i = 0; i < ndofs; i++)
 		{
-			bg(dofmap(ielem,i)) += bl(i);
-			for(int j = 0; j < ndofs; j++) {
-				coo.push_back(COO(dofmap(ielem,i), dofmap(ielem,j), A(i,j)));
+			assert(getGlobalDofIdx(ielem,i) < ntotaldofs);
+			bg(getGlobalDofIdx(ielem,i)) += bl(i);
+
+			for(int j = 0; j < ndofs; j++)
+			{
+				assert(getGlobalDofIdx(ielem,j) < ntotaldofs);
+				coo.push_back(COO(getGlobalDofIdx(ielem,i), getGlobalDofIdx(ielem,j), A(i,j)));
 			}
 		}
 	}
@@ -104,16 +136,53 @@ void LaplaceC::assemble()
 	 */
 	for(int ielem = 0; ielem < m->gnelem(); ielem++)
 	{
+		const int nvert = m->gnvertices(ielem);
 		const Matrix& nodes = map2d[ielem].getPhyNodes();
 
-		for(int i = 0; i < ndofs; i++) 
+		// vertex dofs
+		for(int i = 0; i < nvert; i++) 
 		{
-			const int igdof = dofmap(ielem,i);
+			const int igdof = getGlobalDofIdx(ielem,i);
 			if(bflag(igdof))
 			{
 				Ag.coeffRef(igdof,igdof) = cbig;
 
 				const a_real pos[NDIM] = {nodes(0,i),nodes(1,i)};
+				const a_real bval = exact_solution(pos,0);
+				bg(igdof) = cbig*bval;
+			}
+		}
+
+		// face dofs
+		for(int i = nvert; i < nvert+m->gnfael(ielem); i++) 
+		{
+			const int igdof = getGlobalDofIdx(ielem,i);
+			if(bflag(igdof))
+			{
+				Ag.coeffRef(igdof,igdof) = cbig;
+
+				const a_real pos[NDIM] = {(nodes(0,i-nvert)+nodes(0,(i-nvert+1)%nvert))/2.0,
+				                          (nodes(1,i-nvert)+nodes(1,(i-nvert+1)%nvert))/2.0};
+				const a_real bval = exact_solution(pos,0);
+				bg(igdof) = cbig*bval;
+			}
+		}
+
+		// volume dofs
+		for(int i = nvert+m->gnfael(ielem); i < ndofs; i++) 
+		{
+			const int igdof = getGlobalDofIdx(ielem,i);
+			if(bflag(igdof))
+			{
+				Ag.coeffRef(igdof,igdof) = cbig;
+
+				a_real pos[NDIM] = {0,0};
+				for(int idim = 0; idim < NDIM; idim++) {
+					for(int inode = 0; inode < nvert; inode++)
+						pos[idim] += nodes(idim,i);
+					pos[idim] /= nvert;
+				}
+
 				const a_real bval = exact_solution(pos,0);
 				bg(igdof) = cbig*bval;
 			}
@@ -162,9 +231,9 @@ void LaplaceC::computeErrors(a_real& __restrict__ l2error, a_real& __restrict__ 
 
 			a_real lu = 0, lux = 0, luy = 0;
 			for(int j = 0; j < ndofs; j++) {
-				lu += ug(dofmap(ielem,j))*bfunc(ig,j);
-				lux += ug(dofmap(ielem,j))*bgrad[ig](j,0);
-				luy += ug(dofmap(ielem,j))*bgrad[ig](j,1);
+				lu += ug(getGlobalDofIdx(ielem,j))*bfunc(ig,j);
+				lux += ug(getGlobalDofIdx(ielem,j))*bgrad[ig](j,0);
+				luy += ug(getGlobalDofIdx(ielem,j))*bgrad[ig](j,1);
 			}
 			l2error += std::pow(lu-exact_solution(qcoords,0),2) * wts(ig) * gmap->jacDet()[ig];
 			const std::array<a_real,NDIM> ugrad = exact_gradient(qcoords,0);

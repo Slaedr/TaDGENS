@@ -1,9 +1,9 @@
 -number-of-meshes
 3
 -Mesh-prefix
-grids/squaretri
+@CMAKE_CURRENT_BINARY_DIR@/grids/squaretri
 -Output-VTU-prefix
 square
 -polynomial-degree-of-computed-solution
-1
+2
 

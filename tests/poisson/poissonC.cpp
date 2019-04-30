@@ -24,12 +24,14 @@ int main(int argc, char* argv[])
 	ifstream control(argv[1]);
 
 	string dum, meshprefix, outf;
-	int degree, nmesh;
+	int degree, nmesh, dirichlet_id, neumann_id;
 
 	control >> dum; control >> nmesh;
 	control >> dum; control >> meshprefix;
 	control >> dum; control >> outf;
 	control >> dum; control >> degree;
+	control >> dum; control >> dirichlet_id;
+	control >> dum; control >> neumann_id;
 	control.close();
 
 	vector<string> mfiles(nmesh), sfiles(nmesh);
@@ -47,7 +49,7 @@ int main(int argc, char* argv[])
 	for(int imesh = 0; imesh < nmesh; imesh++)
 	{
 		const UMesh2dh m = prepare_mesh(mfiles[imesh]);
-		LaplaceC sd(&m, degree);
+		LaplaceC sd(&m, degree, dirichlet_id, neumann_id);
 		sd.solve();
 		sd.postprocess(udum);
 		sd.computeErrors(l2err[imesh], siperr[imesh]);
@@ -60,12 +62,14 @@ int main(int argc, char* argv[])
 		const Array2d<a_real>& u = sd.getOutput();
 		Array2d<a_real> vecs;
 		writeScalarsVectorToVtu_PointData(sfiles[imesh], m, u, names, vecs, "none");
+
 		if(imesh > 0) {
 			double l2slope = (l2err[imesh]-l2err[imesh-1])/(h[imesh]-h[imesh-1]);
 			double sipslope = (siperr[imesh]-siperr[imesh-1])/(h[imesh]-h[imesh-1]);
 			printf("Mesh %d: L2 slope = %f, H1 slope = %f\n", imesh, l2slope, sipslope);
 			l2slopes[imesh-1] = l2slope;
 		}
+
 		printf("\n"); fflush(stdout);
 	}
 

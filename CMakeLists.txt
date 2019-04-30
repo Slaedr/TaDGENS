@@ -28,18 +28,18 @@ endif()
 # Basic options
 if(CXX_COMPILER_GNUCLANG OR CXX_COMPILER_INTEL)
   set (CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wfloat-conversion -Werror")
-  set (CMAKE_CXX_FLAGS_DEBUG "-g -O1")
+  set (CMAKE_CXX_FLAGS_DEBUG "-g")
   set (CMAKE_CXX_FLAGS_RELEASE "-O3")
-  if(CXX_COMPILER_GNUCLANG)
-    set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
-  endif()
+  # if(CXX_COMPILER_GNUCLANG)
+  #   set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
+  # endif()
 elseif(CXX_COMPILER_PGI)
   set (CMAKE_CXX_FLAGS "-std=c++14")
-  set (CMAKE_CXX_FLAGS_DEBUG "-g -O1")
+  set (CMAKE_CXX_FLAGS_DEBUG "-g")
   set (CMAKE_CXX_FLAGS_RELEASE "-O2")
 elseif(CXX_COMPILER_CRAY)
   set (CMAKE_CXX_FLAGS "-h std=c++14 -h error_on_warning")
-  set (CMAKE_CXX_FLAGS_DEBUG "-g -O1")
+  set (CMAKE_CXX_FLAGS_DEBUG "-g")
   set (CMAKE_CXX_FLAGS_RELEASE "-O2")
 endif()
 
@@ -198,9 +198,6 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_DONT_PARALLELIZE")
 # ---------------------------------------------------------------------------- #
 
 # flags and stuff
-
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -DDEBUG=1")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -O3 -UDEBUG -DNDEBUG")
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     message(STATUS "Debug mode")
