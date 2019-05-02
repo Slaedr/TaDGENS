@@ -1,7 +1,7 @@
 -number-of-meshes
 4
 -Mesh-prefix
-@CMAKE_CURRENT_BINARY_DIR@/grids/squareellipse_
+@CMAKE_CURRENT_BINARY_DIR@/grids/squareellipse_p2_
 -output-file-prefix
 @CMAKE_CURRENT_BINARY_DIR@/t-tri
 -Basis-type
