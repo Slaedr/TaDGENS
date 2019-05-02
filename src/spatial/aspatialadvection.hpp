@@ -63,15 +63,13 @@ protected:
 	a_real source_term(const a_real pos[NDIM], const a_real time) const
 	{
 		return a[0]*aa*std::cos(aa*pos[0]+dd)*std::sin(bb*pos[1]+ee)
-			+ a[1]*bb*std::sin(aa*pos[0]+dd)*std::cos(bb*pos[1]*ee);
-		//return 0;
+			+ a[1]*bb*std::sin(aa*pos[0]+dd)*std::cos(bb*pos[1]+ee);
 	}
 
 	/// State at inflow boundaries
 	a_real bcfunc(const a_real position[NDIM]) const
 	{
 		return std::sin(aa*position[0]+dd)*std::sin(bb*position[1]+ee);
-		//return sin(2*PI*position[1]);
 	}
 };
 

@@ -51,11 +51,11 @@ else()
   add_custom_target(steadyadvectioncurved_p2_meshes DEPENDS ${steadyadvectioncurved_p2_tri_meshfiles})
   add_dependencies(grid_conv_steady steadyadvectioncurved_p2_meshes)
 
-  add_test(NAME SteadyAdvectionEllipseOutflow_SolutionConvergence_Lagrange_P1
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-	COMMAND ${SEQEXEC} ${SEQTASKS} ${CMAKE_BINARY_DIR}/grid_conv_steady
-	${CMAKE_CURRENT_BINARY_DIR}/advect-l-p1.control
-	)
+  #  add_test(NAME SteadyAdvectionEllipseOutflow_SolutionConvergence_Lagrange_P1
+  #	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  #	COMMAND ${SEQEXEC} ${SEQTASKS} ${CMAKE_BINARY_DIR}/grid_conv_steady
+  #	${CMAKE_CURRENT_BINARY_DIR}/advect-l-p1.control
+  #	)
   add_test(NAME SteadyAdvectionEllipseOutflow_SolutionConvergence_Lagrange_P2
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	COMMAND ${SEQEXEC} ${SEQTASKS} ${CMAKE_BINARY_DIR}/grid_conv_steady
