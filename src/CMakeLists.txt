@@ -9,7 +9,7 @@ target_link_libraries(mesh base)
 add_library(fem fem/aelements.cpp fem/aquadrature.cpp)
 target_link_libraries(fem mesh)
 
-add_library(spatial spatial/aoutput.cpp spatial/areconstruction.cpp spatial/aspatial.cpp)
+add_library(spatial spatial/aoutput.cpp spatial/aspatial.cpp)
 target_link_libraries(spatial fem)
 
 add_library(spatial_poisson spatial/aspatialpoisson.cpp)

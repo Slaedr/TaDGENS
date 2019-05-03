@@ -10,7 +10,7 @@
 #include "aconstants.hpp"
 #include "utilities/aarray2d.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 /// Base class for defining quadrature rules
 class QuadratureRule
@@ -71,5 +71,5 @@ public:
 	void initialize(const int n_poly);
 };
 
-} // end namespace acfd
+} // end namespace tadgens
 #endif

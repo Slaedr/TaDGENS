@@ -11,7 +11,7 @@
 
 #include <Eigen/Sparse>
 
-namespace acfd {
+namespace tadgens {
 
 /// Symmetric interior penalty scheme for Laplace operator
 /** \note Strong boundary conditions, hence only nodal basis!

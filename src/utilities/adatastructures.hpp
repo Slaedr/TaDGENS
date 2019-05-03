@@ -3,13 +3,11 @@
  * @author Aditya Kashi
  */
 
-#ifndef __ADATASTRUCTURES_H
+#ifndef ADATASTRUCTURES_H
+#define ADATASTRUCTURES_H
 
-#define __ADATASTRUCTURES_H
-
-#ifndef __ACONSTANTS_H
+#include <iostream>
 #include "aconstants.hpp"
-#endif
 
 template <class T>
 struct Node

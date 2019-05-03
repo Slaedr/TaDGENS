@@ -9,13 +9,14 @@
 
 #undef NDEBUG
 
+#include <iostream>
 #include "spatial/aspatialadvection.hpp"
 #include "solvers/atimesteady.hpp"
 #include "spatial/aoutput.hpp"
 
 using namespace amat;
 using namespace std;
-using namespace acfd;
+using namespace tadgens;
 
 int main(int argc, char* argv[])
 {

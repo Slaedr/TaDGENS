@@ -9,7 +9,7 @@
 
 #include "aspatial.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 /// Residual computation for linear advection
 /** \note Make sure to call both compute_topological and compute_boundary_maps on the mesh object

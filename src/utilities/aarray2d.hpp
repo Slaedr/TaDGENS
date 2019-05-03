@@ -25,10 +25,10 @@
 namespace amat {
 	
 /// Real type
-using acfd::a_real;
+using tadgens::a_real;
 
 /// Integer type
-using acfd::a_int;
+using tadgens::a_int;
 
 const int WIDTH = 10;		// width of field for printing matrices
 
@@ -199,13 +199,7 @@ public:
 	/// function to set matrix elements from a ROW-MAJOR array
 	void setdata(const T* A, a_int sz)
 	{
-#ifdef DEBUG
-		if(sz != size)
-		{
-			std::cout << "\nError in setdata: argument size does not match matrix size";
-			return;
-		}
-#endif
+		assert(sz==size);
 		for(a_int i = 0; i < nrows; i++)
 			for(a_int j = 0; j < ncols; j++)
 				elems[i*ncols+j] = A[i*ncols+j];
@@ -234,7 +228,7 @@ public:
 	a_int msize() const { return size; }
 
 	/// Prints the matrix to standard output.
-	void mprint() const
+	/*void mprint() const
 	{
 		std::cout << "\n";
 		for(a_int i = 0; i < nrows; i++)
@@ -243,7 +237,7 @@ public:
 				std::cout << std::setw(WIDTH) << std::setprecision(WIDTH/2+1) << elems[i*ncols+j];
 			std::cout << std::endl;
 		}
-	}
+		}
 
 	/// Prints the matrix to file
 	void fprint(std::ofstream& outfile) const
@@ -256,19 +250,7 @@ public:
 				outfile << " " << elems[i*ncols+j];
 			outfile << '\n';
 		}
-	}
-
-	/// Reads matrix from file
-	void fread(std::ifstream& infile)
-	{
-		infile >> nrows; infile >> ncols;
-		size = nrows*ncols;
-		delete [] elems;
-		elems = new T[nrows*ncols];
-		for(a_int i = 0; i < nrows; i++)
-			for(a_int j = 0; j < ncols; j++)
-				infile >> elems[i*ncols + j];
-	}
+		}*/
 
 	/// Getter/setter function for expressions like A(1,2) = 141 to set the element at 1st row and 2nd column to 141
 	T& operator()(const a_int x, const a_int y=0)
@@ -293,36 +275,28 @@ public:
 	/// Returns a pointer-to-const to the beginning of a row
 	const T* const_row_pointer(const a_int r) const
 	{
-#ifdef DEBUG
-		if(r >= nrows) { std::cout << "! Array2d: const_row_pointer(): Row index beyond array size!\n"; return nullptr;}
-#endif
+		assert(r < nrows);
 		return &elems[r*ncols];
 	}
 	
 	/// Returns a pointer-to-const to the beginning of a row
 	const T* operator[](const a_int r) const
 	{
-#ifdef DEBUG
-		if(r >= nrows) { std::cout << "! Array2d: const []: Row index beyond array size!\n"; return nullptr;}
-#endif
+		assert(r < nrows);
 		return &elems[r*ncols];
 	}
 	
 	/// Returns a pointer to the beginning of a row
 	T* row_pointer(const a_int r)
 	{
-#ifdef DEBUG
-		if(r >= nrows) { std::cout << "! Array2d: row_pointer(): Row index beyond array size!\n"; return nullptr;}
-#endif
+		assert(r < nrows);
 		return &elems[r*ncols];
 	}
 	
 	/// Returns a pointer to the beginning of a row
 	T* operator[](const a_int r)
 	{
-#ifdef DEBUG
-		if(r >= nrows) { std::cout << "! Array2d: []: Row index beyond array size!\n"; return nullptr;}
-#endif
+		assert(r < nrows);
 		return &elems[r*ncols];
 	}
 
@@ -445,7 +419,7 @@ public:
 	void replacecol(a_int j, Array2d<T> b)
 	{
 #ifdef DEBUG
-		if(b.cols() != 1 || b.rows() != nrows) { std::cout << "\nSize error in replacecol"; return; }
+		//if(b.cols() != 1 || b.rows() != nrows) { std::cout << "\nSize error in replacecol"; return; }
 #endif
 		for(a_int i = 0; i < nrows; i++)
 			elems[i*ncols + j] = b.elems[i];
@@ -455,7 +429,7 @@ public:
 	void replacerow(a_int i, Array2d<T> b)
 	{
 #ifdef DEBUG
-		if(b.cols() != ncols || b.rows() != 1) { std::cout << "\nSize error in replacerow"; return; }
+		//if(b.cols() != ncols || b.rows() != 1) { std::cout << "\nSize error in replacerow"; return; }
 #endif
 		for(a_int j = 0; j < ncols; j++)
 			elems[i*ncols + j] = b.elems[j];
@@ -488,9 +462,7 @@ public:
 #ifdef DEBUG
 		if(nrows != B.rows() || ncols != B.cols())
 		{
-			std::cout << "! Array2d: Addition cannot be performed due to incompatible sizes\n";
-			Array2d<T> C(1,1);
-			return C;
+			//std::cout << "! Array2d: Addition cannot be performed due to incompatible sizes\n";
 		}
 #endif
 		Array2d<T> C(nrows, ncols);
@@ -506,9 +478,6 @@ public:
 #ifdef DEBUG
 		if(nrows != B.rows() || ncols != B.cols())
 		{
-			std::cout << "! Array2d: Subtraction cannot be performed due to incompatible sizes\n";
-			Array2d<T> C(1,1);
-			return C;
 		}
 #endif
 		Array2d<T> C(nrows, ncols);
@@ -525,8 +494,6 @@ public:
 #ifdef DEBUG
 		if(ncols != B.rows())
 		{
-			std::cout << "! Array2d: Multiplication cannot be performed - incompatible sizes!\n";
-			return C;
 		}
 #endif
 		for(a_int i = 0; i < nrows; i++)
@@ -548,7 +515,7 @@ public:
 		#endif
 		a_int i;
 		T ans = 0;
-		//#pragma omp parallel for if(size >= 64) default(none) private(i) shared(elems,elemsA,size) reduction(+: ans) num_threads(nthreads_m)
+
 		for(i = 0; i < size; i++)
 		{
 			T temp = elems[i]*elemsA[i];

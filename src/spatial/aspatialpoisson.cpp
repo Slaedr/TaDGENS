@@ -6,7 +6,7 @@
 
 #include "spatial/aspatialpoisson.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 LaplaceSIP::LaplaceSIP(const UMesh2dh* mesh, const int _p_degree, const a_real stab)
 	: SpatialBase(mesh, _p_degree, 'l')

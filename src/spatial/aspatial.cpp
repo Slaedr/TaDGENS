@@ -4,9 +4,11 @@
  * @date 2016-02-24
  */
 
+#include <iostream>
+#include <Eigen/LU>
 #include "aspatial.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 SpatialBase::SpatialBase(const UMesh2dh* mesh, const int _p_degree, char basistype)
 	: m(mesh), p_degree(_p_degree), basis_type(basistype)

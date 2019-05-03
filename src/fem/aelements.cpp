@@ -4,16 +4,18 @@
  * @date 2017 March 1
  */
 
+#include <iostream>
 #include "aelements.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 using namespace amat;
 
 /** Computes Lagrange basis function values at given points in the reference element.
  * \note NOTE: For efficiency, we would want to able to request computation of only certain basis functions.
  */
-void getLagrangeBasis(const Matrix& __restrict__ gp, const Shape shape, const int degree,  Matrix& __restrict__ basisv)
+void getLagrangeBasis(const Matrix& __restrict__ gp, const Shape shape, const int degree,
+                      Matrix& __restrict__ basisv)
 {
 	if(shape == TRIANGLE) {
 		if(degree == 1) {

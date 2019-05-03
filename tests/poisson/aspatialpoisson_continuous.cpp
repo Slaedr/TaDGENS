@@ -5,9 +5,10 @@
  */
 
 #undef NDEBUG
+#include <iostream>
 #include "aspatialpoisson_continuous.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 a_int LaplaceC::getGlobalDofIdx(const a_int ielem, const int inode) const
 {

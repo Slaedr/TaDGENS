@@ -4,9 +4,10 @@
  * @date 2017 April 15
  */
 
+#include <iostream>
 #include "atimesteady.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 SteadyBase::SteadyBase(const UMesh2dh *const mesh, SpatialBase *const s,
                               a_real cflnumber, double toler, int max_iter)

@@ -4,9 +4,11 @@
  * @date 2017-03-04
  */
 
+#include <cstdio>
+#include <cmath>
 #include "aquadrature.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 /** Note that Gauss-Legendre quadrature (1D) with n quadrature points integrates
  * polynomials upto degree 2n-1 exactly. NOTE: This should probably be 2n+1.

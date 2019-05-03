@@ -9,13 +9,14 @@
 
 #undef NDEBUG
 
+#include <iostream>
 #include "fem/aquadrature.hpp"
 #include "mesh/amesh2dh.hpp"
 #include "fem/aelements.hpp"
 
 using namespace std;
 using namespace amat;
-using namespace acfd;
+using namespace tadgens;
 
 int main()
 {

@@ -11,11 +11,12 @@
 #ifndef AELEMENTS_H
 #define AELEMENTS_H
 
+#include <vector>
 #include "aconstants.hpp"
 #include "utilities/aarray2d.hpp"
 #include "aquadrature.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 /// Abstract class for a vector function of a single variable for parameterizing boundary curves
 /** The reference nodes are at equally-spaced points between (and including) -1 and 1.

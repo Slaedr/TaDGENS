@@ -9,7 +9,7 @@
 
 #include "spatial/aspatial.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 struct SteadySolverConfig {
 	double tol;

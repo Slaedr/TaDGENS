@@ -11,7 +11,7 @@
 
 #include <Eigen/Sparse>
 
-namespace acfd {
+namespace tadgens {
 
 /// Continuous FEM for Poisson equation
 class LaplaceC : public SpatialBase

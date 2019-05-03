@@ -7,10 +7,11 @@
 #define AMESH2DH_H
 
 #include <utility>
+#include <vector>
 #include "aconstants.hpp"
 #include "utilities/aarray2d.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 /// Index of something w.r.t. the element it is associated with
 typedef int EIndex;

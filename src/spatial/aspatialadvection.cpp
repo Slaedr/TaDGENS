@@ -4,10 +4,11 @@
  * @date 2017 April 14
  */
 
+#include <iostream>
 #include <cmath>
 #include "aspatialadvection.hpp"
 
-namespace acfd {
+namespace tadgens {
 
 LinearAdvection::LinearAdvection(const UMesh2dh* mesh, const int _p_degree, const char basis, 
                                  const int inoutflag, const int extrapflag)

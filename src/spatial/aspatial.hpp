@@ -11,11 +11,8 @@
 #include "utilities/aarray2d.hpp"
 #include "mesh/amesh2dh.hpp"
 #include "fem/aelements.hpp"
-#include "areconstruction.hpp"
 
-#include <Eigen/LU>
-
-namespace acfd {
+namespace tadgens {
 
 /// Base class for spatial discretization and integration of weak forms of PDEs
 /**
