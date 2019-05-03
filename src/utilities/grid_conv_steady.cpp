@@ -62,7 +62,8 @@ int main(int argc, char* argv[])
 	{
 		const UMesh2dh m = prepare_mesh(mfiles[imesh]);
 		
-		const double hhactual = m.meshSizeParameter();
+		//const double hhactual = m.meshSizeParameter();
+		const double hhactual = 1.0/(sqrt(m.gnelem()));
 		printf("Mesh %d: h = %f\n", imesh, hhactual);
 
 		LinearAdvection sd(&m, sdegree, basistype, inoutflag, extrapflag);
@@ -100,6 +101,15 @@ int main(int argc, char* argv[])
 	for(int i = 0; i < nmesh; i++)
 		convf << h[i] << " " << l2err[i] << "\n";
 	convf.close();*/
+
+	printf("%4s  %9s  %9s  %8s\n", "grid", "h", "error", "order");
+	printf("-------------------------------------\n");
+	for(int imesh = 0; imesh < nmesh; imesh++) {
+		if(imesh > 0)
+			printf("%4d  %6.6f  %6.6f  %6.6f\n", imesh, h[imesh], l2err[imesh], l2slopes[imesh-1]);
+		else
+			printf("%4d  %6.6f  %6.6f\n", imesh, h[imesh], l2err[imesh]);
+	}
 
 	/// \todo FIXME: Use problem-dependent tolerance
 	assert(std::abs(l2slopes[nmesh-2] - (sdegree+1.0)) < 0.15);

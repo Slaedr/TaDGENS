@@ -152,7 +152,8 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 				nelem++;
 				break;
 			default:
-				std::cout << "! UMesh2d: readGmsh2(): Element type not recognized. Setting as linear triangle." << std::endl;
+				std::cout << "! UMesh2d: readGmsh2(): Element type not recognized. Setting as linear triangle."
+                          << std::endl;
 				nnodes[i] = 3;
 				nfaels[i] = 3;
 				nintnodes[i] = 0;
@@ -192,9 +193,10 @@ void UMesh2dh::readGmsh2(std::string mfile, int dimensions)
 	inpoel.setup(nelem, maxnnode);
 	vol_regions.setup(nelem, ndtag);
 
-	std::cout << "UMesh2dh: readGmsh2(): Done. No. of points: " << npoin << ", number of elements: " << nelem << ", number of boundary faces " << nface << 
-		",\n max number of nodes per element: " << maxnnode << ", max number of nodes per face: " << maxnnofa << ", max number of faces per element: " << maxnfael 
-		<< ", geometric degree: " << g_degree << std::endl;
+	std::cout << "UMesh2dh: readGmsh2(): Done. No. of points: " << npoin << ", number of elements: " << nelem 
+		<< ", number of boundary faces " << nface << ",\n max number of nodes per element: " << maxnnode 
+		<< ", max number of nodes per face: " << maxnnofa << ", max number of faces per element: " << maxnfael 
+		<< ",\n geometric degree: " << g_degree << std::endl;
 
 	// write into inpoel and bface
 	// the first nface rows to be read are boundary faces

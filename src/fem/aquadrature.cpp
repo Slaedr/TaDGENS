@@ -9,7 +9,7 @@
 namespace acfd {
 
 /** Note that Gauss-Legendre quadrature (1D) with n quadrature points integrates
- * polynomials upto degree 2n-1 exactly.
+ * polynomials upto degree 2n-1 exactly. NOTE: This should probably be 2n+1.
  */
 void Quadrature1D::initialize(const int n_poly)
 {
@@ -26,6 +26,7 @@ void Quadrature1D::initialize(const int n_poly)
 		ggpoints.resize(ngauss,1);
 		gptemp(0) = 0.0;
 		gweights(0) = 2.0;
+		printf("  Quadrature1D: Ngauss = 1.\n");
 	}
 	else if(nPoly <= 3){
 		ngauss = 2;
@@ -34,6 +35,7 @@ void Quadrature1D::initialize(const int n_poly)
 		ggpoints.resize(ngauss,1);
 		gptemp(0) = -1.0/sqrt(3); gptemp(1) = 1.0/sqrt(3);
 		gweights(0) = 1.0; gweights(1) = 1.0;
+		printf("  Quadrature1D: Ngauss = 2.\n");
 	}
 	else if(nPoly <= 5) {
 		ngauss = 3;
@@ -42,6 +44,7 @@ void Quadrature1D::initialize(const int n_poly)
 		ggpoints.resize(ngauss,1);
 		gptemp(0) = -sqrt(3.0/5.0); gptemp(1) = 0.0; gptemp(2) = sqrt(3.0/5.0);
 		gweights(0) = 5.0/9.0;  gweights(1) = 8.0/9.0, gweights(2) = 5.0/9.0;
+		printf("  Quadrature1D: Ngauss = 3.\n");
 	}
 	else if(nPoly <= 7) {
 		ngauss = 4;
@@ -52,6 +55,7 @@ void Quadrature1D::initialize(const int n_poly)
 		gptemp(2) = sqrt(3.0/7 + 2.0/7*sqrt(6.0/5)); gptemp(3) = sqrt(3.0/7 + 2.0/7*sqrt(6.0/5));
 		gweights(0) = (18.0-sqrt(30))/36.0; gweights(1) = (18.0+sqrt(30))/36.0;
 		gweights(2) = (18.0+sqrt(30))/36.0; gweights(3) = (18.0-sqrt(30))/36.0;
+		printf("  Quadrature1D: Ngauss = 4.\n");
 	}
 	else if(nPoly <= 9) {
 		ngauss = 5;
@@ -64,6 +68,7 @@ void Quadrature1D::initialize(const int n_poly)
 		gweights(0) = (322.0-13*sqrt(70.0))/900; gweights(1) = (322.0+13*sqrt(70.0))/900;
 		gweights(2) = 128.0/225;
 		gweights(3) = (322.0+13*sqrt(70.0))/900; gweights(4) = (322.0-13*sqrt(70.0))/900;
+		printf("  Quadrature1D: Ngauss = 5.\n");
 	}
 	else {
 		nPoly = 15;
@@ -92,6 +97,7 @@ void Quadrature1D::initialize(const int n_poly)
 		                  {0.10122853629037625915}};
 		gptemp.initialize(ngauss, 1, (a_real*)gp);
 		gweights.initialize(ngauss, 1, (a_real*)gw);
+		printf("  Quadrature1D: Ngauss = 8.\n");
 	}
 
 	for(int i = 0; i < ggpoints.rows(); i++)
@@ -115,6 +121,7 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		a_real gw[] = {2.0};
 		gptemp.initialize(ngaussdim, 1, gp);
 		gwtemp.initialize(ngaussdim, 1, gw);
+		printf("  Quadrature2DSquare: Ngauss per dim = 1.\n");
 	}
 	else if(nPoly <= 3){
 		ngaussdim = 2;
@@ -123,6 +130,7 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		a_real gw[] = { 1.0, 1.0 };
 		gptemp.initialize(ngaussdim, 1, gp);
 		gwtemp.initialize(ngaussdim, 1, gw);
+		printf("  Quadrature2DSquare: Ngauss per dim = 2.\n");
 	}
 	else if(nPoly <= 5) {
 		ngaussdim = 3;
@@ -131,6 +139,7 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		a_real gw[] = { 5.0/9.0, 8.0/9.0, 5.0/9.0 };
 		gptemp.initialize(ngaussdim, 1, gp);
 		gwtemp.initialize(ngaussdim, 1, gw);
+		printf("  Quadrature2DSquare: Ngauss per dim = 3.\n");
 	}
 	else if(nPoly <= 7) {
 		ngaussdim = 4;
@@ -141,6 +150,7 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		                (18.0+sqrt(30))/36.0, (18.0-sqrt(30))/36.0 };
 		gptemp.initialize(ngaussdim, 1, gp);
 		gwtemp.initialize(ngaussdim, 1, gw);
+		printf("  Quadrature2DSquare: Ngauss per dim = 4.\n");
 	}
 	else if(nPoly <= 9) {
 		ngaussdim = 5;
@@ -151,6 +161,7 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		               (322.0+13*sqrt(70.0))/900, (322.0-13*sqrt(70.0))/900 };
 		gptemp.initialize(ngaussdim, 1, gp);
 		gwtemp.initialize(ngaussdim, 1, gw);
+		printf("  Quadrature2DSquare: Ngauss per dim = 5.\n");
 	}
 	else {
 		nPoly = 15;
@@ -177,6 +188,7 @@ void Quadrature2DSquare::initialize(const int n_poly)
 		                  0.10122853629037625915};
 		gptemp.initialize(ngaussdim, 1, gp);
 		gwtemp.initialize(ngaussdim, 1, gw);
+		printf("  Quadrature2DSquare: Ngauss per dim = 8.\n");
 	}
 
 	gweights.resize(ngauss,1);
