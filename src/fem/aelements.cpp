@@ -65,10 +65,13 @@ void getLagrangeBasis(const Matrix& __restrict__ gp, const Shape shape, const in
 	}
 }
 
-/** Computes Lagrange basis function gradients (w.r.t. reference coords) at given points in the reference element.
- * \note NOTE: For efficiency, we would want to able to request computation of gradients of only certain basis functions.
+/** Computes Lagrange basis function gradients (w.r.t. reference coords) at given points in the
+ *   reference element.
+ * \note For efficiency, we would want to able to request computation of gradients of only
+ * certain basis functions.
  */
-void getLagrangeBasisGrads(const Matrix& __restrict__ gp, const Shape shape, const int degree, std::vector<Matrix>& __restrict__ basisG)
+void getLagrangeBasisGrads(const Matrix& __restrict__ gp, const Shape shape, const int degree,
+                           std::vector<Matrix>& __restrict__ basisG)
 {
 	if(shape == TRIANGLE) {
 		if(degree == 1) {
@@ -82,12 +85,12 @@ void getLagrangeBasisGrads(const Matrix& __restrict__ gp, const Shape shape, con
 		if(degree == 2) {
 			for(int ip = 0; ip < gp.rows(); ip++)
 			{
-				basisG[ip](0,0) = -3.0+4*gp(ip,0)+4*gp(ip,1);    basisG[ip](0,1) = -3.0+4*gp(ip,0)+4*gp(ip,1);
-				basisG[ip](1,0) = 4.0*gp(ip,0)-1.0;              basisG[ip](1,1) = 0;
-				basisG[ip](2,0) = 0;                             basisG[ip](2,1) = 4.0*gp(ip,1)-1.0;
-				basisG[ip](3,0) = 4.0*(1.0-2*gp(ip,0)-gp(ip,1)); basisG[ip](3,1) = -4.0*gp(ip,0);
-				basisG[ip](4,0) = 4.0*gp(ip,1);                  basisG[ip](4,1) = 4.0*gp(ip,0);
-				basisG[ip](5,0) = -4.0*gp(ip,1);                 basisG[ip](5,1) = 4.0*(1.0-2*gp(ip,1)-gp(ip,0));
+				basisG[ip](0,0) = -3.0+4*gp(ip,0)+4*gp(ip,1);   basisG[ip](0,1) = -3.0+4*gp(ip,0)+4*gp(ip,1);
+				basisG[ip](1,0) = 4.0*gp(ip,0)-1.0;             basisG[ip](1,1) = 0;
+				basisG[ip](2,0) = 0;                            basisG[ip](2,1) = 4.0*gp(ip,1)-1.0;
+				basisG[ip](3,0) = 4.0*(1.0-2*gp(ip,0)-gp(ip,1));basisG[ip](3,1) = -4.0*gp(ip,0);
+				basisG[ip](4,0) = 4.0*gp(ip,1);                 basisG[ip](4,1) = 4.0*gp(ip,0);
+				basisG[ip](5,0) = -4.0*gp(ip,1);                basisG[ip](5,1) = 4.0*(1.0-2*gp(ip,1)-gp(ip,0));
 			}
 		}
 	}
@@ -104,15 +107,24 @@ void getLagrangeBasisGrads(const Matrix& __restrict__ gp, const Shape shape, con
 		if(degree == 2) {
 			for(int ip = 0; ip < gp.rows(); ip++)
 			{
-				basisG[ip](0,0) = (2*gp(ip,0)-1)*gp(ip,1)*(gp(ip,1)-1)*0.25;  basisG[ip](0,1) = gp(ip,0)*(gp(ip,0)-1)*(2*gp(ip,1)-1)*0.25;
-				basisG[ip](1,0) = (2*gp(ip,0)+1)*gp(ip,1)*(gp(ip,1)-1)*0.25;  basisG[ip](1,1) = gp(ip,0)*(gp(ip,0)+1)*(2*gp(ip,1)-1)*0.25;
-				basisG[ip](2,0) = (2*gp(ip,0)+1)*gp(ip,1)*(gp(ip,1)+1)*0.25;  basisG[ip](2,1) = gp(ip,0)*(gp(ip,0)+1)*(2*gp(ip,1)+1)*0.25;
-				basisG[ip](3,0) = (2*gp(ip,0)-1)*gp(ip,1)*(gp(ip,1)+1)*0.25;  basisG[ip](3,1) = gp(ip,0)*(gp(ip,0)-1)*(2*gp(ip,1)+1)*0.25;
-				basisG[ip](4,0) = -gp(ip,0)*gp(ip,1)*(gp(ip,1)-1);            basisG[ip](4,1) = (1-gp(ip,0)*gp(ip,0))*(2*gp(ip,1)-1)*0.5;
-				basisG[ip](5,0) = (2*gp(ip,0)+1)*(1-gp(ip,1)*gp(ip,1))*0.5;   basisG[ip](5,1) = -(gp(ip,0)*gp(ip,0)+gp(ip,0))*gp(ip,1);
-				basisG[ip](6,0) = -gp(ip,0)*(gp(ip,1)*gp(ip,1)+gp(ip,1));     basisG[ip](6,1) = (1-gp(ip,0)*gp(ip,0))*(2*gp(ip,1)+1)*0.5;
-				basisG[ip](7,0) = (2*gp(ip,0)-1)*(1-gp(ip,1)*gp(ip,1))*0.5;   basisG[ip](7,1) = (gp(ip,0)*gp(ip,0)-gp(ip,0))*(-gp(ip,1));
-				basisG[ip](8,0) = -2*gp(ip,0)*(1-gp(ip,1)*gp(ip,1));          basisG[ip](8,1) = -2*gp(ip,1)*(1-gp(ip,0)*gp(ip,0));
+				basisG[ip](0,0) = (2*gp(ip,0)-1)*gp(ip,1)*(gp(ip,1)-1)*0.25;
+				basisG[ip](0,1) = gp(ip,0)*(gp(ip,0)-1)*(2*gp(ip,1)-1)*0.25;
+				basisG[ip](1,0) = (2*gp(ip,0)+1)*gp(ip,1)*(gp(ip,1)-1)*0.25;
+				basisG[ip](1,1) = gp(ip,0)*(gp(ip,0)+1)*(2*gp(ip,1)-1)*0.25;
+				basisG[ip](2,0) = (2*gp(ip,0)+1)*gp(ip,1)*(gp(ip,1)+1)*0.25;
+				basisG[ip](2,1) = gp(ip,0)*(gp(ip,0)+1)*(2*gp(ip,1)+1)*0.25;
+				basisG[ip](3,0) = (2*gp(ip,0)-1)*gp(ip,1)*(gp(ip,1)+1)*0.25;
+				basisG[ip](3,1) = gp(ip,0)*(gp(ip,0)-1)*(2*gp(ip,1)+1)*0.25;
+				basisG[ip](4,0) = -gp(ip,0)*gp(ip,1)*(gp(ip,1)-1);
+				basisG[ip](4,1) = (1-gp(ip,0)*gp(ip,0))*(2*gp(ip,1)-1)*0.5;
+				basisG[ip](5,0) = (2*gp(ip,0)+1)*(1-gp(ip,1)*gp(ip,1))*0.5;
+				basisG[ip](5,1) = -(gp(ip,0)*gp(ip,0)+gp(ip,0))*gp(ip,1);
+				basisG[ip](6,0) = -gp(ip,0)*(gp(ip,1)*gp(ip,1)+gp(ip,1));
+				basisG[ip](6,1) = (1-gp(ip,0)*gp(ip,0))*(2*gp(ip,1)+1)*0.5;
+				basisG[ip](7,0) = (2*gp(ip,0)-1)*(1-gp(ip,1)*gp(ip,1))*0.5;
+				basisG[ip](7,1) = (gp(ip,0)*gp(ip,0)-gp(ip,0))*(-gp(ip,1));
+				basisG[ip](8,0) = -2*gp(ip,0)*(1-gp(ip,1)*gp(ip,1));
+				basisG[ip](8,1) = -2*gp(ip,1)*(1-gp(ip,0)*gp(ip,0));
 			}
 		}
 	}
@@ -121,10 +133,12 @@ void getLagrangeBasisGrads(const Matrix& __restrict__ gp, const Shape shape, con
 /// A global function for computing 2D Lagrange mapping derivatives
 /** Mappings upto P2 are implemented.
  */
-void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape shape, const int degree, const Matrix& __restrict__ phy,
-		std::vector<MatrixDim>& __restrict__ jacoi, std::vector<a_real>& __restrict__ jacod)
+void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape shape, const int degree,
+                                      const Matrix& __restrict__ phy,
+                                      std::vector<MatrixDim>& __restrict__ jacoi,
+                                      std::vector<a_real>& __restrict__ jacod)
 {
-	int np = po.rows();
+	const int np = po.rows();
 	std::vector<MatrixDim> jac(np);
 
 	if (shape == TRIANGLE)
@@ -171,7 +185,7 @@ void getLagrangeJacobianDetAndInverse(const Matrix& __restrict__ po, const Shape
 
 /// Value of 2D Lagrange mapping at any reference coordinates
 void getLagrangeMap(const Matrix& __restrict__ pts, const Shape shape,
-		const int degree, const Matrix& __restrict__ phy, Matrix& __restrict__ mapping)
+                    const int degree, const Matrix& __restrict__ phy, Matrix& __restrict__ mapping)
 {
 	if(shape == TRIANGLE)
 	{
@@ -219,9 +233,12 @@ void getTaylorBasis(const Matrix& gp, const int degree,
 	if(degree >= 2) {
 		for(int ip = 0; ip < gp.rows(); ip++)
 		{
-			basiss(ip,3) = (gp(ip,0)-center[0])*(gp(ip,0)-center[0])/(2.0*delta[0]*delta[0]) - basisOffset[0][0];
-			basiss(ip,4) = (gp(ip,0)-center[0])*(gp(ip,1)-center[1])/(delta[0]*delta[1]) - basisOffset[0][2];
-			basiss(ip,5) = (gp(ip,1)-center[1])*(gp(ip,1)-center[1])/(2.0*delta[1]*delta[1]) - basisOffset[0][1];
+			basiss(ip,3) = (gp(ip,0)-center[0])*(gp(ip,0)-center[0])/(2.0*delta[0]*delta[0])
+				- basisOffset[0][0];
+			basiss(ip,4) = (gp(ip,0)-center[0])*(gp(ip,1)-center[1])/(delta[0]*delta[1])
+				- basisOffset[0][2];
+			basiss(ip,5) = (gp(ip,1)-center[1])*(gp(ip,1)-center[1])/(2.0*delta[1]*delta[1])
+				- basisOffset[0][1];
 		}
 	}
 }
@@ -315,7 +332,8 @@ void LagrangeMapping2D::calculateMap(const Matrix& __restrict__ points, Matrix& 
 }
 
 void LagrangeMapping2D::calculateJacobianDetAndInverse(const Matrix& __restrict__ po,
-		std::vector<MatrixDim>& __restrict__ jacoi, std::vector<a_real>& __restrict__ jacod) const
+                                                       std::vector<MatrixDim>& __restrict__ jacoi,
+                                                       std::vector<a_real>& __restrict__ jacod) const
 {
 	getLagrangeJacobianDetAndInverse(po, shape, degree, phyNodes, jacoi, jacod);
 }
@@ -358,7 +376,8 @@ void LagrangeMapping2D::computePhysicalCoordsOfDomainQuadraturePoints()
 
 /** We currently have upto P2 elements.
  * The number of DOFs is computed as \f$ \sum_{i=1}^{p+1} i \f$ for p = 0,1,2...
- * For computing the element centers and area, we use the all quadrature points of the quadrature object in the gmap.
+ * For computing the element centers and area, we use
+ * all the quadrature points of the quadrature object in the gmap.
  * Note that for a quad element of degree bi p (p=1 is bi linear etc), the jacodet is of degree bi 2p-1.
  * For a tri element of degree p, the jacodet is of degree 2p-2.
  */

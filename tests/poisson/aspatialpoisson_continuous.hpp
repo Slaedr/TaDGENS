@@ -51,7 +51,7 @@ protected:
 	const a_real aa, bb, dd, ee;            ///< Params of exact solution
 
 	//amat::Array2d<int> dofmap;              ///< Identifies global dof index with local dofs and element index
-	Vector bflag;                           ///< Marks whether a DOF lies on a boundary or not
+	std::vector<int> bflag;                   ///< Marks whether a DOF lies on a boundary or not
 
 	Eigen::SparseMatrix<a_real> Ag;         ///< Global left hand side matrix
 	Vector bg;                              ///< Global load vector

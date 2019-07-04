@@ -98,7 +98,7 @@ void SpatialBase::computeFEData()
 		// compute mass matrix
 		for(int ig = 0; ig < map2d[iel].getQuadrature()->numGauss(); ig++)
 		{
-			a_real weightandjdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
+			const a_real weightandjdet = map2d[iel].jacDet()[ig] * map2d[iel].getQuadrature()->weights()(ig);
 			for(int idof = 0; idof < elems[iel]->getNumDOFs(); idof++)
 				for(int jdof = 0; jdof < elems[iel]->getNumDOFs(); jdof++)
 					minv[iel](idof,jdof) += elems[iel]->bFunc()(ig,idof)*elems[iel]->bFunc()(ig,jdof)
@@ -121,7 +121,7 @@ void SpatialBase::computeFEData()
 	// loop over faces
 	for(int iface = 0; iface < m->gnbface(); iface++)
 	{
-		int lelem = m->gintfac(iface,0);
+		const int lelem = m->gintfac(iface,0);
 		Matrix phynodes(NDIM, m->gnnofa(iface));
 		for(int i = 0; i < m->gnnofa(iface); i++)
 			for(int j = 0; j < NDIM; j++)
@@ -136,8 +136,8 @@ void SpatialBase::computeFEData()
 
 	for(int iface = m->gnbface(); iface < m->gnaface(); iface++)
 	{
-		int lelem = m->gintfac(iface,0);
-		int relem = m->gintfac(iface,1);
+		const int lelem = m->gintfac(iface,0);
+		const int relem = m->gintfac(iface,1);
 		Matrix phynodes(NDIM, m->gnnofa(iface));
 		for(int i = 0; i < m->gnnofa(iface); i++)
 			for(int j = 0; j < NDIM; j++)
@@ -179,12 +179,12 @@ void SpatialBase::spatialSetup(std::vector<Matrix>& u, std::vector<Matrix>& res,
 
 a_real SpatialBase::computeElemL2Norm2(const int ielem, const Vector& __restrict__ ug) const
 {
-	int ndofs = elems[ielem]->getNumDOFs();
+	const int ndofs = elems[ielem]->getNumDOFs();
 	a_real l2error = 0;
 
 	const Matrix& bfunc = elems[ielem]->bFunc();
 	const GeomMapping2D* gmap = elems[ielem]->getGeometricMapping();
-	int ng = gmap->getQuadrature()->numGauss();
+	const int ng = gmap->getQuadrature()->numGauss();
 	const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
 
 	for(int ig = 0; ig < ng; ig++)
@@ -205,7 +205,7 @@ a_real SpatialBase::computeL2Norm(const std::vector<Matrix> w, const int comp) c
 	for(int ielem = 0; ielem < m->gnelem(); ielem++)
 	{
 		const GeomMapping2D* gmap = elems[ielem]->getGeometricMapping();
-		int ng = gmap->getQuadrature()->numGauss();
+		const int ng = gmap->getQuadrature()->numGauss();
 		const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
 		Vector vals(ng);
 		elems[ielem]->interpolateComponent(comp,w[ielem],vals);
@@ -222,12 +222,12 @@ a_real SpatialBase::computeL2Norm(const std::vector<Matrix> w, const int comp) c
 a_real SpatialBase::computeElemL2Error2(const int ielem, const int comp,
                                         const Matrix& __restrict__ ug, const double time) const
 {
-	int ndofs = elems[ielem]->getNumDOFs();
+	const int ndofs = elems[ielem]->getNumDOFs();
 	a_real l2error = 0;
 
 	const Matrix& bfunc = elems[ielem]->bFunc();
 	const GeomMapping2D* gmap = elems[ielem]->getGeometricMapping();
-	int ng = gmap->getQuadrature()->numGauss();
+	const int ng = gmap->getQuadrature()->numGauss();
 	const amat::Array2d<a_real>& wts = gmap->getQuadrature()->weights();
 	const Matrix& qp = gmap->map();
 
@@ -264,7 +264,7 @@ void SpatialBase::setInitialConditionNodal(const int comp, double (**const init)
 	}
 	for(int iel = 0; iel < m->gnelem(); iel++)
 	{
-		Matrix refs = reinterpret_cast<LagrangeElement*>(elems[iel])->getReferenceNodes();
+		const Matrix refs = reinterpret_cast<LagrangeElement*>(elems[iel])->getReferenceNodes();
 		Matrix points(elems[iel]->getNumDOFs(), NDIM);
 		map2d[iel].calculateMap(refs, points);
 
@@ -283,9 +283,9 @@ void SpatialBase::setInitialConditionModal(const int comp, double (**const init)
 	}
 	for(int iel = 0; iel < m->gnelem(); iel++)
 	{
-		TaylorElement* elem = reinterpret_cast<TaylorElement*>(elems[iel]);
-		a_real xc = elem->getCenter()[0], yc = elem->getCenter()[1];
-		a_real dx = elem->getDelta()[0], dy = elem->getDelta()[1];
+		const TaylorElement* elem = reinterpret_cast<const TaylorElement*>(elems[iel]);
+		const a_real xc = elem->getCenter()[0], yc = elem->getCenter()[1];
+		const a_real dx = elem->getDelta()[0], dy = elem->getDelta()[1];
 
 		u[iel](comp,0) = init[0](xc,yc);
 		if(p_degree >= 1) {

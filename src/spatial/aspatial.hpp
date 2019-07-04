@@ -51,7 +51,7 @@ protected:
 	/** \param[in] comp The index of the row of ug whose error is to be computed
 	 */
 	a_real computeElemL2Error2(const int ielem, const int comp, const Matrix& ug, 
-			const double time) const;
+	                           const double time) const;
 
 	/// Computes the L2 norm of a FE function on an element
 	a_real computeElemL2Norm2(const int ielem, const Vector& ug) const;

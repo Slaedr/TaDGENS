@@ -117,26 +117,4 @@ public:
  */
 int perm(int start, int end, int n, int off);
 
-template <class T>
-class MergeSort
-{
-	T** arrs;
-	int length;
-	int num_arr;
-	int nsort;
-public:
-	MergeSort(T** arrays, int length_arrays, int num_arrays, int index_of_sorting_array)
-		: arrs(arrays), length(length_arrays), num_arr(num_arrays), nsort(index_of_sorting_array)
-	{  }
-
-	void merge(T** a, T** b, T** fin, int len)
-	{
-		int i = 0, j = 0;
-	}
-
-	void mergesort()
-	{
-	}
-};
-
 #endif

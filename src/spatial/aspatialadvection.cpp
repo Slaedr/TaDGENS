@@ -73,10 +73,11 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 
 		Matrix linterps(ng,nvars), rinterps(ng,nvars);
 		Matrix fluxes(ng,nvars);
-		
+
 		faces[iface].interpolateAll_left(u[lelem], linterps);
 		computeBoundaryState(iface, linterps, rinterps);
 
+#pragma omp simd
 		for(int ig = 0; ig < ng; ig++)
 		{
 			const a_real weightandsp = map1d[iface].getQuadrature()->weights()(ig) * map1d[iface].speed()[ig];

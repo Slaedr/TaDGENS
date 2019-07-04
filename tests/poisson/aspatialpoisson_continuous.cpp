@@ -49,9 +49,9 @@ LaplaceC::LaplaceC(const UMesh2dh *const mesh, const int _p_degree,
 	// std::cout << " LaplaceC: Local DOFs = " << nlocdofs << std::endl;
 	// dofmap.resize(m->gnelem(), nlocdofs);
 
-	bflag = Vector::Zero(ntotaldofs);
+	bflag.resize(ntotaldofs);
 	for(int i = 0; i < m->gnpoin(); i++)
-		bflag(i) = m->gflag_bpoin(i);
+		bflag[i] = m->gflag_bpoin(i);
 
 	// Only works upto P2
 	for(int i = 0; i < m->gnelem(); i++)
@@ -68,7 +68,7 @@ LaplaceC::LaplaceC(const UMesh2dh *const mesh, const int _p_degree,
 			else if(j < m->gnnode(i)*2){
 				//dofmap(i,j) = m->gnpoin()+face;
 				assert(getGlobalDofIdx(i,j) < ntotaldofs);
-				if(face < m->gnbface()) bflag(getGlobalDofIdx(i,j)) = 1;
+				if(face < m->gnbface()) bflag[getGlobalDofIdx(i,j)] = 1;
 			}
 			else {
 				std::cout << "! LaplaceC: Dofmap not implemented for this kind of element!\n";
@@ -144,7 +144,7 @@ void LaplaceC::assemble()
 		for(int i = 0; i < nvert; i++) 
 		{
 			const int igdof = getGlobalDofIdx(ielem,i);
-			if(bflag(igdof))
+			if(bflag[igdof])
 			{
 				Ag.coeffRef(igdof,igdof) = cbig;
 
@@ -158,7 +158,7 @@ void LaplaceC::assemble()
 		for(int i = nvert; i < nvert+m->gnfael(ielem); i++) 
 		{
 			const int igdof = getGlobalDofIdx(ielem,i);
-			if(bflag(igdof))
+			if(bflag[igdof])
 			{
 				Ag.coeffRef(igdof,igdof) = cbig;
 
@@ -173,7 +173,7 @@ void LaplaceC::assemble()
 		for(int i = nvert+m->gnfael(ielem); i < ndofs; i++) 
 		{
 			const int igdof = getGlobalDofIdx(ielem,i);
-			if(bflag(igdof))
+			if(bflag[igdof])
 			{
 				Ag.coeffRef(igdof,igdof) = cbig;
 

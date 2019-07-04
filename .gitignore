@@ -12,5 +12,5 @@
 *.blx
 
 build/** 
-
+TAGS
 *.vtu

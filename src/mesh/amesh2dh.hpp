@@ -67,7 +67,7 @@ public:
 	a_int gnaface() const {return naface; }
 	int gnfael(a_int ielem) const { return nfael[ielem]; }
 	int gnvertices(const a_int ielem) const {
-		static_assert(NDIM==2);
+		static_assert(NDIM==2, "Only 2D supported.");
 		return nfael[ielem];
 	}
 	int gnnofa(a_int iface) const { return nnofa[iface]; }
