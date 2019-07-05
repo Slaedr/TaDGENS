@@ -66,8 +66,8 @@ void LinearAdvection::update_residual(const std::vector<Matrix>& u, std::vector<
 #pragma omp parallel for default(shared)
 	for(a_int iface = 0; iface < m->gnbface(); iface++)
 	{
-		a_int lelem = m->gintfac(iface,0);
-		int ng = map1d[iface].getQuadrature()->numGauss();
+		const a_int lelem = m->gintfac(iface,0);
+		const int ng = map1d[iface].getQuadrature()->numGauss();
 		const std::vector<Vector>& n = map1d[iface].normal();
 		const Matrix& lbasis = faces[iface].leftBasis();
 
